@@ -4,11 +4,14 @@
 echo -ne "\nEspace restant sur le serveur : "
 
 SPACE_LEFT=$(df | egrep "/$" | awk '{print $4}')
-if [ $SPACE_LEFT -lt 1000000 ];then
+if [ "$SPACE_LEFT" -lt 1000000 ];then
 	echo -ne "${ROUGE}"; df -h | egrep "/$" | awk '{print $4}';	echo -ne "${RESET}"
 	(( UPDATE_ERROR++ ))
-	if [ "$MAIL_ALERT" -eq "1" ];then sendMail;fi
+	if [ "$MAIL_ENABLED" -eq "yes" ];then 
+		sendMail
+	fi
 	clean_exit
+	
 else
-		df -h | egrep "/$" | awk '{print $4}'
+	df -h | egrep "/$" | awk '{print $4}'
 fi

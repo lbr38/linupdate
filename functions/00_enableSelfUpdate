@@ -1,0 +1,9 @@
+#!/bin/bash
+
+if [ ! -f "$CONF" ];then
+    return
+fi
+
+sed -i 's/ALLOW_SELF_UPDATE.*/ALLOW_SELF_UPDATE="yes"/g' "$CONF" &&
+
+echo -e "Mise à jour automatique de linupdate ${JAUNE}activée${RESET}"

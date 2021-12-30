@@ -18,5 +18,3 @@ mkdir -p /root/scripts/linupdate/ &&
 echo -e "# Fichier de conf de linupdate pour $HOSTNAME\n[CONFIGURATION]\nPROFILE=\"$SERVER_PROFILE\"\nENV=\"$SERVER_ENV\"\nMAIL_DEST=\"\"\nALLOW_SELF_UPDATE=\"yes\"\n\n[SOFTWARE CONFIGURATION]\nEXCLUDE_MAJOR=\"\"\nEXCLUDE=\"\"\nNEED_RESTART=\"\"\nKEEP_CRON=\"no\"\nALLOW_OVERWRITE=\"yes\"\nALLOW_REPOSFILES_OVERWRITE=\"yes\"" > $CONF # Injection de la conf de base pour linupdate.conf
 chmod 600 linupdate.conf 
 echo -e "\n${VERT}Configuration terminée${RESET}\n"
-
-# La conf de base ayant été injectée, tout le reste de la conf sera récupérée à la première exécution du script par les fonctions selfUpdate et update_repos_conf

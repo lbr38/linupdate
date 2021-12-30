@@ -1,5 +1,5 @@
 #!/bin/bash
-# Si il s'agit de la première exécution du script
+# Si il s'agit de la première configuration du script
 
 echo -e "Ce programme est destiné à mettre à jour votre système de manière interactive ou automatique."
 echo -e "Un certain nombre de modules complémentaires peuvent être ajoutés afin d'apporter des fonctionnalités supplémentaires"
@@ -24,7 +24,10 @@ if [ -z "$SERVER_ENV" ];then SERVER_ENV="prod";fi # Si laissé vide, on met une 
 
 echo -ne " Recevoir les rapports de mise à jour et d'erreurs par mail (yes/no) : ";read -p "" CONFIRM
 if [ "$CONFIRM" == "yes" ];then 
+	MAIL_ENABLED="yes"
 	echo -ne " Sur quelle adresse mail envoyer les rapports ? : ";read -p "" MAIL_DEST
+else
+	MAIL_ENABLED="no"
 fi
 
 echo -ne " Vérifier et installer automatiquement les mises à jour de ce script à chaque exécution (yes/no) : ";read -p "" ALLOW_SELF_UPDATE
@@ -40,6 +43,7 @@ echo -e "# Fichier de conf de linupdate pour $HOSTNAME" > $CONF
 echo "[CONFIGURATION]" >> $CONF
 echo "PROFILE=\"$SERVER_PROFILE\"" >> $CONF
 echo "ENV=\"$SERVER_ENV\"" >> $CONF
+echo "MAIL_ENABLED=\"$MAIL_ENABLED\"" >> $CONF
 echo "MAIL_DEST=\"$MAIL_DEST\"" >> $CONF
 echo "ALLOW_SELF_UPDATE=\"$ALLOW_SELF_UPDATE\"" >> $CONF
 echo -e "\n[SOFTWARE CONFIGURATION]" >> $CONF

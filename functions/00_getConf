@@ -12,18 +12,14 @@ if [ ! -f "$CONF" ];then
 fi
 
 SERVER_PROFILE=$(egrep "^PROFILE=" "$CONF" | cut -d'=' -f 2 | sed 's/"//g')  	# Type de serveur
-SERVER_ENV=$(egrep "^ENV=" "$CONF" | cut -d'=' -f 2 | sed 's/"//g')    	# Env
-if egrep -q "^MAIL_DEST=" "$CONF";then 								   	# Si une adresse mail est détectée dans le fichier de conf,
-	MAIL_ALERT="1"														# on active les alertes mails,
-	MAIL_DEST=$(egrep "^ENV=" "$CONF" | cut -d'=' -f 2 | sed 's/"//g') 	# et on récupère l'adresse mail destinataire
-fi
-ALLOW_SELF_UPDATE=$(egrep "^ALLOW_SELF_UPDATE=" "$CONF" | cut -d'=' -f 2 | sed 's/"//g') # Autoriser l'auto-update du script depuis github
+SERVER_ENV=$(egrep "^ENV=" "$CONF" | cut -d'=' -f 2 | sed 's/"//g')    			# Env
+MAIL_ENABLED=$(egrep "^MAIL_ENABLED=" "$CONF" | cut -d'=' -f 2 | sed 's/"//g')
+MAIL_DEST=$(egrep "^MAIL_DEST=" "$CONF" | cut -d'=' -f 2 | sed 's/"//g')
+ALLOW_SELF_UPDATE=$(egrep "^ALLOW_SELF_UPDATE=" "$CONF" | cut -d'=' -f 2 | sed 's/"//g')    # Autoriser l'auto-update du script depuis github
 CONF_SOFT_EXCLUDE_MAJOR=$(egrep "^EXCLUDE_MAJOR=" "$CONF" | cut -d'=' -f 2 | sed 's/"//g') 	# Paquets critiques à exclure en cas de maj majeure
 CONF_SOFT_EXCLUDE=$(egrep "^EXCLUDE=" "$CONF" | cut -d'=' -f 2 | sed 's/"//g') 				# Paquets critiques à exclure dans tous les cas
 CONF_SOFT_NEED_RESTART=$(egrep "^NEED_RESTART=" "$CONF" | cut -d'=' -f 2 | sed 's/"//g') 	# Paquets critiques ou non à redémarrer
 CONF_SOFT_KEEP_CRON=$(egrep "^KEEP_CRON=" "$CONF" | cut -d'=' -f 2 | sed 's/"//g') 			# Conserver la tâche cron après sauvegarde ou non
-#REPOSERVER_ALLOW_AUTOUPDATE=$(egrep "^REPOSERVER_ALLOW_AUTOUPDATE=" "$CONF" | cut -d'=' -f 2 | sed 's/"//g') # Autoriser la mise à jour du fichier de conf par un serveur repomanager (module reposerver)
-#REPOSERVER_ALLOW_OVERWRITE=$(egrep "^REPOSERVER_ALLOW_OVERWRITE=" "$CONF" | cut -d'=' -f 2 | sed 's/"//g') 	# Autoriser le forcement de l'écrasement du fichier de conf par un serveur repomanager (module reposerver), cela permet de forcer même si l'option ALLOW_AUTOUPDATE est à no
-#REPOSERVER_ALLOW_REPOSFILES_UPDATE=$(egrep "^REPOSERVER_ALLOW_REPOSFILES_UPDATE=" "$CONF" | cut -d'=' -f 2 | sed 's/"//g') # Autoriser l'écrasement des fichiers .repo par un serveur repomanager (module reposerver)
+
 if [ -z "$SERVER_PROFILE" ];then echo -e "[${ROUGE} ERREUR ${RESET}] Le paramètre PROFILE n'est pas renseigné dans le fichier de conf\n";(( UPDATE_ERROR++ ));clean_exit;fi
 if [ -z "$SERVER_ENV" ];then echo -e "[${ROUGE} ERREUR ${RESET}] Le paramètre ENV n'est pas renseigné dans le fichier de conf\n";(( UPDATE_ERROR++ ));clean_exit;fi

@@ -1,37 +1,54 @@
 #!/bin/bash
-# à revoir (adapter liens github)
-# remplacer les url par des urls de gitlab
 
-# Vérifie si une nouvelle version de ce script est disponible et averti l'utilisateur qu'il faut la déployer
-if [ "$ALLOW_SELF_UPDATE" == "yes" ];then # Si l'autoupdate est autorisé alors on vérifie si une nouvelle version est dispo et on applique la maj si c'est le cas
-	echo -ne "Vérification des mises à jour : "
-	VERSION_DISPO=$(curl -s "https://raw.githubusercontent.com/lbr38/linupdate/master/version")
-	if [ -z "$VERSION_DISPO" ];then
-		echo -e "[$ROUGE ERREUR $RESET] lors de la récupération du numéro de version disponible\n"
-	elif [ "$VERSION" != "$VERSION_DISPO" ];then
-		echo -e "${JAUNE}Une nouvelle version est disponible${RESET}"
-		rm /tmp/linupdate -rf
-		cd /tmp &&
+# Vérifie si une nouvelle version de ce script est disponible sur github et l'installe
 
-		# Téléchargement de la nouvelle version :
-		echo -ne "\n → Téléchargement de la nouvelle version :\t" &&
-		if git clone --quiet https://github.com/lbr38/linupdate.git > /dev/null;then
-			echo -e "[$VERT OK $RESET]"
-		else
-			echo -e "[$ROUGE ERREUR $RESET] lors du téléchargement"
-			(( UPDATE_ERROR++ ))
-			clean_exit
-		fi
+# Si la mise à jour automatique n'est pas activé alors on quitte la fonction
+if [ "$ALLOW_SELF_UPDATE" != "yes" ];then
+	return
+fi
 
-		cd /tmp/linupdate &&
-		rsync -aP --quiet --delete-after functions/ ${BASE_DIR}/functions/
-		rsync -aP --quiet --delete-after mods-available/ ${BASE_DIR}/mods-available/
-		rsync -aP --quiet linupdate ${BASE_DIR}/
-		rsync -aP --quiet version ${BASE_DIR}/
+echo -ne "Vérification des mises à jour : "
 
-		exec ${BASE_DIR}/linupdate
+VERSION_DISPO=$(curl -s "https://raw.githubusercontent.com/lbr38/linupdate/master/version")
+if [ -z "$VERSION_DISPO" ];then
+	echo -e "[$ROUGE ERREUR $RESET] lors de la récupération du numéro de version disponible\n"
 
-	else # Si il n'y a pas de nouvelle version disponible, il n'y a rien à faire. On affiche OK car la vérification a été faite sans erreur
-		echo -e "Pas de nouvelle version disponible\n"
+elif [ "$VERSION" != "$VERSION_DISPO" ];then
+	echo -e "${JAUNE}Une nouvelle version est disponible${RESET}"
+	rm /tmp/linupdate -rf
+	cd /tmp &&
+
+	# Téléchargement de la nouvelle version :
+	echo -ne " → Installation de la nouvelle version : " &&
+	if git clone --quiet https://github.com/lbr38/linupdate.git > /dev/null;then
+		echo -e "[$VERT OK $RESET]"
+	else
+		echo -e "[$ROUGE ERREUR $RESET] lors du téléchargement"
+		(( UPDATE_ERROR++ ))
+		clean_exit
 	fi
+
+	cd /tmp/linupdate &&
+	rsync -a --quiet --delete-after functions/ ${BASE_DIR}/functions/
+	rsync -a --quiet --delete-after mods-available/ ${BASE_DIR}/mods-available/
+	rsync -a --quiet --delete-after service/ ${BASE_DIR}/service/
+	rsync -a --quiet linupdate ${BASE_DIR}/
+	rsync -a --quiet version ${BASE_DIR}/
+
+	# Récupération des paramètres passés au script
+	ARGS=$(cat "/tmp/.linupdate.args.tmp") 
+	echo -e " → Re-démarrage de linupdate avec les mêmes paramètres : $ARGS"
+	sleep 1
+
+	# Si il n'y a pas d'argument à passer, on reéxécute le script sans paramètre
+	if [ -z "$ARGS" ];then 
+		exec "$LINUPDATE"
+	# Si il y a eu des paramètres, on reéxécute le script avec les mêmes paramètres.
+	# Ne pas mettre $ARGS entre quotes "" sinon les paramètres vont se réexécuter comme 1 seul paramètre et ne seront pas reconnus.
+	else 
+		exec "$LINUPDATE" $ARGS
+	fi
+
+else # Si il n'y a pas de nouvelle version disponible, il n'y a rien à faire. On affiche OK car la vérification a été faite sans erreur
+	echo -e "Pas de nouvelle version disponible\n"
 fi

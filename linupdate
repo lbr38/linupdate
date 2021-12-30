@@ -1,5 +1,5 @@
 #!/bin/bash
-#set -u
+set -u
 export LC_ALL="fr_FR.UTF-8"
 export TERM="xterm-256color"
 export COLUMNS=190
@@ -14,35 +14,39 @@ DATE_NOM=$(date +%A)								# Date du jour au format 'lundi'
 HEURE=$(date +%Hh%M)								# Heure au format 00h00
 HEURE_FULL=$(date +%H:%M:%S)
 HEURE_FULL_ALT=$(date +%H-%M-%S)
-BASE_DIR="/opt/linupdate"						# Répertoire du programme principal
-linupdate="${BASE_DIR}/linupdate"		# Programme principal
+BASE_DIR="/opt/linupdate"							# Répertoire du programme principal
+LINUPDATE="${BASE_DIR}/linupdate"					# Programme principal
 FUNCTIONS="${BASE_DIR}/functions"					# Répertoire des fonctions du programme
 LOGS_DIR="${BASE_DIR}/logs"							# Répertoire des logs
-ETC_DIR="/etc/linupdate"						# Répertoire de configuration du programme
-CONF="${ETC_DIR}/linupdate.conf"				# Fichier de configuration principal de linupdate
+ETC_DIR="/etc/linupdate"							# Répertoire de configuration du programme
+CONF="${ETC_DIR}/linupdate.conf"					# Fichier de configuration principal de linupdate
 MODULES_DIR="${BASE_DIR}/mods-available"			# Répertoire des modules disponibles
 MODULES_ENABLED_DIR="${BASE_DIR}/mods-enabled"		# Répertoire des modules activés
 MODULES_CONF_DIR="${ETC_DIR}/modules"				# La configuration des modules est stockée dans /etc pour plus de facilité de configuration pour l'utilisateur
+SERVICE_DIR="${BASE_DIR}/service"
 
 HISTORY_DIR="${BASE_DIR}/history"					# Répertoire contenant l'historique de toutes les mises à jour passées
-HISTORY_YUM_FILE="/tmp/.linupdate_yum.log"	# Fichier temporaire contenant la liste des paquets mis à jour, installés ou supprimés au cours de la mise à jour (Redhat)
-HISTORY_DPKG_FILE="/tmp/.linupdate_dpkg.log"	# Fichier temporaire contenant la liste des paquets mis à jour, installés ou supprimés au cours de la mise à jour (Debian)
+HISTORY_YUM_FILE="/tmp/.linupdate_yum.log"			# Fichier temporaire contenant la liste des paquets mis à jour, installés ou supprimés au cours de la mise à jour (Redhat)
+HISTORY_DPKG_FILE="/tmp/.linupdate_dpkg.log"		# Fichier temporaire contenant la liste des paquets mis à jour, installés ou supprimés au cours de la mise à jour (Debian)
 HISTORY_TAIL_YUM_PID=""
 HISTORY_TAIL_DPKG_PID=""
 
 # Version actuelle
 if [ -f "${BASE_DIR}/version" ];then
 	VERSION=$(cat ${BASE_DIR}/version)
+else
+	VERSION=""
 fi
 
 OS_FAMILY=""
 OS_NAME=""
+OS_ID=""
 OS_VERSION=""
 PKG_MANAGER=""
 SERVER_PROFILE=""
 SERVER_ENV=""
 FAILLEVEL=""
-MAIL_ALERT="0"
+MAIL_ENABLED=""
 MAIL_DEST=""
 CONF_SOFT_EXCLUDE_MAJOR=""
 CONF_SOFT_EXCLUDE=""
@@ -93,6 +97,12 @@ if [ "$(id -u)" -ne "0" ];then
 	echo -e "\n${JAUNE}Doit être exécuté avec sudo ${RESET}\n"
 	exit
 fi
+
+# Détection d'un process linupdate déjà actif
+# if ps a | grep "linupdate" | grep -vq "grep";then
+# 	echo -e "\n${JAUNE}Un processus linupdate est déjà en cours d'exécution${RESET}\n"
+# 	exit
+# fi
 
 # Détection du système
 # Le fichier /etc/os-release est présent sur les OS récents et permet de récupérer toutes les infos nécéssaires
@@ -166,12 +176,23 @@ if [ ! -f "/etc/os-release" ];then
 	# Si /etc/centos-release existe, c'est un centos
 	if [ -f "/etc/centos-release" ];then
 		OS_NAME="CentOS"
+		OS_ID="centos"
 		OS_VERSION=$(rpm --eval '%{centos_ver}')
-	fi
 	# Si /etc/fedora-release existe, c'est un fedora
-	if [ -f "/etc/fedora-release" ];then
+	elif [ -f "/etc/fedora-release" ];then
 		OS_NAME="Fedora"
-		OS_VERSION=$(cat /etc/os-release | grep "VERSION_ID" | cut -d'=' -f2 | sed 's/"//g')
+		OS_ID="fedora"
+		OS_VERSION=$(cat /etc/os-release | grep "^VERSION_ID" | cut -d'=' -f2 | sed 's/"//g')
+	else
+		# Dernier recours on vérifie la présence d'un fichier os-release sinon on quitte
+		if [ ! -f "/etc/os-release" ];then
+			echo -e "[${ROUGE} ERREUR ${RESET}] Impossible de déterminer la version du système"
+			exit
+		fi
+
+		OS_NAME=$(cat /etc/os-release | grep "^NAME=" | cut -d'=' -f2 | sed 's/"//g')
+		OS_ID=$(cat /etc/os-release | grep "^ID=" | cut -d'=' -f2 | sed 's/"//g')
+		OS_VERSION=$(cat /etc/os-release | grep "^VERSION_ID=" | cut -d'=' -f2 | sed 's/"//g')
 	fi
 
 	# On quitte le script si on n'a rien trouvé à ce stade
@@ -202,10 +223,12 @@ if [ "$OS_FAMILY" == "Redhat" ];then
 fi
 
 # Création des répertoires de base
+# Note : ne pas créer le répertorie fonctions ici puisque c'est lui qui détermine si le programme est installé ou non. Le répertoire est créé par selfInstall().
 mkdir -p "$ETC_DIR"
 mkdir -p "$MODULES_CONF_DIR"
 mkdir -p "$MODULES_DIR"
 mkdir -p "$MODULES_ENABLED_DIR"
+mkdir -p "$SERVICE_DIR"
 mkdir -p "$HISTORY_DIR"
 
 # Génération d'un ID et d'un fichier d'historique, ce fichier contiendra l'historique des paquets installés
@@ -237,16 +260,18 @@ selfInstall() {
 	cd /tmp/linupdate && git clone --quiet https://github.com/lbr38/linupdate.git > /dev/null &&
 	cd /tmp/linupdate/linupdate &&
 
-	# On copie les répertoires nécessaires au script au bon endroit
-	mkdir -p "${BASE_DIR}/functions/" &&
-	mkdir -p "${BASE_DIR}/mods-available/" &&
-	mkdir -p "${BASE_DIR}/mods-enabled/" &&
+	# Création du répertoire des fonctions
+	mkdir -p "$FUNCTIONS"
 
 	# Copie des fonctions
-	\cp -r functions/* "${BASE_DIR}/functions"/ &&
+	\cp -r functions/* "$FUNCTIONS"/
 
 	# Copie des modules .mod
-	\cp -r mods-available/* "${BASE_DIR}/mods-available"/ &&
+	\cp -r mods-available/* "$MODULES_DIR"/
+
+	# Copie de l'agent
+	\cp -r service/* "$SERVICE_DIR"/
+
 	# Copie du nouveau script linupdate lui-même
 	\cp linupdate ${BASE_DIR}/linupdate
 
@@ -263,6 +288,8 @@ selfInstall() {
 # Chargement des fonctions du répertoire functions
 if [ -d "$FUNCTIONS" ];then
 	selfUpdate()				{ source "${FUNCTIONS}/00_selfUpdate"; }
+	enableSelfUpdate()          { source "${FUNCTIONS}/00_enableSelfUpdate"; }
+	disableSelfUpdate()         { source "${FUNCTIONS}/00_disableSelfUpdate"; }
 	configure() 				{ source "${FUNCTIONS}/00_configure"; }
 	quickConfig() 				{ source "${FUNCTIONS}/00_quickConfig"; }
 	getConf() 					{ source "${FUNCTIONS}/00_getConf"; }
@@ -273,12 +300,14 @@ if [ -d "$FUNCTIONS" ];then
 	spaceLeft() 				{ source "${FUNCTIONS}/00_spaceLeft"; }
 	loadModules() 				{ source "${FUNCTIONS}/01_loadModules"; }
 	checkPackagesBeforeUpdate() { source "${FUNCTIONS}/02_checkPackagesBeforeUpdate"; }
-	setHistoryFile()			{ source "${FUNCTIONS}/03_setHistoryFile"; }
 	update() 					{ source "${FUNCTIONS}/04_update"; }
 	delCron() 					{ source "${FUNCTIONS}/05_delCron"; }
-	genHistory()				{ source "${FUNCTIONS}/04_genHistory"; }
 	delCron() 					{ source "${FUNCTIONS}/05_delCron"; }
 	sendMail() 					{ source "${FUNCTIONS}/10_sendMail"; }
+	deployAgent()               { source "${FUNCTIONS}/96_deployAgent"; }
+	startAgent()                { source "${FUNCTIONS}/97_startAgent"; }
+	stopAgent()                 { source "${FUNCTIONS}/98_stopAgent"; }
+	enableAgent()               { source "${FUNCTIONS}/99_enableAgent"; }
 	clean_exit()				{ source "${FUNCTIONS}/99_cleanExit"; }
 fi
 
@@ -308,6 +337,8 @@ exec &> >(tee -a "$LOG")
 
 # Sauvegarde des paramètres passés au script avant qu'il ne disparaissent à cause du shift ci-dessous. Permet de conserver une trace des paramètres passés au cas où.
 echo "$@" > /tmp/.linupdate.args.tmp
+
+set +u
 while [ $# -ge 1 ];do
 	case "$1" in
 		--help|-h)
@@ -326,7 +357,7 @@ while [ $# -ge 1 ];do
 			else
 			# Si un nom de profil a été précisé alors on modifie le profil actuel
 				if grep -q "PROFILE=" $CONF;then
-					sed -i "s/PROFILE=.*/PROFILE=\"$2\"" $CONF &&
+					sed -i "s/PROFILE=.*/PROFILE=\"$2\"/g" $CONF &&
 					echo -e "Profil modifié : ${JAUNE}$2${RESET}"
 				fi
 			fi
@@ -340,7 +371,7 @@ while [ $# -ge 1 ];do
 			else
 			# Si un nom d'env a été précisé alors on modifie l'env actuel
 				if grep -q "ENV=" $CONF;then
-					sed -i "s/ENV=.*/ENV=\"$2\"" $CONF &&
+					sed -i "s/ENV=.*/ENV=\"$2\"/g" $CONF &&
 					echo -e "Environnement modifié : ${JAUNE}$2${RESET}"
 				fi
 			fi
@@ -375,11 +406,11 @@ while [ $# -ge 1 ];do
 			listModules
 			clean_exit
 		;;
-		--upgrade-repos|-U)
-			getConf
-			update_repos_conf
-			clean_exit
-		;;
+		# --upgrade-repos|-U)
+		# 	getConf
+		# 	update_repos_conf
+		# 	clean_exit
+		# ;;
 		--ignore-exclude|-ie)
 			IGNORE_EXCLUDE=1
 		;;
@@ -427,6 +458,30 @@ while [ $# -ge 1 ];do
 			echo -e "Module ${JAUNE}${MODULE}${RESET} configuré"
 			clean_exit
 		;;
+		--agent-deploy|--deploy-agent)
+			deployAgent
+			clean_exit
+		;;
+		--agent-start|--start-agent)
+			startAgent
+			clean_exit
+		;;
+		--agent-stop|--stop-agent)
+			stopAgent
+			clean_exit
+		;;
+		--agent-enable|--enable-agent)
+			enableAgent
+			clean_exit
+		;;
+		--enable-self-update|--enable-auto-update)
+			enableSelfUpdate
+			clean_exit
+		;;
+		--disable-self-update|--disable-auto-update)
+			disableSelfUpdate
+			clean_exit
+		;;
     	*)
 		echo "Paramètre inconnu: $1"
 		printHelp
@@ -435,14 +490,22 @@ while [ $# -ge 1 ];do
     esac
     shift
 done
+set -u
 
-echo -e "\n$SEP"
-echo -e "\n MISE A JOUR DES PAQUETS\n"
-echo -e "$SEP\n"
+echo -e "\n\n
+ .__  .__                        .___       __          
+ |  | |__| ____  __ ________   __| _/____ _/  |_  ____  
+ |  | |  |/    \|  |  \____ \ / __ |\__  \\   __\/ __ \ 
+ |  |_|  |   |  \  |  /  |_> > /_/ | / __ \|  | \  ___/ 
+ |____/__|___|  /____/|   __/\____ |(____  /__|  \___  >
+              \/      |__|        \/     \/          \/ 
+
+
+ ${JAUNE}linupdate${RESET} - advanced package updater for linux distributions\n\n\n"
 
 # Lecture du fichier de conf
 getConf 		# pour déterminer le type de serveur sur lequel nous sommes
-#selfUpdate		# Mise à jour du fichier de conf et vérification si une nouvelle version du script est disponible sur github
+selfUpdate		# Mise à jour du fichier de conf et vérification si une nouvelle version du script est disponible sur github
 getConf 		# On re-recup la conf du fichier de conf .conf si celle-ci a été changée par selfUpdate()
 
 # Chargement des modules
@@ -475,17 +538,11 @@ fi
 
 checkDependencies
 
-# Préparation des fichiers d'historique
-#setHistoryFile
-
 # Vérification des paquets à exclure avant de lancer la mise à jour
 checkPackagesBeforeUpdate
 
 # Exécution des mises à jour
 update
-
-# Génération de l'historique (nb de paquet mis à jours, installés ce jour...) à partir du fichier de log
-#genHistory
 
 # Suppression de la tâche cron
 delCron
@@ -520,6 +577,6 @@ done
 echo -e "\nOpération terminée\n" 
 
 # Envoi du rapport final par mail
-if [ "$MAIL_ALERT" -eq "1" ];then sendMail;fi	
+sendMail
 
 clean_exit

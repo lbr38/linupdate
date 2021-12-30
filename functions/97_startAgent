@@ -1,0 +1,4 @@
+#!/bin/bash
+
+systemctl start linupdate &&
+echo -e "Agent ${JAUNE}linupdate${RESET} démarré"

@@ -1,0 +1,4 @@
+#!/bin/bash
+
+systemctl stop linupdate &&
+echo -e "Agent ${JAUNE}linupdate${RESET} stoppé"

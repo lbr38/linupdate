@@ -14,6 +14,14 @@ if [ "$OS_FAMILY" == "Debian" ];then
         apt-get -qq install apt-transport-https -y > /dev/null &&
         echo -e "[$VERT OK $RESET]"
 	fi
+	# aptitude
+	CHECK_DEP=$(dpkg -l aptitude | tail -n1 | awk '{print $1}') &&
+	if [ -z "$CHECK_DEP" ] || [ "$CHECK_DEP" != "ii" ];then
+        apt-get -o Acquire::Check-Valid-Until=false -qq --allow-releaseinfo-change update &&
+        echo -ne "Installation de aptitude\t" &&
+        apt-get -qq install aptitude -y > /dev/null &&
+        echo -e "[$VERT OK $RESET]"
+	fi
 	# mutt
 	CHECK_DEP=$(dpkg -l mutt | tail -n1 | awk '{print $1}') &&
 	if [ -z "$CHECK_DEP" ] || [ "$CHECK_DEP" != "ii" ];then

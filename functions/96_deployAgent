@@ -1,0 +1,35 @@
+#!/bin/bash
+
+SERVICE_FILE="/etc/systemd/system/linupdate.service"
+AGENT_FILE="/opt/linupdate/service/linupdate-agent"
+
+if [ ! -d "/etc/systemd/system/" ];then
+    echo -e "Le répertoire /etc/systemd/system/ n'existe pas"
+    return
+fi
+
+echo "[Unit]
+Description=linupdate-agent
+
+[Service]
+ExecStart=/opt/linupdate/service/linupdate-agent
+
+[Install]
+WantedBy=multi-user.target" > "$SERVICE_FILE"
+
+systemctl daemon-reload
+
+chmod 500 "$AGENT_FILE"
+
+echo -e "${JAUNE}Agent déployé${RESET}"
+
+echo -ne "\nActiver l'agent ${JAUNE}linupdate${RESET} au démarrage du système ? (yes/no) : ";read -p "" CONFIRM
+if [ "$CONFIRM" == "yes" ];then 
+    enableAgent
+fi
+
+echo -ne "\nDémarrer l'agent ${JAUNE}linupdate${RESET} maintenant ? (yes/no) : ";read -p "" CONFIRM
+if [ "$CONFIRM" == "yes" ];then 
+    startAgent
+fi
+

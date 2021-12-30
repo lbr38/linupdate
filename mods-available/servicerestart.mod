@@ -28,10 +28,10 @@ configure() {
 
 	# Configuration de linupdate (fichier de configuration linupdate.conf)
 	# Ajout des paramètres si n'existe pas
-#	if ! grep -q "^REPOSERVER_ALLOW_AUTOUPDATE" "$CONF";then
+#	if ! grep -q "^REPOSERVER_ALLOW_CONFUPDATE" "$CONF";then
 #		echo -ne " → Autoriser le serveur ${JAUNE}${REPOSERVER_URL}${RESET} à mettre à jour la configuration de linupdate (yes/no) : "; read -p "" CONFIRM
 #		if [ "$CONFIRM" == "yes" ] || [ "$CONFIRM" == "y" ];then
-#			echo "REPOSERVER_ALLOW_AUTOUPDATE=\"yes\"" >> "$CONF"
+#			echo "REPOSERVER_ALLOW_CONFUPDATE=\"yes\"" >> "$CONF"
 #		fi
 #	fi
 #	if ! grep -q "^REPOSERVER_ALLOW_REPOSFILES_UPDATE" "$CONF";then
