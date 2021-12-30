@@ -1,0 +1,100 @@
+#!/bin/bash
+# Cette fonction est exécutée juste avant la maj. Elle vérifie si les dépendances du script sont bien installées.
+
+CHECK_DEP=""
+CHECK_LOCALE=""
+
+# Dépendances Debian :
+if [ "$OS_FAMILY" == "Debian" ];then
+	# apt-transport-https
+	CHECK_DEP=$(dpkg -l apt-transport-https | tail -n1 | awk '{print $1}') &&
+	if [ -z "$CHECK_DEP" ] || [ "$CHECK_DEP" != "ii" ];then
+        apt-get -o Acquire::Check-Valid-Until=false -qq --allow-releaseinfo-change update &&
+        echo -ne "Installation de apt-transport-https\t" &&
+        apt-get -qq install apt-transport-https -y > /dev/null &&
+        echo -e "[$VERT OK $RESET]"
+	fi
+	# mutt
+	CHECK_DEP=$(dpkg -l mutt | tail -n1 | awk '{print $1}') &&
+	if [ -z "$CHECK_DEP" ] || [ "$CHECK_DEP" != "ii" ];then
+        apt-get -o Acquire::Check-Valid-Until=false -qq --allow-releaseinfo-change update &&
+        echo -ne "Installation de mutt\t" &&
+        apt-get -qq install mutt -y > /dev/null &&
+        echo -e "[$VERT OK $RESET]"
+	fi
+	# locales
+	CHECK_DEP=$(dpkg -l locales | tail -n1 | awk '{print $1}') &&
+	if [ -z "$CHECK_DEP" ] || [ "$CHECK_DEP" != "ii" ];then
+        echo -ne "Installation de locales\t" &&
+        apt-get -qq install locales -y > /dev/null &&
+        echo -e "[$VERT OK $RESET]"
+	fi
+	# ngrep
+	CHECK_DEP=$(dpkg -l ngrep | tail -n1 | awk '{print $1}') &&
+	if [ -z "$CHECK_DEP" ] || [ "$CHECK_DEP" != "ii" ];then
+        echo -ne "Installation de ngrep\t" &&
+        apt-get -qq install ngrep -y > /dev/null &&
+        echo -e "[$VERT OK $RESET]"
+	fi
+	# jq
+	CHECK_DEP=$(dpkg -l jq | tail -n1 | awk '{print $1}') &&
+	if [ -z "$CHECK_DEP" ] || [ "$CHECK_DEP" != "ii" ];then
+        echo -ne "Installation de jq\t" &&
+        apt-get -qq install jq -y > /dev/null &&
+        echo -e "[$VERT OK $RESET]"
+	fi
+	# inotify
+	CHECK_DEP=$(dpkg -l inotify-tools | tail -n1 | awk '{print $1}') &&
+	if [ -z "$CHECK_DEP" ] || [ "$CHECK_DEP" != "ii" ];then
+        echo -ne "Installation de inotify-tools\t" &&
+        apt-get -qq install inotify-tools -y > /dev/null &&
+        echo -e "[$VERT OK $RESET]"
+	fi
+	# configuration des locales
+	CHECK_LOCALE=$(/usr/bin/locale | grep "LANG=fr_FR.UTF-8")
+	if [ -z "$CHECK_LOCALE" ] || [ "$CHECK_LOCALE" != "LANG=fr_FR.UTF-8" ];then
+        echo -ne "Reconfiguration des locales en Français " &&
+        locale-gen --purge fr_FR.UTF-8 > /dev/null &&
+        echo -e 'LANG="fr_FR.UTF-8"' > /etc/default/locale &&
+        echo -e "[$VERT OK $RESET]"
+	fi
+fi
+
+# Dépendances Redhat :
+if [ "$OS_FAMILY" == "Redhat" ];then
+	# mutt
+	CHECK_DEP=$(rpm -qa mutt)
+	if [ -z "$CHECK_DEP" ];then
+		echo -ne "Installation de mutt\t" &&
+    	yum install mutt -y > /dev/null &&
+        echo -e "[$VERT OK $RESET]"
+	fi
+	# yum-utils
+	CHECK_DEP=$(rpm -qa yum-utils)
+	if [ -z "$CHECK_DEP" ];then
+		echo -ne "Installation de yum-utils\t" &&
+    	yum install yum-utils -y > /dev/null &&
+        echo -e "[$VERT OK $RESET]"
+	fi
+	# jq
+	CHECK_DEP=$(rpm -qa jq)
+	if [ -z "$CHECK_DEP" ];then
+		echo -ne "Installation de jq\t" &&
+    	yum install jq -y > /dev/null &&
+        echo -e "[$VERT OK $RESET]"
+	fi
+	# inotify
+	CHECK_DEP=$(rpm -qa inotify-tools)
+	if [ -z "$CHECK_DEP" ];then
+		echo -ne "Installation de inotify-tools\t" &&
+    	yum install inotify-tools -y > /dev/null &&
+        echo -e "[$VERT OK $RESET]"
+	fi
+	# ngrep
+	CHECK_DEP=$(rpm -qa ngrep)
+	if [ -z "$CHECK_DEP" ];then
+		echo -ne "Installation de ngrep\t" &&
+    	yum install ngrep -y > /dev/null &&
+        echo -e "[$VERT OK $RESET]"
+	fi
+fi

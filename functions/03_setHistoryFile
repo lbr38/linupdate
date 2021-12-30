@@ -1,0 +1,42 @@
+#!/bin/bash
+# Initialisation du fichier d'historique de la mise à jour en cours.
+
+# On définit si ce script est exécuté manuellement ou automatiquement (cron, at...)
+if [ -t 0 ];then EXEC="manual";else EXEC="auto";fi
+
+# Puis on commence à renseigner le fichier d'historique avec la date, l'heure et la methode d'exécution de cette mise à jour
+echo -ne "${DATE_AMJ}|${HEURE_FULL}|${EXEC}" > "$HISTORY_FILE"
+
+# Cas Redhat
+if [ "$OS_FAMILY" == "Redhat" ];then 
+	if [ ! -f "/var/log/yum.log" ];then
+		echo -e " [$JAUNE WARNING $RESET] Le fichier /var/log/yum.log n'existe pas. Il sera impossible de récupérer l'historique des paquets mis à jour."
+		return
+	else
+		# Vidage du fichier HISTORY_YUM_FILE qui contiendra tout le nouveau contenu ajouté dans /var/log/yum.log 
+		echo -n> "$HISTORY_YUM_FILE"
+		
+		# Lancement d'un tail en arrière-plan sur le fichier /var/log/yum.log afin de récupérer son contenu dans $HISTORY_YUM_FILE
+		tail -n0 -F "/var/log/yum.log" >> $HISTORY_YUM_FILE &
+
+		# Récupération du PID du tail lancé en arrière-plan
+		HISTORY_TAIL_YUM_PID=$!
+	fi
+fi
+
+# Cas Debian
+if [ "$OS_FAMILY" == "Debian" ];then
+	if [ ! -f "/var/log/dpkg.log" ];then
+		echo -e " [$JAUNE WARNING $RESET] Le fichier /var/log/dpkg.log n'existe pas. Il sera impossible de récupérer l'historique des paquets mis à jour."
+		return
+	else
+		# Vidage du fichier HISTORY_DPKG_FILE qui contiendra tout le nouveau contenu ajouté dans /var/log/dpkg.log 
+		echo -n> "$HISTORY_DPKG_FILE"
+
+		# Lancement d'un tail en arrière-plan sur le fichier /var/log/dpkg.log afin de récupérer son contenu dans $HISTORY_DPKG_FILE
+		tail -n0 -F "/var/log/dpkg.log" >> $HISTORY_DPKG_FILE &
+		
+		# Récupération du PID du tail lancé en arrière-plan
+		HISTORY_TAIL_DPKG_PID=$!
+	fi
+fi

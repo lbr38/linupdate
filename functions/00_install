@@ -1,0 +1,79 @@
+#!/bin/bash
+# Script de première installation des fichiers de linupdate
+# Permet de mettre en place les fichiers de configuration au bon endroit (copie dans /opt/...)
+# La configuration de linupdate.conf est effectuée par linupdate lui-même lors de sa première exécution
+
+# Si ce script est exécuté, c'est que l'archive a été extraite, on peut donc copier les fichiers au bon endroit
+
+set -u
+# Variables de couleurs :
+PWD=$(pwd)
+INSTALL_DIR=""
+CONFIRM=""
+ASSUMEYES="0"
+# Si on passe le paramètre --yes au script alors on utilise tous les paramètres par défaut et on répond 'y' à toutes les questions ci-dessous
+while [ $# -ge 1 ];do 
+    case "$1" in
+        --yes|-y)
+        ASSUMEYES="1"
+        ;;
+    esac
+	shift
+done
+
+
+## Répertoire d'installation de linupdate
+#echo -e "\nRépertoire d'installation de linupdate (par défaut /opt/linupdate/)"
+#if [ "$ASSUMEYES" == "0" ];then
+#    echo -n "Laissez vide pour utiliser le répertoire par défaut, sinon précisez le nouvel emplacement : "; read -p "" INSTALL_DIR
+#fi
+if [ -z "$INSTALL_DIR" ];then
+    INSTALL_DIR="/opt/linupdate"
+fi
+#if [ -d "$INSTALL_DIR" ];then
+#    if [ "$ASSUMEYES" == "0" ];then
+#        echo -n "Le répertoire $INSTALL_DIR existe déjà, son contenu sera écrasé. Confirmez (y/n) : "; read -p "" CONFIRM
+#        if [ "$CONFIRM" != "y" ];then
+#            exit
+#        fi
+#    fi
+#    # On supprime le contenu du répertoire
+#    rm "$INSTALL_DIR" -rf
+#fi
+# Si le répertoire n'existe pas, on le crée
+if [ ! -d "$INSTALL_DIR" ];then
+    mkdir -p "$INSTALL_DIR"
+fi
+
+# Création des répertoires de linupdate dans /etc/
+#mkdir -p /etc/linupdate/vars/
+
+# Copie des fichiers de configuration
+#cp "${PWD}/vars/main.vars" /etc/linupdate/vars/main.vars
+#cp "${PWD}/vars/customs.vars" /etc/linupdate/vars/customs.vars
+#echo -e "\nINSTALL_DIR=\"/opt\"" >> /etc/linupdate/vars/customs.vars
+
+# Copie des fichiers de linupdate (fonctions bash)
+\cp -r ${PWD}/functions ${INSTALL_DIR}/
+
+# Copie du fichier de version actuelle
+\cp version ${INSTALL_DIR}/
+
+# Copie puis création d'un lien symbolique vers le programme principal
+\cp ${PWD}/linupdate ${INSTALL_DIR}/
+
+echo -e "\nUn lien symbolique pointant vers linupdate va être créé dans /usr/bin/"
+echo -n "linupdate sera alors exécutable depuis la commande 'linupdate'. Continuer ? (y/n) : "; read -p "" CONFIRM
+if [ "$CONFIRM" == "y" ];then
+    rm /usr/bin/linupdate -f
+    ln -s ${INSTALL_DIR}/linupdate /usr/bin/linupdate
+    chmod 700 ${INSTALL_DIR}/linupdate
+fi
+
+echo -n "Installation terminée. Exécuter linupdate ? (y/n) : "; read -p "" CONFIRM
+if [ "$CONFIRM" == "y" ];then
+    # Exécution de linupdate (depuis $INSTALL_DIR au cas où le lien symbolique n'a pas été créé précédemment)
+    exec ${INSTALL_DIR}/linupdate
+else
+    exit
+fi

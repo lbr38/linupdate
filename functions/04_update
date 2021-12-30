@@ -1,0 +1,47 @@
+#!/bin/bash
+
+# Fonction lançant les mises à jour yum
+{
+	echo -e "\nMises à jour en cours..."
+	echo -ne "Nettoyage du cache au préalable : "
+	if [ "$OS_FAMILY" == "Redhat" ];then yum clean all -q;fi
+	if [ "$OS_FAMILY" == "Debian" ];then apt-get clean;fi
+	echo -e "[$VERT OK $RESET]"
+
+	echo -e "\nInstallation des mises à jour :"
+	if [ "$OS_FAMILY" == "Debian" ];then apt-get -o Acquire::Check-Valid-Until=false -qq --allow-releaseinfo-change update;fi # Si c'est du Debian, on charge la liste des paquets
+
+	# Si $MAJ_EXCLUDE n'est pas vide, alors on exclu les paquets de la mise à jour
+	if [ ! -z "$MAJ_EXCLUDE" ];then
+		if [ "$OS_FAMILY" == "Redhat" ];then yum --exclude=${MAJ_EXCLUDE} update -y;fi
+		if [ "$OS_FAMILY" == "Debian" ];then
+			echo -e "\nExclusion des paquets critiques : $JAUNE"
+			IFS=' ' # Dans $MAJ_EXCLUDE le séparateur est un espace
+			for PAQUET in ${MAJ_EXCLUDE[@]};do # Attention ne pas placer de double quote sur cette variable
+				apt-mark hold "$PAQUET"
+			done
+			echo -e "$RESET"
+			# Puis on met à jour, plusieurs cas possible avec Debian : mise à jour normale ou dist-upgrade ; écrasement des fichiers de conf ou conservation 
+			if   [ "$DIST_UPGRADE" -eq "1" ] && [ "$KEEP_OLDCONF" -eq "0" ];then apt-get dist-upgrade -y
+			elif [ "$DIST_UPGRADE" -eq "1" ] && [ "$KEEP_OLDCONF" -eq "1" ];then apt-get -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" dist-upgrade -y
+			elif [ "$DIST_UPGRADE" -eq "0" ] && [ "$KEEP_OLDCONF" -eq "0" ];then apt-get upgrade -y
+			elif [ "$DIST_UPGRADE" -eq "0" ] && [ "$KEEP_OLDCONF" -eq "1" ];then apt-get -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" upgrade -y
+			fi
+		fi
+	else # Si $MAJ_EXCLUDE est vide alors on met à jour normalement, sans exclusion
+		if [ "$OS_FAMILY" == "Redhat" ];then yum update -y;fi
+		if [ "$OS_FAMILY" == "Debian" ];then 
+			# Plusieurs cas possible avec Debian : mise à jour normale ou dist-upgrade ; écrasement des fichiers de conf ou conservation 
+			if   [ "$DIST_UPGRADE" -eq "1" ] && [ "$KEEP_OLDCONF" -eq "0" ];then apt-get dist-upgrade -y
+			elif [ "$DIST_UPGRADE" -eq "1" ] && [ "$KEEP_OLDCONF" -eq "1" ];then apt-get -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" dist-upgrade -y
+			elif [ "$DIST_UPGRADE" -eq "0" ] && [ "$KEEP_OLDCONF" -eq "0" ];then apt-get upgrade -y
+			elif [ "$DIST_UPGRADE" -eq "0" ] && [ "$KEEP_OLDCONF" -eq "1" ];then apt-get -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" upgrade -y
+			fi
+		fi
+	fi &&
+	echo -e "\nMises à jour terminées"
+	
+} || {	# Si une commande échoue
+	echo -e "\nMises à jour échouées"
+	(( UPDATE_ERROR++ ))	# On incrémente $UPDATE_ERROR
+}

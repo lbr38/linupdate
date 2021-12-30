@@ -1,0 +1,74 @@
+#!/bin/bash
+
+UPDATE_RUNNING="0"
+SEND_STATUS="0"
+
+# Si aucun fichier de conf pour le module reposerver alors on quitte
+if [ ! -f "/etc/linupdate/modules/reposerver.conf" ];then exit 1;fi
+
+# Récupération de l'adresse IP du serveur reposerver
+REPOSERVER_IP=$(grep "IP=" /etc/linupdate/modules/reposerver.conf | sed 's/IP=//g' | sed 's/"//g')
+if [ -z "$REPOSERVER_IP" ];then exit 1;fi
+
+while true;do
+    # Capture d'un message exec-update demandant la mise à jour de l'hôte
+    if ngrep -q -t -W byline "exec-update" "src host $REPOSERVER_IP" -n 1;then
+        # Si une mise à jour n'est pas déjà en cours alors on peut exécuter linupdate
+        if [ "$UPDATE_RUNNING" == "0" ];then
+            UPDATE_RUNNING="1"
+
+            #/opt/linupdate/linupdate --force
+
+            UPDATE_RUNNING="0"
+        fi
+    fi
+
+    # Capture d'un message send-full-status demandant les détails de l'hôte
+    if ngrep -q -t -W byline "send-full-status" "src host $REPOSERVER_IP" -n 1;then
+        # Si une opération n'est pas déjà en cours alors on peut exécuter linupdate
+        if [ "$SEND_STATUS" == "0" ];then
+            SEND_STATUS="1"
+
+            #/opt/linupdate/linupdate --mod-configure reposerver --send-full-status
+
+            SEND_STATUS="0"
+        fi
+    fi
+
+    # Capture d'un message send-general-status demandant les détails de l'hôte
+    if ngrep -q -t -W byline "send-general-status" "src host $REPOSERVER_IP" -n 1;then
+        # Si une opération n'est pas déjà en cours alors on peut exécuter linupdate
+        if [ "$SEND_STATUS" == "0" ];then
+            SEND_STATUS="1"
+
+            #/opt/linupdate/linupdate --mod-configure reposerver --send-general-status
+
+            SEND_STATUS="0"
+        fi
+    fi
+
+    # Capture d'un message send-packages-status demandant les détails de l'hôte
+    if ngrep -q -t -W byline "send-packages-status" "src host $REPOSERVER_IP" -n 1;then
+        # Si une opération n'est pas déjà en cours alors on peut exécuter linupdate
+        if [ "$SEND_STATUS" == "0" ];then
+            SEND_STATUS="1"
+
+            #/opt/linupdate/linupdate --mod-configure reposerver --send-packages-status
+
+            SEND_STATUS="0"
+        fi
+    fi
+
+    # Capture d'un message send-update-status demandant les détails de l'hôte
+    if ngrep -q -t -W byline "send-update-status" "src host $REPOSERVER_IP" -n 1;then
+        # Si une opération n'est pas déjà en cours alors on peut exécuter linupdate
+        if [ "$SEND_STATUS" == "0" ];then
+            SEND_STATUS="1"
+
+            #/opt/linupdate/linupdate --mod-configure reposerver --send-update-status
+
+            SEND_STATUS="0"
+        fi
+    fi
+
+done

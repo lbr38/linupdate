@@ -1,0 +1,22 @@
+#!/bin/bash
+
+echo -e "Configuration automatique de linupdate et des fichiers .repo"
+while [ -z "$SERVER_PROFILE" ];do
+	read -p " → Type de serveur, laissez vide pour afficher tous les types disponibles : " SERVER_PROFILE
+	if [ -z "$SERVER_PROFILE" ];then # Si laissé vide, on affiche tous les types disponibles, pour cela on télécharge tous les types depuis le serveur de repo
+		echo -e "$JAUNE"
+		# On recupère tous les types qui sont entre crochets depuis le serveur de repos, et on retire tous les crochets pour les afficher plus clairement : 
+		curl -s "https://URL-reposerver/linupdate.allconf" | grep "\[.*\]" | sed 's|\]\[|\n|g' | sed 's|\[||g' | sed 's|\]| |g'
+		echo -e "$RESET"
+	fi
+done
+while [ -z "$SERVER_ENV" ];do
+	read -p " → Environnement : " SERVER_ENV
+done
+
+mkdir -p /root/scripts/linupdate/ &&
+echo -e "# Fichier de conf de linupdate pour $HOSTNAME\n[CONFIGURATION]\nPROFILE=\"$SERVER_PROFILE\"\nENV=\"$SERVER_ENV\"\nMAIL_DEST=\"\"\nALLOW_SELF_UPDATE=\"yes\"\n\n[SOFTWARE CONFIGURATION]\nEXCLUDE_MAJOR=\"\"\nEXCLUDE=\"\"\nNEED_RESTART=\"\"\nKEEP_CRON=\"no\"\nALLOW_OVERWRITE=\"yes\"\nALLOW_REPOSFILES_OVERWRITE=\"yes\"" > $CONF # Injection de la conf de base pour linupdate.conf
+chmod 600 linupdate.conf 
+echo -e "\n${VERT}Configuration terminée${RESET}\n"
+
+# La conf de base ayant été injectée, tout le reste de la conf sera récupérée à la première exécution du script par les fonctions selfUpdate et update_repos_conf

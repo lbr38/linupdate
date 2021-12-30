@@ -1,0 +1,22 @@
+#!/bin/bash
+
+# Nettoyage et fin du script
+# Mettre ici tous les fichiers ou répertoires à nettoyer avant l'arrêt du script
+
+# Si aucun status n'a été précisé à l'appel de la fonction alors on considère qu'on exit avec un status 0
+if [ -z "$ERROR_STATUS" ];then
+	ERROR_STATUS="0"
+fi
+
+# Nettoyage des fichiers temporaires
+rm "/opt/linupdate.maj.sh" -f
+rm "/opt/reposconf/" -rf
+rm "$LOG_RAPPORT_MAIL" -f
+rm "/tmp/linupdate"* -rf
+rm "/tmp/.linupdate"* -rf
+
+if [ "$MOD_ERROR" -gt "0" ];then
+	sendMail
+fi
+
+exit $ERROR_STATUS
