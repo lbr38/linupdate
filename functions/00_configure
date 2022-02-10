@@ -25,7 +25,7 @@ if [ -z "$SERVER_ENV" ];then SERVER_ENV="prod";fi # Si laissé vide, on met une 
 echo -ne " Recevoir les rapports de mise à jour et d'erreurs par mail (yes/no) : ";read -p "" CONFIRM
 if [ "$CONFIRM" == "yes" ];then 
 	MAIL_ENABLED="yes"
-	echo -ne " Sur quelle adresse mail envoyer les rapports ? : ";read -p "" MAIL_DEST
+	echo -ne " Sur quelle adresse mail envoyer les rapports ? : ";read -p "" MAIL_RECIPIENT
 else
 	MAIL_ENABLED="no"
 fi
@@ -44,7 +44,7 @@ echo "[CONFIGURATION]" >> $CONF
 echo "PROFILE=\"$SERVER_PROFILE\"" >> $CONF
 echo "ENV=\"$SERVER_ENV\"" >> $CONF
 echo "MAIL_ENABLED=\"$MAIL_ENABLED\"" >> $CONF
-echo "MAIL_DEST=\"$MAIL_DEST\"" >> $CONF
+echo "MAIL_RECIPIENT=\"$MAIL_RECIPIENT\"" >> $CONF
 echo "ALLOW_SELF_UPDATE=\"$ALLOW_SELF_UPDATE\"" >> $CONF
 echo -e "\n[SOFTWARE CONFIGURATION]" >> $CONF
 echo "EXCLUDE_MAJOR=\"$CONF_SOFT_EXCLUDE_MAJOR\"" >> $CONF

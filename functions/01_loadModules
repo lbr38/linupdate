@@ -14,5 +14,3 @@ if [ -d "$MODULES_ENABLED_DIR" ];then
 		done
 	fi
 fi
-
-echo ""

@@ -7,19 +7,17 @@ if [ "$ALLOW_SELF_UPDATE" != "yes" ];then
 	return
 fi
 
-echo -ne "Vérification des mises à jour : "
-
 VERSION_DISPO=$(curl -s "https://raw.githubusercontent.com/lbr38/linupdate/master/version")
 if [ -z "$VERSION_DISPO" ];then
-	echo -e "[$ROUGE ERREUR $RESET] lors de la récupération du numéro de version disponible\n"
+	echo -e "Vérification des mises à jour : [$ROUGE ERREUR $RESET] lors de la récupération du numéro de version disponible\n"
 
 elif [ "$VERSION" != "$VERSION_DISPO" ];then
-	echo -e "${JAUNE}Une nouvelle version est disponible${RESET}"
+	echo -e "${JAUNE}Une nouvelle version est disponible : ${VERSION_DISPO}${RESET}"
 	rm /tmp/linupdate -rf
-	cd /tmp &&
+	cd /tmp
 
 	# Téléchargement de la nouvelle version :
-	echo -ne " → Installation de la nouvelle version : " &&
+	echo -ne " → Installation de la nouvelle version : " 
 	if git clone --quiet https://github.com/lbr38/linupdate.git > /dev/null;then
 		echo -e "[$VERT OK $RESET]"
 	else
@@ -28,15 +26,23 @@ elif [ "$VERSION" != "$VERSION_DISPO" ];then
 		clean_exit
 	fi
 
-	cd /tmp/linupdate &&
+	cd /tmp/linupdate
 	rsync -a --quiet --delete-after functions/ ${BASE_DIR}/functions/
 	rsync -a --quiet --delete-after mods-available/ ${BASE_DIR}/mods-available/
 	rsync -a --quiet --delete-after service/ ${BASE_DIR}/service/
 	rsync -a --quiet linupdate ${BASE_DIR}/
 	rsync -a --quiet version ${BASE_DIR}/
 
+	# Après une mise à jour de linupdate, il faut redémarrer l'agent si celui-ci est installé et démarré
+	if [ -f "/etc/systemd/system/linupdate.service" ];then
+		# Si le service est démarré, on le redémarre
+		if systemctl is-active --quiet linupdate.service;then
+			restartAgent
+		fi
+	fi
+
 	# Récupération des paramètres passés au script
-	ARGS=$(cat "/tmp/.linupdate.args.tmp") 
+	ARGS=$(cat "/tmp/.linupdate_${PROCID}_main_params.tmp") 
 	echo -e " → Re-démarrage de linupdate avec les mêmes paramètres : $ARGS"
 	sleep 1
 
@@ -48,7 +54,9 @@ elif [ "$VERSION" != "$VERSION_DISPO" ];then
 	else 
 		exec "$LINUPDATE" $ARGS
 	fi
-
-else # Si il n'y a pas de nouvelle version disponible, il n'y a rien à faire. On affiche OK car la vérification a été faite sans erreur
-	echo -e "Pas de nouvelle version disponible\n"
+else
+	# Dans le cas où on a fait une demande de mise à jour seulement (paramètre --update), on affiche quand même un message pour avertir qu'aucune nouvelle version n'est disponible
+	if [ "$ONLY_UPDATE" -eq "1" ];then
+		echo -e "${JAUNE}Aucune nouvelle version n'est disponible${RESET}"
+	fi
 fi

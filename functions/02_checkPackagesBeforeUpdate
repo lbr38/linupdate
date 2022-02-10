@@ -6,7 +6,7 @@
 if [ "$OS_FAMILY" == "Redhat" ];then yum clean all -q;fi # Nettoie le cache yum
 if [ "$OS_FAMILY" == "Debian" ];then apt-get clean && apt-get -qq --allow-releaseinfo-change update;fi # Nettoie le cache apt et charge la liste des paquets à mettre à jour
 
-echo -e "\nVérification des paquets critiques avant traitement :"
+# echo -e "\nVérification des paquets critiques avant traitement :"
 CHECK_UPDATE_TMP="/tmp/linupdate_check-update.tmp" # On définit un fichier temporaire avec lequel on va travailler
 
 # Liste les paquets à mettre à jour : 
@@ -185,7 +185,9 @@ echo ""
 
 # Dans le cas où l'exécution est manuelle (un terminal existe), on demande une confirmation avant d'installer
 echo -e "${SEP}\n"
-echo -ne "${JAUNE}→ Confirmer l'installation (oui/non) : $RESET"; read -p "" CONFIRM &&
-if [ "$CONFIRM" != "oui" ];then
-    clean_exit
+if [ "$ASSUME_YES" == "0" ];then
+	echo -ne "${JAUNE}→ Confirmer l'installation (oui/non) : $RESET"; read -p "" CONFIRM &&
+	if [ "$CONFIRM" != "oui" ];then
+		clean_exit
+	fi
 fi

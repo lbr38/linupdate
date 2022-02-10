@@ -9,7 +9,8 @@
 	echo -e "[$VERT OK $RESET]"
 
 	echo -e "\nInstallation des mises à jour :"
-	if [ "$OS_FAMILY" == "Debian" ];then apt-get -o Acquire::Check-Valid-Until=false -qq --allow-releaseinfo-change update;fi # Si c'est du Debian, on charge la liste des paquets
+	# Si c'est du Debian, on charge la liste des paquets
+	if [ "$OS_FAMILY" == "Debian" ];then apt-get -o Acquire::Check-Valid-Until=false -qq --allow-releaseinfo-change update;fi
 
 	# Si $MAJ_EXCLUDE n'est pas vide, alors on exclu les paquets de la mise à jour
 	if [ ! -z "$MAJ_EXCLUDE" ];then

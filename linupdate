@@ -5,23 +5,24 @@ export TERM="xterm-256color"
 export COLUMNS=190
 
 ## ↓ VARIABLES ↓ ##
-DATE_J=$(date +%d)									# Date du jour au format 'JJ'
-DATE_JM=$(date +%d-%m)								# Date du jour au format 'JJ-MM'
-DATE_JMA=$(date +%d-%m-%Y)							# Date du jour au format 'JJ-MM-AAAA'
-DATE_AMJ=$(date +%Y-%m-%d)							# Date du jour au format 'JJ-MM-AAAA'
-DATE_FULL=$(date +%d-%m-%Y_%Hh%M)					# Date du jour au format 'JJ-MM-AAAA_hh-mm'
-DATE_NOM=$(date +%A)								# Date du jour au format 'lundi'
-HEURE=$(date +%Hh%M)								# Heure au format 00h00
+DATE_J=$(date +%d)                                  # Date du jour au format 'JJ'
+DATE_JM=$(date +%d-%m)                              # Date du jour au format 'JJ-MM'
+DATE_JMA=$(date +%d-%m-%Y)                          # Date du jour au format 'JJ-MM-AAAA'
+DATE_AMJ=$(date +%Y-%m-%d)                          # Date du jour au format 'JJ-MM-AAAA'
+DATE_FULL=$(date +%d-%m-%Y_%Hh%M)                   # Date du jour au format 'JJ-MM-AAAA_hh-mm'
+DATE_NOM=$(date +%A)                                # Date du jour au format 'lundi'
+HEURE=$(date +%Hh%M)                                # Heure au format 00h00
 HEURE_FULL=$(date +%H:%M:%S)
 HEURE_FULL_ALT=$(date +%H-%M-%S)
-BASE_DIR="/opt/linupdate"							# Répertoire du programme principal
-LINUPDATE="${BASE_DIR}/linupdate"					# Programme principal
-FUNCTIONS="${BASE_DIR}/functions"					# Répertoire des fonctions du programme
-LOGS_DIR="${BASE_DIR}/logs"							# Répertoire des logs
+BASE_DIR="/opt/linupdate"                           # Répertoire du programme principal
+LINUPDATE="${BASE_DIR}/linupdate"                   # Programme principal
+FUNCTIONS="${BASE_DIR}/functions"                   # Répertoire des fonctions du programme
+LOGS_DIR="${BASE_DIR}/logs"                         # Répertoire des logs
 ETC_DIR="/etc/linupdate"							# Répertoire de configuration du programme
 CONF="${ETC_DIR}/linupdate.conf"					# Fichier de configuration principal de linupdate
 MODULES_DIR="${BASE_DIR}/mods-available"			# Répertoire des modules disponibles
 MODULES_ENABLED_DIR="${BASE_DIR}/mods-enabled"		# Répertoire des modules activés
+AGENTS_ENABLED_DIR="${BASE_DIR}/agents-enabled"		# Répertoire des configurations d'agents activées
 MODULES_CONF_DIR="${ETC_DIR}/modules"				# La configuration des modules est stockée dans /etc pour plus de facilité de configuration pour l'utilisateur
 SERVICE_DIR="${BASE_DIR}/service"
 
@@ -47,18 +48,18 @@ SERVER_PROFILE=""
 SERVER_ENV=""
 FAILLEVEL=""
 MAIL_ENABLED=""
-MAIL_DEST=""
+MAIL_RECIPIENT=""
 CONF_SOFT_EXCLUDE_MAJOR=""
 CONF_SOFT_EXCLUDE=""
 CONF_SOFT_NEED_RESTART=""
 CONF_SOFT_KEEP_CRON=""
-HISTORIQUE="${BASE_DIR}/linupdate.historique"		                    	# Emplacement du fichier d'historique des mises à jour
+HISTORIQUE="${BASE_DIR}/linupdate.historique"                               # Emplacement du fichier d'historique des mises à jour
 if [ -f "${BASE_DIR}/linupdate" ];then
-	MD5SUM="$(/usr/bin/md5sum ${BASE_DIR}/linupdate | awk '{print $1}')"  # md5sum de ce script
+	MD5SUM="$(/usr/bin/md5sum ${BASE_DIR}/linupdate | awk '{print $1}')"    # md5sum de ce script
 fi
-RAPPORT="linupdate-${DATE_FULL}_${HOSTNAME}.log"                     		# Nom du fichier de log/rapport
-LOG="${LOGS_DIR}/${RAPPORT}"                                                	# Emplacement du fichier de log
-LOG_RAPPORT_MAIL="/tmp/${RAPPORT}"							                	# Le même fichier mais qui sera légèrement reformaté pour être envoyé par mail puis supprimé
+RAPPORT="linupdate-${DATE_FULL}_${HOSTNAME}.log"                            # Nom du fichier de log/rapport
+LOG="${LOGS_DIR}/${RAPPORT}"                                                # Emplacement du fichier de log
+LOG_RAPPORT_MAIL="/tmp/${RAPPORT}"                                          # Le même fichier mais qui sera légèrement reformaté pour être envoyé par mail puis supprimé
 DIST_UPGRADE="0"
 KEEP_OLDCONF="0"
 UPDATE_ERROR="0"
@@ -67,6 +68,9 @@ MAJ_EXCLUDE=""
 MAJ_NEED_RESTART=""
 CRONTAB_PATH=""
 ERROR_STATUS=""
+ASSUME_YES="0"
+ONLY_UPDATE="0"
+PROCID=$(echo "$RANDOM")
 
 # Variables de modules
 MOD_ERROR="0"
@@ -89,7 +93,7 @@ ROUGEB=$(tput bold;tput setaf 1)
 JAUNEB=$(tput bold;tput setaf 3)
 CYANB=$(tput bold;tput setaf 6)
 
-tabs 20                                                           	# Taille des tabulations
+#tabs 20                                                          	# Taille des tabulations
 SEP=$(printf '%*s\n' "${COLUMNS:-$(tput cols)}" '' | tr ' ' '=')	# Séparateur ligne plein écran
 
 # Détection de l'utilisateur
@@ -228,6 +232,7 @@ mkdir -p "$ETC_DIR"
 mkdir -p "$MODULES_CONF_DIR"
 mkdir -p "$MODULES_DIR"
 mkdir -p "$MODULES_ENABLED_DIR"
+mkdir -p "$AGENTS_ENABLED_DIR"
 mkdir -p "$SERVICE_DIR"
 mkdir -p "$HISTORY_DIR"
 
@@ -281,6 +286,8 @@ selfInstall() {
 	ln -s ${BASE_DIR}/linupdate /usr/bin/linupdate
 	chmod 700 ${BASE_DIR}/linupdate
 
+	cd $BASE_DIR
+
 	# Exécution du nouveau script à jour
 	exec "${BASE_DIR}/linupdate"
 }
@@ -304,9 +311,10 @@ if [ -d "$FUNCTIONS" ];then
 	delCron() 					{ source "${FUNCTIONS}/05_delCron"; }
 	delCron() 					{ source "${FUNCTIONS}/05_delCron"; }
 	sendMail() 					{ source "${FUNCTIONS}/10_sendMail"; }
-	deployAgent()               { source "${FUNCTIONS}/96_deployAgent"; }
-	startAgent()                { source "${FUNCTIONS}/97_startAgent"; }
-	stopAgent()                 { source "${FUNCTIONS}/98_stopAgent"; }
+	deployAgent()               { source "${FUNCTIONS}/95_deployAgent"; }
+	startAgent()                { source "${FUNCTIONS}/96_startAgent"; }
+	stopAgent()                 { source "${FUNCTIONS}/97_stopAgent"; }
+	restartAgent()              { source "${FUNCTIONS}/98_restartAgent"; }
 	enableAgent()               { source "${FUNCTIONS}/99_enableAgent"; }
 	clean_exit()				{ source "${FUNCTIONS}/99_cleanExit"; }
 fi
@@ -336,7 +344,7 @@ chmod 660 "$LOG"
 exec &> >(tee -a "$LOG")
 
 # Sauvegarde des paramètres passés au script avant qu'il ne disparaissent à cause du shift ci-dessous. Permet de conserver une trace des paramètres passés au cas où.
-echo "$@" > /tmp/.linupdate.args.tmp
+echo "$@" > /tmp/.linupdate_${PROCID}_main_params.tmp
 
 set +u
 while [ $# -ge 1 ];do
@@ -348,6 +356,9 @@ while [ $# -ge 1 ];do
 		--version|-v|-V)
 			echo "Version : ${JAUNE}$VERSION${RESET}"
 			clean_exit
+		;;
+		--force|--assume-yes)
+			ASSUME_YES="1"
 		;;
 		--profile|--type|--print-profile|-p)
 			# Si rien n'a été précisé en 2nd paramètre alors on affiche simplement le profil actuel
@@ -378,11 +389,12 @@ while [ $# -ge 1 ];do
 			clean_exit
 		;;
 		--update|-u)
+			ONLY_UPDATE="1"
 			getConf
 			selfUpdate
 			clean_exit
 		;;
-		--install|--reinstall|--i|-i)
+		--install|--reinstall|-i)
 			if [ -d "/opt/linupdate" ];then
 				echo -n " Cette action entrainera la suppression complète de linupdate et de ses modules. Confirmer (yes/no) : "; read -p "" CONFIRM
 				if [ "$CONFIRM" != "yes" ];then clean_exit;fi
@@ -398,10 +410,6 @@ while [ $# -ge 1 ];do
 			quickConfig
 			clean_exit
 		;;
-		# --get-modules|--get-mods|--get-mod)
-		#  	getModules
-		#  	clean_exit
-		# ;;
 		--list-modules|--list-mods|--list-mod|-m)
 			listModules
 			clean_exit
@@ -419,16 +427,13 @@ while [ $# -ge 1 ];do
 			checkPackagesBeforeUpdate
 			clean_exit
 		;;
-	#	--run-mysql-upgrade)
-	#		RUN_MYSQL_UPGRADE=1
-	#	;;
-		--dist-upgrade|--du|-du)
+		--dist-upgrade|-du)
 			DIST_UPGRADE=1
 		;;
 		--keep-oldconf|-ko)
 			KEEP_OLDCONF=1
 		;;
-		--mod-enable|-mod-enable|--me|-me)
+		--mod-enable|-mod-enable|-me)
 			MODULE=$2
 			shift
 			if [ ! -f "${MODULES_DIR}/${MODULE}.mod" ];then echo "Erreur : module $MODULE inconnu"; clean_exit; fi
@@ -438,7 +443,7 @@ while [ $# -ge 1 ];do
 			echo -e "Module ${JAUNE}${MODULE}${RESET} activé"
 			clean_exit
 		;;
-		--mod-disable|-mod-disable|--md|-md)
+		--mod-disable|-mod-disable|-md)
 			MODULE=$2
 			shift
 			if [ ! -f "${MODULES_DIR}/${MODULE}.mod" ];then echo "Erreur : module $MODULE inconnu"; clean_exit; fi
@@ -447,7 +452,7 @@ while [ $# -ge 1 ];do
 			echo -e "Module ${JAUNE}${MODULE}${RESET} désactivé"
 			clean_exit
 		;;
-		--mod-configure|-mod-configure|--mc|-mc)
+		--mod-configure|-mod-configure|-mod|-mc)
 			getConf
 			MODULE=$2
 			shift
@@ -468,6 +473,10 @@ while [ $# -ge 1 ];do
 		;;
 		--agent-stop|--stop-agent)
 			stopAgent
+			clean_exit
+		;;
+		--agent-restart|--restart-agent)
+			restartAgent
 			clean_exit
 		;;
 		--agent-enable|--enable-agent)
@@ -501,7 +510,7 @@ echo -e "\n\n
               \/      |__|        \/     \/          \/ 
 
 
- ${JAUNE}linupdate${RESET} - advanced package updater for linux distributions\n\n\n"
+ ${JAUNE}linupdate${RESET} - advanced package updater for linux distributions\n\n"
 
 # Lecture du fichier de conf
 getConf 		# pour déterminer le type de serveur sur lequel nous sommes
@@ -525,15 +534,15 @@ for MODULE in $(ls -A1 ${MODULES_ENABLED_DIR});do
 	fi
 done
 
-echo -e " Serveur\t: $HOSTNAME"
-echo -e " Profil\t: $SERVER_PROFILE"
-echo -e " Environnement\t: $SERVER_ENV"
-echo -e " Exécution le\t: $DATE_JMA à $HEURE"
-echo -ne " Exécuté par\t: "; whoami
+echo -e " Nom d'hôte :      ${JAUNE}${HOSTNAME}${RESET}"
+echo -e " Profil :          ${JAUNE}${SERVER_PROFILE}${RESET}"
+echo -e " Environnement :   ${JAUNE}${SERVER_ENV}${RESET}"
+echo -e " Exécution le :    ${JAUNE}${DATE_JMA} à ${HEURE}${RESET}"
+echo -ne " Exécuté par :    ${JAUNE} "; whoami; echo -ne "${RESET}"
 if [ -t 0 ];then
-    echo -e " Exécution\t: manuelle (terminal)"
+	echo -e " Exécution :       ${JAUNE}manuelle${RESET}"
 else
-    echo -e " Exécution\t: automatique (cron)"
+	echo -e " Exécution :       ${JAUNE}automatique (cron)${RESET}"
 fi
 
 checkDependencies

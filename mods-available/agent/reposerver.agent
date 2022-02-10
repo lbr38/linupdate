@@ -1,0 +1,240 @@
+#!/bin/bash
+
+REPOSERVER_CONF="/etc/linupdate/modules/reposerver.conf"
+INOTIFY_RUNNING="no"
+NGREP_GNR_RUNNING="no"
+NGREP_PKG_UPDATE_RUNNING="no"
+NGREP_PKG_AVAIL_RUNNING="no"
+NGREP_PKG_INSTALLED_RUNNING="no"
+NGREP_FULL_HISTORY_RUNNING="no"
+MAX_HISTORY="0"
+COUNTER="0"
+
+# Envoi des informaations générales
+function send_general_status {
+    /opt/linupdate/linupdate --mod-configure reposerver --from-agent --send-general-status
+    if [ $? != "0" ];then
+        echo -e "Une erreur est survenue lors de l'envoi des informations\n"
+    else
+        echo -e "Les informations ont été envoyées\n"
+    fi
+}
+
+# Envoi des paquets disponibles
+function send_available_packages {
+    /opt/linupdate/linupdate --mod-configure reposerver --from-agent --send-available-packages-status
+    if [ $? != "0" ];then
+        echo -e "Une erreur est survenue lors de l'envoi des paquets disponibles\n"
+    else
+        echo -e "L'envoi des paquets disponibles est terminé\n"
+    fi
+}
+
+# Envoi des paquets installés
+function send_installed_packages {
+    /opt/linupdate/linupdate --mod-configure reposerver --from-agent --send-installed-packages-status
+    if [ $? != "0" ];then
+        echo -e "Une erreur est survenue lors de l'envoi des paquets installés\n"
+    else
+        echo -e "L'envoi des paquets installés est terminé\n"
+    fi
+}
+
+# Envoi de l'historique complet des évènements
+function send_full_history {
+    if [ "$MAX_HISTORY" -gt "0" ];then
+        /opt/linupdate/linupdate --mod-configure reposerver --from-agent --send-full-history $MAX_HISTORY
+    else
+        /opt/linupdate/linupdate --mod-configure reposerver --from-agent --send-full-history
+    fi
+    if [ $? != "0" ];then
+        echo -e "Une erreur est survenue lors de l'envoi de l'historique\n"
+    else
+        echo -e "L'envoi de l'historique est terminé\n"
+    fi
+}
+
+# Envoi du status complet
+function send_full_status {
+    /opt/linupdate/linupdate --mod-configure reposerver --from-agent --send-full-status
+    if [ $? != "0" ];then
+        echo -e "Une erreur est survenue lors de l'envoi des informations\n"
+    else
+        echo -e "Les informations ont été envoyées\n"
+    fi
+}
+
+# Envoi des l'historique des derniers évènements
+function inotify_package_event {
+    if [ "$INOTIFY_RUNNING" == "no" ];then
+        # Si le fichier de log de apt ou yum est modifié alors on lance l'envoi de l'historique au serveur repomanager
+        while true; do
+            /usr/bin/inotifywait -q -e modify "$LOGFILE"
+            echo "De nouveaux évènements ont été détectés dans '$LOGFILE' - envoi de l'historique au serveur repomanager."
+
+            # Exécution
+            MAX_HISTORY="2"
+            send_full_history
+
+            sleep 2
+        done &
+
+        INOTIFY_RUNNING="yes"
+    fi
+}
+
+function ngrep_general_update_request {
+    if [ "$NGREP_GNR_RUNNING" == "no" ];then
+        while true; do
+            ngrep -q -t -W byline 'r-general-status' "src host $REPOSERVER_IP" -n 1
+
+            echo "Une demande de mise à jour des informations générales a été émise du serveur repomanager - envoi des informations au serveur."
+
+            # Exécution de la mise à jour
+            send_general_status
+
+            sleep 2
+        done &
+
+        NGREP_GNR_RUNNING="yes"
+    fi
+}
+
+function ngrep_packages_available_update_request {
+    if [ "$NGREP_PKG_AVAIL_RUNNING" == "no" ];then
+        while true; do
+            ngrep -q -t -W byline 'r-avail-pkgs' "src host $REPOSERVER_IP" -n 1
+
+            echo "Une demande de mise à jour des informations concernant les paquets disponibles a été émise du serveur repomanager - envoi des informations au serveur."
+
+            send_available_packages
+
+            sleep 2
+        done &
+
+        NGREP_PKG_AVAIL_RUNNING="yes"
+    fi
+}
+
+function ngrep_packages_installed_update_request {
+    if [ "$NGREP_PKG_INSTALLED_RUNNING" == "no" ];then
+        while true; do
+            ngrep -q -t -W byline 'r-installed-pkgs' "src host $REPOSERVER_IP" -n 1
+
+            echo "Une demande de mise à jour des informations concernant les paquets installés a été émise du serveur repomanager - envoi des informations au serveur."
+
+            send_installed_packages
+
+            sleep 2
+        done &
+
+        NGREP_PKG_INSTALLED_RUNNING="yes"
+    fi
+}
+
+function ngrep_full_history_update_request {
+    if [ "$NGREP_FULL_HISTORY_RUNNING" == "no" ];then
+        while true; do
+            ngrep -q -t -W byline 'r-full-history' "src host $REPOSERVER_IP" -n 1
+
+            echo "Une demande de mise à jour des informations concernant les évènements a été émise du serveur repomanager - envoi des informations au serveur."
+
+            MAX_HISTORY="0"
+            send_full_history
+
+            sleep 2
+        done &
+
+        NGREP_FULL_HISTORY_RUNNING="yes"
+    fi
+}
+
+function ngrep_packages_update_requested {
+    if [ "$NGREP_PKG_UPDATE_RUNNING" == "no" ];then
+        while true; do
+            ngrep -q -t -W byline 'r-update-pkgs' "src host $REPOSERVER_IP" -n 1
+
+            echo "Une demande de mise à jour des paquets a été émise du serveur repomanager - exécution de la mise à jour."
+
+            # Exécution de la mise à jour
+            /opt/linupdate/linupdate --assume-yes
+            if [ $? != "0" ];then
+                echo -e "Une erreur est survenue lors de la mise à jour\n"
+            else
+                echo -e "La mise à jour est terminée\n"
+            fi
+
+            sleep 2
+        done &
+
+        NGREP_PKG_UPDATE_RUNNING="yes"
+    fi
+}
+
+while true; do
+    # Envoi régulier d'informations au serveur repomanager toutes les heures
+    # 3600 / 5sec (sleep 5) = 720
+    if [ "$COUNTER" -eq "720" ];then
+        # Envoi du status complet
+        echo -e "Envoi périodique de l'inventaire de cet hôte au serveur repomanager"
+        send_full_status
+
+        # Réinitialisation du compteur 
+        COUNTER="0"
+    fi
+
+    ## Vérifications ##
+
+    # Vérification de l'activation du module reposerver
+    if [ ! -f "/opt/linupdate/mods-enabled/reposerver.mod" ];then
+        echo -e "[ ERREUR ] Le module reposerver n'est pas activé"
+        exit 1
+    fi
+
+    # Vérification de la présence d'un fichier de configuration pour le module reposerver
+    if [ ! -f "$REPOSERVER_CONF" ];then
+        echo -e "[ ERREUR ] Aucun fichier de configuration n'a été trouvé : '$REPOSERVER_CONF'"
+        exit 1
+    fi
+
+    # Vérification de la présence d'un fichier de log pour yum ou dpkg
+    if [ -f "/var/log/yum.log" ];then
+        LOGFILE="/var/log/yum.log"
+
+    elif [ -f "/var/log/apt/history.log" ];then
+        LOGFILE="/var/log/apt/history.log"
+
+    else
+        echo -e "[ ERREUR ] Aucun fichier de log pour dpkg ou yum n'a été trouvé sur cet hôte"
+        exit 1
+    fi
+
+    ## Récupération d'informations ##
+    REPOSERVER_IP=$(grep "^IP=" "$REPOSERVER_CONF" | sed 's/IP=//g' | sed 's/"//g')
+    if [ -z "$REPOSERVER_IP" ];then
+        echo -e "[ ERREUR ] Impossible de déterminer l'adresse IP du serveur Repomanager"
+        exit 1
+    fi
+
+    # Si aucun process inotify ne tourne, on le lance en background
+    inotify_package_event
+
+    # Surveillance des demandes de mise à jour des informations générales en provenance du serveur Repomanager
+    ngrep_general_update_request
+
+    # Surveillance des demandes de mise à jour des informations concernant les paquets disponibles en provenance du serveur Repomanager
+    ngrep_packages_available_update_request
+
+    # Surveillance des demandes de mise à jour des informations concernant les paquets installés en provenance du serveur Repomanager
+    ngrep_packages_installed_update_request
+
+    # Surveillance des demandes d'envoi de l'historique des évènement en provenance du serveur Repomanager
+    ngrep_full_history_update_request
+
+    # Surveillance des demandes de mise à jour de paquets en provenance du serveur Repomanager
+    ngrep_packages_update_requested
+
+    sleep 5
+
+    (( COUNTER++ ))
+done

@@ -13,7 +13,7 @@ rm "/opt/linupdate.maj.sh" -f
 rm "/opt/reposconf/" -rf
 rm "$LOG_RAPPORT_MAIL" -f
 rm "/tmp/linupdate"* -rf
-rm "/tmp/.linupdate"* -rf
+rm "/tmp/.linupdate_${PROCID}_main"* -rf
 
 if [ "$MOD_ERROR" -gt "0" ];then
 	sendMail

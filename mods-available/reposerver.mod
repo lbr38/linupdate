@@ -91,7 +91,7 @@ function unregister {
 	fi
 
 	# Si pas d'ID configuré alors on quitte
-	if [ -z "$ID" ];then
+	if [ -z "$HOST_ID" ];then
 		echo -e " [$JAUNE ERREUR $RESET] Aucun ID d'authentification n'est configuré sur cet hôte."
 		ERROR_STATUS=1
 		clean_exit
@@ -109,7 +109,7 @@ function unregister {
 
 	# Tentative de suppression de l'enregistrement
 	echo -ne " Suppression de l'enregistrement auprès de ${JAUNE}${REPOSERVER_URL}${RESET} : "
-	CURL=$(curl -s -q -H "Content-Type: application/json" -X DELETE -d "{\"id\":\"$ID\", \"token\":\"$TOKEN\"}" "${REPOSERVER_URL}/api/hosts/delete.php" 2> /dev/null)
+	CURL=$(curl -s -q -H "Content-Type: application/json" -X DELETE -d "{\"id\":\"$HOST_ID\", \"token\":\"$TOKEN\"}" "${REPOSERVER_URL}/api/hosts/delete.php" 2> /dev/null)
 	UNREGISTER_RETURN=$(jq -r '.return' <<< "$CURL")
 	UNREGISTER_MESSAGE=$(jq -r '.message' <<< "$CURL")
 
@@ -165,6 +165,21 @@ function mod_install {
 	
 	# Configuration du module
 	mod_configure
+}
+
+# Activation de l'agent reposerver
+function enableReposerverAgent {
+	cd ${AGENTS_ENABLED_DIR}/ &&
+	ln -sfn "../mods-available/agent/reposerver.agent" &&
+	echo -e "Agent ${JAUNE}reposerver${RESET} activé"
+	return 0
+}
+
+# Désactivation de l'agent reposerver
+function disableReposerverAgent {
+	rm "${AGENTS_ENABLED_DIR}/reposerver.agent" -f &&
+	echo -e "Agent ${JAUNE}reposerver${RESET} désactivé"
+	return 0
 }
 
 # Configuration du module
@@ -232,6 +247,14 @@ function mod_configure {
 			;;
 			--unregister)
 				unregister
+			;;
+			--enable-agent)
+				enableReposerverAgent
+				clean_exit
+			;;
+			--disable-agent)
+				disableReposerverAgent
+				clean_exit
 			;;
 			--send-full-status)
 				# Si on a précisé --full alors on enverra le status complet du serveur
@@ -332,7 +355,7 @@ function mod_load {
 
 	# Vérification du contenu du fichier de conf
 	# On utilise un fichier temporaire pour vérifier et rajouter les éventuels paramètres manquants
-	TMP_MOD_CONF="/tmp/.linupdate_reposerver.conf.tmp"
+	TMP_MOD_CONF="/tmp/.linupdate_${PROCID}_mod_reposerver_conf.tmp"
 
 	# Section MODULE
 	echo -e "[MODULE]" > "$TMP_MOD_CONF"
@@ -410,7 +433,7 @@ function mod_load {
 # Récupération de la configuration complète du module, dans son fichier de conf
 function getModConf {
 	# Configuration client (section [CLIENT])
-	ID="$(grep "^ID=" $MOD_CONF | cut -d'=' -f2 | sed 's/"//g')"
+	HOST_ID="$(grep "^ID=" $MOD_CONF | cut -d'=' -f2 | sed 's/"//g')"
 	TOKEN="$(grep "^TOKEN=" $MOD_CONF | cut -d'=' -f2 | sed 's/"//g')"
 	REPOSERVER_ALLOW_CONFUPDATE="$(grep "^REPOSERVER_ALLOW_CONFUPDATE=" $MOD_CONF | cut -d'=' -f2 | sed 's/"//g')"
 	REPOSERVER_ALLOW_OVERWRITE="$(grep "^REPOSERVER_ALLOW_OVERWRITE=" $MOD_CONF | cut -d'=' -f2 | sed 's/"//g')"
@@ -455,18 +478,20 @@ function updateModConf {
 		return 2
 	fi
 
+	TMP_FILE="/tmp/.linupdate_${PROCID}_mod_reposerver.tmp"
+
 	# On recrée le fichier de conf
 	# Sauvegarde de la partie [MODULE]
-	sed -n -e '/\[MODULE\]/,/^$/p' $MOD_CONF > /tmp/.linupdate_mod_reposerver.tmp
+	sed -n -e '/\[MODULE\]/,/^$/p' "$MOD_CONF" > "$TMP_FILE"
 	
 	# Sauvegarde de la partie [CLIENT]
-	sed -n -e '/\[CLIENT\]/,/^$/p' $MOD_CONF >> /tmp/.linupdate_mod_reposerver.tmp
+	sed -n -e '/\[CLIENT\]/,/^$/p' "$MOD_CONF" >> "$TMP_FILE"
 
 	# Ajout de la nouvelle conf [REPOSERVER]
-	echo -e "$GET_CONF" >> /tmp/.linupdate_mod_reposerver.tmp
+	echo -e "$GET_CONF" >> "$TMP_FILE"
 
 	# On remplace alors le fichier de conf actuel par le nouveau
-	cat /tmp/.linupdate_mod_reposerver.tmp > $MOD_CONF
+	cat "$TMP_FILE" > "$MOD_CONF"
 
 	# Puis on recharge à nouveau les paramètres
 	getModConf
@@ -606,7 +631,7 @@ function updateReposConfFiles { # Mets à jour les fichiers de conf .repo en all
 			# Application des droits sur les nouveaux fichiers .list
 			chown root:root /etc/apt/sources.list.d/*.list && chmod 660 /etc/apt/sources.list.d/*.list &&
 			# Vidage du cache apt
-			apt clean && 
+			apt-get clean && 
 			echo -e "[$VERT OK $RESET]"
 		fi
 	else
@@ -623,7 +648,7 @@ function updateReposConfFiles { # Mets à jour les fichiers de conf .repo en all
 	echo ""
 }
 
-# Exécution pre-mise à jour du module
+# Exécution pre-mise à jour des paquets
 function pre {
 	# Fail-level :
 	# 1 = quitte à la moindre erreur (module désactivé, le serveur ne gère pas le même OS, erreur mineure, critique)
@@ -668,17 +693,29 @@ function pre {
 	if [ "$FAILLEVEL" -eq "1" ] && [ "$RESULT" -gt "0" ];then (( MOD_ERROR++ )); clean_exit;fi
 	if [ "$FAILLEVEL" -eq "2" ] && [ "$RESULT" -ge "2" ];then (( MOD_ERROR++ )); clean_exit;fi
 
+	# Aquittement du status auprès du serveur reposerver
+	UPDATE_REQUEST_TYPE="packages-update"
+	UPDATE_REQUEST_STATUS="running"
+	update_request_status
+
 	return 0
 }
 
-# Exécution post-mise à jour du module
+# Exécution post-mise à jour des paquets
 function post {
-	
+	# Aquittement du status auprès du serveur reposerver
+	UPDATE_REQUEST_TYPE="packages-update"
+	UPDATE_REQUEST_STATUS="done"
+	update_request_status
+
+	# On renvoie les 2 derniers historique d'évènements au serveur reposerver
+	/opt/linupdate/linupdate --mod-configure reposerver --from-agent --send-full-history 2
+	/opt/linupdate/linupdate --mod-configure reposerver --from-agent --send-available-packages-status
+
 	return 0
 }
 
-
-## Status (API) ##
+## Envoi de status (API) ##
 
 # Envoi au serveur Repomanager l'état actuel de l'hôte
 # Fonction principale
@@ -696,7 +733,7 @@ function send_status {
 	# Envoi du récapitulatif de toutes les mises à jour effectuées à partir du fichier historique
 
 	# Si on n'a pas d'ID ou de token alors on ne peut pas effectuer cette opération
-	if [ -z "$ID" ];then
+	if [ -z "$HOST_ID" ];then
 		echo -e "[$JAUNE ERREUR $RESET] L'ID de cette machine est manquant"
 		ERROR_STATUS=1
 		clean_exit
@@ -743,7 +780,7 @@ function update_request_status {
 		return
 	fi
 
-	CURL_PARAMS="\"id\":\"$ID\", \"token\":\"$TOKEN\", \"set_update_request_type\":\"$UPDATE_REQUEST_TYPE\", \"set_update_request_status\":\"$UPDATE_REQUEST_STATUS\""
+	CURL_PARAMS="\"id\":\"$HOST_ID\", \"token\":\"$TOKEN\", \"set_update_request_type\":\"$UPDATE_REQUEST_TYPE\", \"set_update_request_status\":\"$UPDATE_REQUEST_STATUS\""
 
 	CURL=$(curl -s -q -H "Content-Type: application/json" -X PUT -d "{$CURL_PARAMS}" "${REPOSERVER_URL}/api/hosts/update.php" 2> /dev/null)
 	UPDATE_RETURN=$(jq -r '.return' <<< "$CURL")
@@ -769,7 +806,6 @@ function update_request_status {
 	fi
 }
 
-
 # Envoi au serveur Repomanager l'état général de l'hôte (son os, version, profil, env)
 function send_general_status {
 	UPDATE_REQUEST_TYPE="general-status-update"
@@ -780,7 +816,7 @@ function send_general_status {
 	UPDATE_MESSAGE_ERROR=""
 
 	# Paramètres d'authentification (id et token)
-	CURL_PARAMS="\"id\":\"$ID\", \"token\":\"$TOKEN\""
+	CURL_PARAMS="\"id\":\"$HOST_ID\", \"token\":\"$TOKEN\""
 
 	# Paramètres généraux (os, version, profil...)
 	if [ ! -z "$OS_NAME" ] && [ ! -z "$OS_VERSION" ];then
@@ -804,7 +840,7 @@ function send_general_status {
 	if [ -z "$UPDATE_RETURN" ];then
 		echo -e "[$JAUNE ERREUR $RESET] L'envoi des mises à jour a échouée, erreur inconnue."
 		ERROR_STATUS=1
-		UPDATE_REQUEST_STATUS="error"
+		return
 	fi
 
 	# Récupération et affichage des messages
@@ -850,7 +886,7 @@ function send_installed_packages_status {
 	# Paramètres concernant les paquets installés sur le système (tous les paquets)
 	echo "Construction de la liste des paquets installés sur le système..."
 
-	INSTALLED_PACKAGES_TMP="/tmp/.linupdate_installed_packages.tmp"
+	INSTALLED_PACKAGES_TMP="/tmp/.linupdate_${PROCID}_mod_reposerver_installed_pkgs.tmp"
 
 	# Construction de la liste des paquets
 	# Cas Redhat
@@ -863,7 +899,7 @@ function send_installed_packages_status {
 	fi
 
 	# Paramètres d'authentification (id et token)
-	CURL_PARAMS="\"id\":\"$ID\", \"token\":\"$TOKEN\""
+	CURL_PARAMS="\"id\":\"$HOST_ID\", \"token\":\"$TOKEN\""
 
 	# Parsage des lignes des fichiers splités
 	for LINE in $(cat "$INSTALLED_PACKAGES_TMP");do
@@ -873,7 +909,7 @@ function send_installed_packages_status {
 			PACKAGE_ACT_VERSION=$(echo "$LINE" | awk '{print $2}')
 		fi
 		if [ "$OS_FAMILY" == "Debian" ];then
-			PACKAGE_NAME=$(echo "$LINE" | awk '{print $1}' | sed 's/:amd64//g' | sed 's/:i386//g')
+			PACKAGE_NAME=$(echo "$LINE" | awk '{print $1}' | sed 's/:amd64//g' | sed 's/:i386//g' | sed 's/:armhf//g')
 			PACKAGE_ACT_VERSION=$(echo "$LINE" | awk '{print $2}' | sed 's/"//g' | sed "s/'//g")
 			# awk récupère de la 5ème à la dernière colonne pour obtenir la description entière :
 			# Description désactivée car provoque des pb à l'import en BDD
@@ -934,6 +970,8 @@ function send_installed_packages_status {
 		UPDATE_REQUEST_STATUS="done"
 	fi
 
+	rm "$INSTALLED_PACKAGES_TMP" -f
+
 	update_request_status
 }
 
@@ -946,14 +984,14 @@ function send_available_packages_status {
 	update_request_status
 
 	# Paramètres d'authentification (id et token)
-	CURL_PARAMS="\"id\":\"$ID\", \"token\":\"$TOKEN\""
+	CURL_PARAMS="\"id\":\"$HOST_ID\", \"token\":\"$TOKEN\""
 
 	# Paramètres concernant les paquets (paquets disponibles...)
 
 	echo "Construction de la liste des paquets disponibles..."
 
 	# Récupération des paquets disponibles
-	AVAILABLE_PACKAGES_TMP="/tmp/.linupdate_available_packages.tmp"
+	AVAILABLE_PACKAGES_TMP="/tmp/.linupdate_${PROCID}_mod_reposerver_available_pkgs.tmp"
 
 	# Cas Redhat
 	if [ "$OS_FAMILY" == "Redhat" ];then
@@ -970,7 +1008,8 @@ function send_available_packages_status {
 	# Si le fichier généré est vide, alors il n'y a aucun paquet à mettre à jour, on n'envoit rien à Repomanager
 	if [ ! -s "$AVAILABLE_PACKAGES_TMP" ];then
 		echo -e "[$JAUNE OK $RESET] Il n'y aucun paquet à mettre à jour. Rien n'a été transmis à ${JAUNE}${REPOSERVER_URL}${RESET}"
-		return 0
+
+		UPDATE_REQUEST_STATUS="done"
 	else
 		# Sinon on parcourt toutes les lignes du fichiers pour lister les paquets disponibles
 		for LINE in $(cat "$AVAILABLE_PACKAGES_TMP");do
@@ -992,47 +1031,49 @@ function send_available_packages_status {
 
 		# Suppression de la dernière virgule :
 		AVAILABLE_PACKAGES=$(echo "${AVAILABLE_PACKAGES::-1}")
-	fi
 	
-	# Construction des paramètres curl à envoyer
-	CURL_PARAMS="$CURL_PARAMS, \"available_packages\":\"$AVAILABLE_PACKAGES\""
+		# Construction des paramètres curl à envoyer
+		CURL_PARAMS="$CURL_PARAMS, \"available_packages\":\"$AVAILABLE_PACKAGES\""
 
-	# Envoi des données :
-	echo -ne " Envoi du status à ${JAUNE}${REPOSERVER_URL}${RESET} : "
-	CURL=$(curl -s -q -H "Content-Type: application/json" -X PUT -d "{$CURL_PARAMS}" "${REPOSERVER_URL}/api/hosts/update.php" 2> /dev/null)
-	UPDATE_RETURN=$(jq -r '.return' <<< "$CURL")
+		# Envoi des données :
+		echo -ne " Envoi du status à ${JAUNE}${REPOSERVER_URL}${RESET} : "
+		CURL=$(curl -s -q -H "Content-Type: application/json" -X PUT -d "{$CURL_PARAMS}" "${REPOSERVER_URL}/api/hosts/update.php" 2> /dev/null)
+		UPDATE_RETURN=$(jq -r '.return' <<< "$CURL")
 
-	# Si une erreur est survenue (code de retour différent de 201 ou vide), on tente d'afficher le message retourné par le serveur
-	if [ -z "$UPDATE_RETURN" ];then
-		echo -e "[$JAUNE ERREUR $RESET] L'envoi des mises à jour a échouée, erreur inconnue."
-		ERROR_STATUS=1
-		UPDATE_REQUEST_STATUS="error"
+		# Si une erreur est survenue (code de retour différent de 201 ou vide), on tente d'afficher le message retourné par le serveur
+		if [ -z "$UPDATE_RETURN" ];then
+			echo -e "[$JAUNE ERREUR $RESET] L'envoi des mises à jour a échouée, erreur inconnue."
+			ERROR_STATUS=1
+			UPDATE_REQUEST_STATUS="error"
+		fi
+
+		# Récupération et affichage des messages
+
+		# Si il y a eu des messages d'erreur on les affiche
+		if echo "$CURL" | grep -q "message_error";then
+			UPDATE_MESSAGE_ERROR=($(jq -r '.message_error[]' <<< "$CURL")) # array
+
+			# $UPDATE_MESSAGE_ERROR est un array pouvant contenir plusieurs messages d'erreurs
+			for MESSAGE in "${UPDATE_MESSAGE_ERROR[@]}"; do
+				echo -e "[$JAUNE ERREUR $RESET] $MESSAGE"
+			done
+			ERROR_STATUS=1
+			UPDATE_REQUEST_STATUS="error"
+		fi
+
+		# Si il y a eu des message de succès on les affiche
+		if echo "$CURL" | grep -q "message_success";then
+			UPDATE_MESSAGE_SUCCESS=($(jq -r '.message_success[]' <<< "$CURL")) # array
+
+			# $UPDATE_MESSAGE_SUCCESS est un array pouvant contenir plusieurs messages d'erreurs
+			for MESSAGE in "${UPDATE_MESSAGE_SUCCESS[@]}"; do
+				echo -e "[$VERT OK $RESET] $MESSAGE"
+			done
+			UPDATE_REQUEST_STATUS="done"
+		fi
 	fi
 
-	# Récupération et affichage des messages
-
-	# Si il y a eu des messages d'erreur on les affiche
-	if echo "$CURL" | grep -q "message_error";then
-		UPDATE_MESSAGE_ERROR=($(jq -r '.message_error[]' <<< "$CURL")) # array
-
-		# $UPDATE_MESSAGE_ERROR est un array pouvant contenir plusieurs messages d'erreurs
-		for MESSAGE in "${UPDATE_MESSAGE_ERROR[@]}"; do
-			echo -e "[$JAUNE ERREUR $RESET] $MESSAGE"
-		done
-		ERROR_STATUS=1
-		UPDATE_REQUEST_STATUS="error"
-	fi
-
-	# Si il y a eu des message de succès on les affiche
-	if echo "$CURL" | grep -q "message_success";then
-		UPDATE_MESSAGE_SUCCESS=($(jq -r '.message_success[]' <<< "$CURL")) # array
-
-		# $UPDATE_MESSAGE_SUCCESS est un array pouvant contenir plusieurs messages d'erreurs
-		for MESSAGE in "${UPDATE_MESSAGE_SUCCESS[@]}"; do
-			echo -e "[$VERT OK $RESET] $MESSAGE"
-		done
-		UPDATE_REQUEST_STATUS="done"
-	fi
+	rm "$AVAILABLE_PACKAGES_TMP" -f
 
 	update_request_status
 }
@@ -1042,8 +1083,8 @@ function send_available_packages_status {
 function event_parser {
 	if [ "$OS_FAMILY" == "Redhat" ];then
 		# On extrait tout le contenu de l'évènement dans un fichier
-		TMP_EVENT_FILE="/tmp/.linupdate_yum_event.tmp"
-        LC_ALL="en_US.UTF-8" yum history info "$ID" > "$TMP_EVENT_FILE"
+		TMP_EVENT_FILE="/tmp/.linupdate_${PROCID}_mod_reposerver_yum_event.tmp"
+        LC_ALL="en_US.UTF-8" yum history info "$YUM_HISTORY_ID" > "$TMP_EVENT_FILE"
 		# Extrait la date et l'heure au format : Thu Mar 25 10:40:37 2021
 		EVENT_DATE=$(grep "^Begin time" "$TMP_EVENT_FILE" | sed 's/  //g' | sed 's/Begin time : //g')
 		# Extrait la date de la chaine précédemment récupéréé
@@ -1059,7 +1100,7 @@ function event_parser {
 		# On peut également récupérer la liste des paquets installés, mis à jour jour, supprimés...
 		PACKAGES_INSTALLED_LIST=$(cat "$TMP_EVENT_FILE" | grep "Install " | grep -Ev "Dep-Install|Installed|Installing" | awk '{print $2}')
 		DEPENDENCIES_INSTALLED_LIST=$(cat "$TMP_EVENT_FILE" | grep "Dep-Install " | grep -Ev "Installed|Installing" | awk '{print $2}')
-		PACKAGES_UPGRADED_LIST=$(cat "$TMP_EVENT_FILE" | grep "Updated " | grep -v "Installing" | awk '{print $2}')
+		PACKAGES_UPGRADED_LIST=$(cat "$TMP_EVENT_FILE" | egrep "Updated |Update " | grep -v "Installing" | awk '{print $2}')
 		PACKAGES_REMOVED_LIST=$(cat "$TMP_EVENT_FILE" | grep "Erase " | awk '{print $2}')
 		PACKAGES_DOWNGRADED_LIST=$(cat "$TMP_EVENT_FILE" | grep "Downgrade " | awk '{print $2}')
 		PACKAGES_REINSTALLED_LIST=$(cat "$TMP_EVENT_FILE" | grep "Reinstall " | awk '{print $2}')
@@ -1088,6 +1129,8 @@ function event_parser {
 		PACKAGES_DOWNGRADED_LIST=$(echo "$EVENT" | grep "^Downgrade:" | sed 's/Downgrade: //g')
 		PACKAGES_REINSTALLED_LIST="$(echo "$EVENT" | grep "^Reinstall:" | sed 's/Reinstall: //g')"
 	fi
+
+	rm "$TMP_EVENT_FILE" -f
 }
 
 # Fonction de parsage de multiples évènements ayant lieu à la même date et heure
@@ -1159,13 +1202,16 @@ function multiple_event_parser {
 	fi
 }
 
-
 # Envoi au serveur repomanager l'historique des opérations effectuées sur les paquets (installation, mises à jour, suppression...)
 # Se base sur les historiques de yum et d'apt
 function genFullHistory {
 # Contiendra la liste de tous les évènements
 EVENTS=""
 IGNORE_EVENT=""
+
+UPDATE_REQUEST_TYPE="full-history-update"
+UPDATE_REQUEST_STATUS="running"
+update_request_status
 
 # Le paramètre SEND_FULL_HISTORY_LIMIT défini le nb maximum d'évènements à envoyer, cela permet d'éviter d'envoyer inutilement l'historique complet du serveur dans certains cas.
 # Si ce paramètre est laissé vide alors il n'y a aucune limite, on le set à 99999999.
@@ -1175,10 +1221,12 @@ fi
 # On initialise une variable à 0 qui sera incrémentée jusqu'à atteindre la limite SEND_FULL_HISTORY_LIMIT.
 HISTORY_LIMIT_COUNTER="0"
 
+TMP_FILE="/tmp/.linupdate_${PROCID}_mod_reposerver_events_history.json"
+
 # Préparation d'un fichier JSON dans lequel il restera à insérer chaque évènement (1 évènement = une date+heure trouvée dans le fichier de log)
-cat <<EOF > /tmp/.linupdate_events_history.json
+cat <<EOF > /tmp/.linupdate_${PROCID}_mod_reposerver_events_history.json
 {
-	"id" : "$ID",
+	"id" : "$HOST_ID",
 	"token" : "$TOKEN",
 	"events" : [
 		__INSERT_EVENTS__		
@@ -1192,10 +1240,10 @@ if [ "$OS_FAMILY" == "Redhat" ];then
 	echo "Construction de l'historique des évènements yum..."
 
 	# Récupération de tous les ID d'évènements dans la base de données de yum
-	YUM_HISTORY_IDS=$(yum history list all | tail -n +4 | awk '{print $1}' | grep -v "history")
+	YUM_HISTORY_IDS=$(yum history list all | tail -n +4 | awk '{print $1}' | grep -v "history" | tac)
 
 	# Pour chaque évènement on peut récupérer la date et l'heure de début et la date et l'heure de fin
-    for ID in $(echo "$YUM_HISTORY_IDS");do
+    for YUM_HISTORY_ID in $(echo "$YUM_HISTORY_IDS");do
 		# On sort de la boucle si on a atteint la limite d'évènement à envoyer fixée par l'utilisateur
 		if [ "$HISTORY_LIMIT_COUNTER" == "$SEND_FULL_HISTORY_LIMIT" ];then
 			break
@@ -1232,8 +1280,16 @@ if [ "$OS_FAMILY" == "Redhat" ];then
 		# Traitement de la liste des paquets mis à jour à cette date et heure
 		if [ ! -z "$PACKAGES_UPGRADED_LIST" ];then
 			for LINE in $(echo "$PACKAGES_UPGRADED_LIST");do
+				# Dans le cas d'une mise à jour, le numéro de version installé se trouve sur la ligne en dessous du paquet mis à jour, ex :
+				# netdata-1.29.3-1.el7.x86_64 @epel
+    			#         1.33.1-1.el7.x86_64 @epel
+				# Du coup si la ligne en cours de traitement commence par un chiffre alors on ne la traite pas directement (il s'agit de la seconde ligne contenant la version)
+				if echo "$LINE" | grep -q "^[0-9]";then
+					continue
+				fi
 				PACKAGE_NAME=$(echo "$LINE" | sed 's/-[0-9].*//g')
-				PACKAGE_VERSION=$(echo "$LINE" | sed "s/$PACKAGE_NAME//g" | sed 's/^-//g')
+				# Pour rappel, le numéro de version installé se trouve sur la ligne qui suit le nom du paquet
+				PACKAGE_VERSION=$(echo "$PACKAGES_UPGRADED_LIST" | sed  -n "/^${LINE}/{n;p}")
 				PACKAGES_UPGRADED+="{\"name\":\"${PACKAGE_NAME}\",\"version\":\"${PACKAGE_VERSION}\"},"
 			done
 
@@ -1326,7 +1382,7 @@ if [ "$OS_FAMILY" == "Debian" ];then
 	echo "Construction de l'historique des évènements apt..."
 
 	# On va traiter tous les fichiers d'historique d'apt, même ceux compréssés
-	for LOG in $(ls -t1 /var/log/apt/history.log*);do
+	for LOG in $(ls -t1 /var/log/apt/history.log* | tac);do
 		IFS=$'\n'
 
 		# On traite chaque évènement trouvé dans le fichier de LOG
@@ -1360,7 +1416,7 @@ if [ "$OS_FAMILY" == "Debian" ];then
 			if [ "$COUNT_EVENT" -gt "1" ];then
 				# echo "Plusieurs évènements pour : $START_DATE"
 				# continue
-				MULTIPLE_EVENTS_TMP="/tmp/.linupdate_multiple_events_history.tmp"
+				MULTIPLE_EVENTS_TMP="/tmp/.linupdate_${PROCID}_mod_reposerver_multiple_events_history.tmp"
 
 				# Si le fichier de log est compréssé, on doit utiliser zcat pour le lire
 				if echo "$LOG" | egrep -q ".gz";then
@@ -1387,12 +1443,12 @@ if [ "$OS_FAMILY" == "Debian" ];then
 					if echo "$LINE" | grep -q "), ";then
 						LINE=$(echo "$LINE" | sed 's/), /\n/g')
 						for FORMATTED_LINE in $(echo "$LINE");do
-							PACKAGE_NAME=$(echo "$FORMATTED_LINE" | awk '{print $1}' | sed 's/,//g' | sed 's/(//g' | sed 's/)//g' | sed 's/ //g' | sed 's/:amd64//g' | sed 's/:i386//g')
+							PACKAGE_NAME=$(echo "$FORMATTED_LINE" | awk '{print $1}' | sed 's/,//g' | sed 's/(//g' | sed 's/)//g' | sed 's/ //g' | sed 's/:amd64//g' | sed 's/:i386//g' | sed 's/:armhf//g')
 							PACKAGE_VERSION=$(echo "$FORMATTED_LINE" | awk '{print $2}' | sed 's/,//g' | sed 's/(//g' | sed 's/)//g' | sed 's/ //g')
 							PACKAGES_INSTALLED+="{\"name\":\"${PACKAGE_NAME}\",\"version\":\"${PACKAGE_VERSION}\"},"
 						done
 					else
-						PACKAGE_NAME=$(echo "$LINE" | awk '{print $1}' | sed 's/,//g' | sed 's/(//g' | sed 's/)//g' | sed 's/ //g' | sed 's/:amd64//g' | sed 's/:i386//g')
+						PACKAGE_NAME=$(echo "$LINE" | awk '{print $1}' | sed 's/,//g' | sed 's/(//g' | sed 's/)//g' | sed 's/ //g' | sed 's/:amd64//g' | sed 's/:i386//g' | sed 's/:armhf//g')
 						PACKAGE_VERSION=$(echo "$LINE" | awk '{print $2}' | sed 's/,//g' | sed 's/(//g' | sed 's/)//g' | sed 's/ //g')
 						PACKAGES_INSTALLED+="{\"name\":\"${PACKAGE_NAME}\",\"version\":\"${PACKAGE_VERSION}\"},"
 					fi
@@ -1413,12 +1469,12 @@ if [ "$OS_FAMILY" == "Debian" ];then
 					if echo "$LINE" | grep -q "), ";then
 						LINE=$(echo "$LINE" | sed 's/), /\n/g')
 						for FORMATTED_LINE in $(echo "$LINE");do
-							PACKAGE_NAME=$(echo "$FORMATTED_LINE" | awk '{print $1}' | sed 's/,//g' | sed 's/(//g' | sed 's/)//g' | sed 's/ //g' | sed 's/:amd64//g' | sed 's/:i386//g')
+							PACKAGE_NAME=$(echo "$FORMATTED_LINE" | awk '{print $1}' | sed 's/,//g' | sed 's/(//g' | sed 's/)//g' | sed 's/ //g' | sed 's/:amd64//g' | sed 's/:i386//g' | sed 's/:armhf//g')
 							PACKAGE_VERSION=$(echo "$FORMATTED_LINE" | awk '{print $3}' | sed 's/,//g' | sed 's/(//g' | sed 's/)//g' | sed 's/ //g')
 							PACKAGES_UPGRADED+="{\"name\":\"${PACKAGE_NAME}\",\"version\":\"${PACKAGE_VERSION}\"},"
 						done
 					else
-						PACKAGE_NAME=$(echo "$LINE" | awk '{print $1}' | sed 's/,//g' | sed 's/(//g' | sed 's/)//g' | sed 's/ //g' | sed 's/:amd64//g' | sed 's/:i386//g')
+						PACKAGE_NAME=$(echo "$LINE" | awk '{print $1}' | sed 's/,//g' | sed 's/(//g' | sed 's/)//g' | sed 's/ //g' | sed 's/:amd64//g' | sed 's/:i386//g' | sed 's/:armhf//g')
 						PACKAGE_VERSION=$(echo "$LINE" | awk '{print $3}' | sed 's/,//g' | sed 's/(//g' | sed 's/)//g' | sed 's/ //g')
 						PACKAGES_UPGRADED+="{\"name\":\"${PACKAGE_NAME}\",\"version\":\"${PACKAGE_VERSION}\"},"
 					fi
@@ -1439,12 +1495,12 @@ if [ "$OS_FAMILY" == "Debian" ];then
 					if echo "$LINE" | grep -q "), ";then
 						LINE=$(echo "$LINE" | sed 's/), /\n/g')
 						for FORMATTED_LINE in $(echo "$LINE");do
-							PACKAGE_NAME=$(echo "$FORMATTED_LINE" | awk '{print $1}' | sed 's/,//g' | sed 's/(//g' | sed 's/)//g' | sed 's/ //g' | sed 's/:amd64//g' | sed 's/:i386//g')
+							PACKAGE_NAME=$(echo "$FORMATTED_LINE" | awk '{print $1}' | sed 's/,//g' | sed 's/(//g' | sed 's/)//g' | sed 's/ //g' | sed 's/:amd64//g' | sed 's/:i386//g' | sed 's/:armhf//g')
 							PACKAGE_VERSION=$(echo "$FORMATTED_LINE" | awk '{print $2}' | sed 's/,//g' | sed 's/(//g' | sed 's/)//g' | sed 's/ //g')
 							PACKAGES_REMOVED+="{\"name\":\"${PACKAGE_NAME}\",\"version\":\"${PACKAGE_VERSION}\"},"
 						done
 					else
-						PACKAGE_NAME=$(echo "$LINE" | awk '{print $1}' | sed 's/,//g' | sed 's/(//g' | sed 's/)//g' | sed 's/ //g' | sed 's/:amd64//g' | sed 's/:i386//g')
+						PACKAGE_NAME=$(echo "$LINE" | awk '{print $1}' | sed 's/,//g' | sed 's/(//g' | sed 's/)//g' | sed 's/ //g' | sed 's/:amd64//g' | sed 's/:i386//g' | sed 's/:armhf//g')
 						PACKAGE_VERSION=$(echo "$LINE" | awk '{print $2}' | sed 's/,//g' | sed 's/(//g' | sed 's/)//g' | sed 's/ //g')
 						PACKAGES_REMOVED+="{\"name\":\"${PACKAGE_NAME}\",\"version\":\"${PACKAGE_VERSION}\"},"
 					fi
@@ -1465,12 +1521,12 @@ if [ "$OS_FAMILY" == "Debian" ];then
 					if echo "$LINE" | grep -q "), ";then
 						LINE=$(echo "$LINE" | sed 's/), /\n/g')
 						for FORMATTED_LINE in $(echo "$LINE");do
-							PACKAGE_NAME=$(echo "$FORMATTED_LINE" | awk '{print $1}' | sed 's/,//g' | sed 's/(//g' | sed 's/)//g' | sed 's/ //g' | sed 's/:amd64//g' | sed 's/:i386//g')
+							PACKAGE_NAME=$(echo "$FORMATTED_LINE" | awk '{print $1}' | sed 's/,//g' | sed 's/(//g' | sed 's/)//g' | sed 's/ //g' | sed 's/:amd64//g' | sed 's/:i386//g' | sed 's/:armhf//g')
 							PACKAGE_VERSION=$(echo "$FORMATTED_LINE" | awk '{print $2}' | sed 's/,//g' | sed 's/(//g' | sed 's/)//g' | sed 's/ //g')
 							PACKAGES_PURGED+="{\"name\":\"${PACKAGE_NAME}\",\"version\":\"${PACKAGE_VERSION}\"},"
 						done
 					else
-						PACKAGE_NAME=$(echo "$LINE" | awk '{print $1}' | sed 's/,//g' | sed 's/(//g' | sed 's/)//g' | sed 's/ //g' | sed 's/:amd64//g' | sed 's/:i386//g')
+						PACKAGE_NAME=$(echo "$LINE" | awk '{print $1}' | sed 's/,//g' | sed 's/(//g' | sed 's/)//g' | sed 's/ //g' | sed 's/:amd64//g' | sed 's/:i386//g' | sed 's/:armhf//g')
 						PACKAGE_VERSION=$(echo "$LINE" | awk '{print $2}' | sed 's/,//g' | sed 's/(//g' | sed 's/)//g' | sed 's/ //g')
 						PACKAGES_PURGED+="{\"name\":\"${PACKAGE_NAME}\",\"version\":\"${PACKAGE_VERSION}\"},"
 					fi
@@ -1491,12 +1547,12 @@ if [ "$OS_FAMILY" == "Debian" ];then
 					if echo "$LINE" | grep -q "), ";then
 						LINE=$(echo "$LINE" | sed 's/), /\n/g')
 						for FORMATTED_LINE in $(echo "$LINE");do
-							PACKAGE_NAME=$(echo "$FORMATTED_LINE" | awk '{print $1}' | sed 's/,//g' | sed 's/(//g' | sed 's/)//g' | sed 's/ //g' | sed 's/:amd64//g' | sed 's/:i386//g')
+							PACKAGE_NAME=$(echo "$FORMATTED_LINE" | awk '{print $1}' | sed 's/,//g' | sed 's/(//g' | sed 's/)//g' | sed 's/ //g' | sed 's/:amd64//g' | sed 's/:i386//g' | sed 's/:armhf//g')
 							PACKAGE_VERSION=$(echo "$FORMATTED_LINE" | awk '{print $3}' | sed 's/,//g' | sed 's/(//g' | sed 's/)//g' | sed 's/ //g')
 							PACKAGES_DOWNGRADED+="{\"name\":\"${PACKAGE_NAME}\",\"version\":\"${PACKAGE_VERSION}\"},"
 						done
 					else
-						PACKAGE_NAME=$(echo "$LINE" | awk '{print $1}' | sed 's/,//g' | sed 's/(//g' | sed 's/)//g' | sed 's/ //g' | sed 's/:amd64//g' | sed 's/:i386//g')
+						PACKAGE_NAME=$(echo "$LINE" | awk '{print $1}' | sed 's/,//g' | sed 's/(//g' | sed 's/)//g' | sed 's/ //g' | sed 's/:amd64//g' | sed 's/:i386//g' | sed 's/:armhf//g')
 						PACKAGE_VERSION=$(echo "$LINE" | awk '{print $3}' | sed 's/,//g' | sed 's/(//g' | sed 's/)//g' | sed 's/ //g')
 						PACKAGES_DOWNGRADED+="{\"name\":\"${PACKAGE_NAME}\",\"version\":\"${PACKAGE_VERSION}\"},"
 					fi
@@ -1517,12 +1573,12 @@ if [ "$OS_FAMILY" == "Debian" ];then
 					if echo "$LINE" | grep -q "), ";then
 						LINE=$(echo "$LINE" | sed 's/), /\n/g')
 						for FORMATTED_LINE in $(echo "$LINE");do
-							PACKAGE_NAME=$(echo "$FORMATTED_LINE" | awk '{print $1}' | sed 's/,//g' | sed 's/(//g' | sed 's/)//g' | sed 's/ //g' | sed 's/:amd64//g' | sed 's/:i386//g')
+							PACKAGE_NAME=$(echo "$FORMATTED_LINE" | awk '{print $1}' | sed 's/,//g' | sed 's/(//g' | sed 's/)//g' | sed 's/ //g' | sed 's/:amd64//g' | sed 's/:i386//g' | sed 's/:armhf//g')
 							PACKAGE_VERSION=$(echo "$FORMATTED_LINE" | awk '{print $2}' | sed 's/,//g' | sed 's/(//g' | sed 's/)//g' | sed 's/ //g')
 							PACKAGES_REINSTALLED+="{\"name\":\"${PACKAGE_NAME}\",\"version\":\"${PACKAGE_VERSION}\"},"
 						done
 					else
-						PACKAGE_NAME=$(echo "$LINE" | awk '{print $1}' | sed 's/,//g' | sed 's/(//g' | sed 's/)//g' | sed 's/ //g' | sed 's/:amd64//g' | sed 's/:i386//g')
+						PACKAGE_NAME=$(echo "$LINE" | awk '{print $1}' | sed 's/,//g' | sed 's/(//g' | sed 's/)//g' | sed 's/ //g' | sed 's/:amd64//g' | sed 's/:i386//g' | sed 's/:armhf//g')
 						PACKAGE_VERSION=$(echo "$LINE" | awk '{print $2}' | sed 's/,//g' | sed 's/(//g' | sed 's/)//g' | sed 's/ //g')
 						PACKAGES_REINSTALLED+="{\"name\":\"${PACKAGE_NAME}\",\"version\":\"${PACKAGE_VERSION}\"},"
 					fi
@@ -1580,11 +1636,11 @@ fi
 EVENTS=$(echo "${EVENTS::-1}")
 
 # Insertion de tous les évènements dans le fichier JSON prévu au début
-sed -i "s/__INSERT_EVENTS__/$EVENTS/g" /tmp/.linupdate_events_history.json
+sed -i "s/__INSERT_EVENTS__/$EVENTS/g" "$TMP_FILE"
 
 # Envoi des données :
 echo -ne " Envoi de l'historique à ${JAUNE}${REPOSERVER_URL}${RESET} : "
-CURL=$(curl -s -q -H "Content-Type: application/json" -X PUT -d @/tmp/.linupdate_events_history.json "${REPOSERVER_URL}/api/hosts/update.php" 2> /dev/null)
+CURL=$(curl -s -q -H "Content-Type: application/json" -X PUT -d @${TMP_FILE} "${REPOSERVER_URL}/api/hosts/update.php" 2> /dev/null)
 UPDATE_RETURN=$(jq -r '.return' <<< "$CURL")
 
 # Si une erreur est survenue (code de retour différent de 201 ou vide), on tente d'afficher le message retourné par le serveur
@@ -1603,6 +1659,8 @@ if echo "$CURL" | grep -q "message_error";then
 		echo -e "[$JAUNE ERREUR $RESET] $MESSAGE"
 	done
 	ERROR_STATUS=1
+
+	UPDATE_REQUEST_STATUS="error"
 fi
 
 # Si il y a eu des message de succès on les affiche
@@ -1613,7 +1671,13 @@ if echo "$CURL" | grep -q "message_success";then
 	for MESSAGE in "${UPDATE_MESSAGE_SUCCESS[@]}"; do
 		echo -e "[$VERT OK $RESET] $MESSAGE"
 	done
+
+	UPDATE_REQUEST_STATUS="done"
 fi
+
+update_request_status
+
+rm "$TMP_FILE" -f
 
 IFS=$OLD_IFS
 }
