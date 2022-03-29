@@ -8,11 +8,14 @@ if [ ! -d "/etc/systemd/system/" ];then
     return
 fi
 
+# man systemd.service
 echo "[Unit]
 Description=linupdate-agent
 
 [Service]
+Type=simple
 ExecStart=/opt/linupdate/service/linupdate-agent
+#CPUQuota=50%
 
 [Install]
 WantedBy=multi-user.target" > "$SERVICE_FILE"
@@ -21,14 +24,14 @@ systemctl daemon-reload
 
 chmod 500 "$AGENT_FILE"
 
-echo -e "${JAUNE}Agent déployé${RESET}"
+echo -e "${YELLOW}Agent déployé${RESET}"
 
-echo -ne "\nActiver l'agent ${JAUNE}linupdate${RESET} au démarrage du système ? (yes/no) : ";read -p "" CONFIRM
+echo -ne "\nActiver l'agent ${YELLOW}linupdate${RESET} au démarrage du système ? (yes/no) : ";read -p "" CONFIRM
 if [ "$CONFIRM" == "yes" ];then 
     enableAgent
 fi
 
-echo -ne "\nDémarrer l'agent ${JAUNE}linupdate${RESET} maintenant ? (yes/no) : ";read -p "" CONFIRM
+echo -ne "\nDémarrer l'agent ${YELLOW}linupdate${RESET} maintenant ? (yes/no) : ";read -p "" CONFIRM
 if [ "$CONFIRM" == "yes" ];then 
     startAgent
 fi

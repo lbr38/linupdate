@@ -2,7 +2,7 @@
 # Récupération de la conf renseignée dans linupdate.conf
 
 if [ ! -f "$CONF" ];then
-	echo -e "[${JAUNE} ERREUR ${RESET}] Aucun fichier de conf n'est présent sur ce serveur. Utiliser le paramètre --install pour finaliser l'installation de ce script.\n"
+	echo -e "[${YELLOW} ERREUR ${RESET}] Aucun fichier de conf n'est présent sur ce serveur. Utiliser le paramètre --install pour finaliser l'installation de ce script.\n"
 	(( UPDATE_ERROR++ ))
 	# On supprime le fichier de log, inutile
 	rm "$LOG" -f
@@ -21,5 +21,5 @@ CONF_SOFT_EXCLUDE=$(egrep "^EXCLUDE=" "$CONF" | cut -d'=' -f 2 | sed 's/"//g') 	
 CONF_SOFT_NEED_RESTART=$(egrep "^NEED_RESTART=" "$CONF" | cut -d'=' -f 2 | sed 's/"//g') 	# Paquets critiques ou non à redémarrer
 CONF_SOFT_KEEP_CRON=$(egrep "^KEEP_CRON=" "$CONF" | cut -d'=' -f 2 | sed 's/"//g') 			# Conserver la tâche cron après sauvegarde ou non
 
-if [ -z "$SERVER_PROFILE" ];then echo -e "[${ROUGE} ERREUR ${RESET}] Le paramètre PROFILE n'est pas renseigné dans le fichier de conf\n";(( UPDATE_ERROR++ ));clean_exit;fi
-if [ -z "$SERVER_ENV" ];then echo -e "[${ROUGE} ERREUR ${RESET}] Le paramètre ENV n'est pas renseigné dans le fichier de conf\n";(( UPDATE_ERROR++ ));clean_exit;fi
+if [ -z "$SERVER_PROFILE" ];then echo -e "[${RED} ERREUR ${RESET}] Le paramètre PROFILE n'est pas renseigné dans le fichier de conf\n";(( UPDATE_ERROR++ ));clean_exit;fi
+if [ -z "$SERVER_ENV" ];then echo -e "[${RED} ERREUR ${RESET}] Le paramètre ENV n'est pas renseigné dans le fichier de conf\n";(( UPDATE_ERROR++ ));clean_exit;fi

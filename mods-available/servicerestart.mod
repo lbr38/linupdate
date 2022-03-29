@@ -11,7 +11,7 @@ install() {
 	ln -sfn ../mods-available/${MODULE}.mod 10_servicerestart.mod &&
 	mkdir -p "${MODULES_CONF_DIR}" &&
 	\cp "${TMP_DIR}/mods-available/configurations/${MODULE}.conf" ${MODULES_CONF_DIR}/ &&
-	echo -e "Installation du module ${JAUNE}servicerestart${RESET} : [$VERT OK $RESET]"
+	echo -e "Installation du module ${YELLOW}servicerestart${RESET} : [$GREEN OK $RESET]"
 	configure
 }
 
@@ -29,19 +29,19 @@ configure() {
 	# Configuration de linupdate (fichier de configuration linupdate.conf)
 	# Ajout des paramètres si n'existe pas
 #	if ! grep -q "^REPOSERVER_ALLOW_CONFUPDATE" "$CONF";then
-#		echo -ne " → Autoriser le serveur ${JAUNE}${REPOSERVER_URL}${RESET} à mettre à jour la configuration de linupdate (yes/no) : "; read -p "" CONFIRM
+#		echo -ne " → Autoriser le serveur ${YELLOW}${REPOSERVER_URL}${RESET} à mettre à jour la configuration de linupdate (yes/no) : "; read -p "" CONFIRM
 #		if [ "$CONFIRM" == "yes" ] || [ "$CONFIRM" == "y" ];then
 #			echo "REPOSERVER_ALLOW_CONFUPDATE=\"yes\"" >> "$CONF"
 #		fi
 #	fi
 #	if ! grep -q "^REPOSERVER_ALLOW_REPOSFILES_UPDATE" "$CONF";then
-#		echo -ne " → Autoriser le serveur ${JAUNE}${REPOSERVER_URL}${RESET} à mettre à jour la configuration des repos sur cette machine (yes/no) : "; read -p "" CONFIRM
+#		echo -ne " → Autoriser le serveur ${YELLOW}${REPOSERVER_URL}${RESET} à mettre à jour la configuration des repos sur cette machine (yes/no) : "; read -p "" CONFIRM
 #		if [ "$CONFIRM" == "yes" ] || [ "$CONFIRM" == "y" ];then
 #			echo "REPOSERVER_ALLOW_REPOSFILES_UPDATE=\"yes\"" >> "$CONF"
 #		fi
 #	fi
 #	if ! grep -q "^REPOSERVER_ALLOW_OVERWRITE" "$CONF";then
-#		echo -ne " → Autoriser le serveur ${JAUNE}${REPOSERVER_URL}${RESET} à forcer les deux paramètres précédents à ${JAUNE}yes${RESET} si ceux-ci sont paramétrés à ${JAUNE}no${RESET} (yes/no) : "; read -p "" CONFIRM
+#		echo -ne " → Autoriser le serveur ${YELLOW}${REPOSERVER_URL}${RESET} à forcer les deux paramètres précédents à ${YELLOW}yes${RESET} si ceux-ci sont paramétrés à ${YELLOW}no${RESET} (yes/no) : "; read -p "" CONFIRM
 #		if [ "$CONFIRM" == "yes" ] || [ "$CONFIRM" == "y" ];then
 #			echo "REPOSERVER_ALLOW_OVERWRITE=\"yes\"" >> "$CONF"
 #		fi
@@ -55,7 +55,7 @@ loadModule() {
 		configure
 	fi
 
-	echo -e " - Module servicerestart : ${JAUNE}Activé${RESET}"
+	echo -e " - Module servicerestart : ${YELLOW}Activé${RESET}"
 }
 
 main() {
@@ -78,8 +78,8 @@ main() {
 #RESTART_AUTRE_SERVICE_CMD="commande de redémarrage"	# Commande de redémarrage d'un autre service
 #
 #service_restart() {	# Fonction gérant les redémarrage de services post-maj
-#if [ ! -z "$MAJ_NEED_RESTART" ];then 	# Si $MAJ_NEED_RESTART contient des paquets nécessitant un redémarrage, on traite
-#	IFS=" ";for PAQUET in ${MAJ_NEED_RESTART};do # On injecte dans PAQUETS, la liste des paquets nécessitant un redémarrage renseignés dans le fichier yum-update.conf
+#if [ ! -z "$UPDATE_SERVICE_RESTART_NEEDED" ];then 	# Si $UPDATE_SERVICE_RESTART_NEEDED contient des paquets nécessitant un redémarrage, on traite
+#	IFS=" ";for PAQUET in ${UPDATE_SERVICE_RESTART_NEEDED};do # On injecte dans PACKAGES, la liste des paquets nécessitant un redémarrage renseignés dans le fichier yum-update.conf
 #		if [ "$PAQUET" == "httpd" ];then
 #			RESTART_APACHE="1"
 #		elif [ "$PAQUET" == "nginx" ];then
@@ -115,7 +115,7 @@ main() {
 ## Si le paramètre --restart-nginx a été passé, on redémarre nginx après les maj
 #if [ "$RESTART_NGINX" -eq "1" ];then
 #    droits_nginx &&		# D'abord on remets en place les droits sinon nginx pourrait ne pas redémarrer
-#    echo -e "[$VERT OK $RESET]"
+#    echo -e "[$GREEN OK $RESET]"
 #	echo -e "→ Redémarrage de Nginx : "
 #	/usr/sbin/nginx -t && /sbin/service nginx restart		# Test de la configuration puis redémarrage
 #fi

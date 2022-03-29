@@ -14,7 +14,7 @@ if [ "$CONF_SOFT_KEEP_CRON" != "yes" ];then # On conserve uniquement la tâche c
 			if grep -q "linupdate" "${CRONTAB_PATH}";then
 				echo -ne "Suppression de la tâche cron en place : "
 				sed -i '/linupdate/d' "${CRONTAB_PATH}" &&
-				echo -e "[$VERT OK $RESET]"
+				echo -e "[$GREEN OK $RESET]"
 			fi
 		fi
 	fi

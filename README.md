@@ -3,7 +3,7 @@
 
 linupdate est un utilitaire de mise à jour de paquets pour les distributions Linux des familles Debian ou Redhat.
 
-Il permet une utilisation avancée de apt et yum lors de la mise à jour de paquets sur un système, notamment l'exclusion de paquets en fonction de leur version, l'exécution d'actions pre ou post-mise à jour (eg: redémarrage de services post-mise à jour, ...).
+Il permet une utilisation avancée de apt et yum lors de la mise à jour de paquets sur un système, notamment l'exclusion de paquets en fonction de leur version, l'exécution d'actions pre ou post-mise à jour (eg: redémarrage de services post-mise à jour, ...) et prends en charge l'exécution de modules complémentaire pour améliorer l'expérience de mise à jour.
 
 ![alt text](https://github.com/lbr38/repomanager-docs/blob/main/screenshots/linupdate/linupdate-1.png?raw=true)
 
@@ -40,7 +40,7 @@ Général
 
 Profil
 --profile|--type|--print-profile|-p PROFILE          modifier le profil de configuration de l'hôte ou l'afficher (si rien n'est précisé)
---environnement|--env|-e                             modifier l'environnement de l'hôte ou l'afficher (si rien n'est précisé)
+--environnement|--env                                modifier l'environnement de l'hôte ou l'afficher (si rien n'est précisé)
 
 Exécution de linupdate (mise à jour des paquets)
 --assume-yes|--force                                 activer 'assume yes' (répondre 'yes' à chaque confirmation)

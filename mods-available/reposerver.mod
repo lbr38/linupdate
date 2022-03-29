@@ -13,20 +13,20 @@ function register {
 	# Si la configuration est incomplète alors on quitte
 	getModConf
 	if [ -z "$REPOSERVER_URL" ];then
-		echo -e " [$JAUNE ERREUR $RESET] Impossible de s'enregistrer auprès du serveur Repomanager. Vous devez configurer l'url du serveur."
+		echo -e " [$YELLOW ERREUR $RESET] Impossible de s'enregistrer auprès du serveur Repomanager. Vous devez configurer l'url du serveur."
 		ERROR_STATUS=1
 		clean_exit
 	fi
 
 	# On teste l'accès à l'url avec un curl pour vérifier que le serveur est joignable
-	testConn
+	testConnection
 
 	# Tentative d'enregistrement
 	# Si l'enregistrement fonctionne, on récupère un id et un token
-	echo -ne " Enregistrement auprès de ${JAUNE}${REPOSERVER_URL}${RESET} : "
+	echo -ne " Enregistrement auprès de ${YELLOW}${REPOSERVER_URL}${RESET} : "
 	REGISTER_HOSTNAME=$(hostname -f)
 	if [ -z "$REGISTER_HOSTNAME" ];then
-		echo -e "[$JAUNE ERREUR $RESET] Impossible de déterminer le nom d'hôte de cette machine"
+		echo -e "[$YELLOW ERREUR $RESET] Impossible de déterminer le nom d'hôte de cette machine"
 		ERROR_STATUS=1
 		clean_exit
 	fi
@@ -34,7 +34,7 @@ function register {
 	if [ -z "$REGISTER_IP" ];then
 		REGISTER_IP=$(curl -s -4 ifconfig.co)
 		if [ -z "$REGISTER_IP" ];then
-			echo -e "[$JAUNE ERREUR $RESET] Impossible de déterminer l'adresse IP de cette machine"
+			echo -e "[$YELLOW ERREUR $RESET] Impossible de déterminer l'adresse IP de cette machine"
 			ERROR_STATUS=1
 			clean_exit
 		fi
@@ -48,34 +48,34 @@ function register {
 
 	# Si une erreur est survenue (code de retour différent de 201 ou vide), on tente d'afficher le message retourné par le serveur
 	if [ -z "$REGISTER_RETURN" ];then
-		echo -e "[$JAUNE ERREUR $RESET] L'enregistrement a échoué, erreur inconnue."
+		echo -e "[$YELLOW ERREUR $RESET] L'enregistrement a échoué, erreur inconnue."
 		ERROR_STATUS=1
 		clean_exit
 	fi
 	if [ "$REGISTER_RETURN" != "201" ];then
-		echo -e "[$JAUNE ERREUR $RESET] $REGISTER_MESSAGE"
+		echo -e "[$YELLOW ERREUR $RESET] $REGISTER_MESSAGE"
 		ERROR_STATUS=1
 		clean_exit
 	fi
 
 	# Si l'enregistrement a été effectué, on vérifie qu'on a bien pu récupérer un id
 	if [ -z "$REGISTER_ID" ] || [ "$REGISTER_ID" == "null" ];then
-		echo -e "[$JAUNE ERREUR $RESET] Impossible de récupérer un id suite à l'enregistrement."
+		echo -e "[$YELLOW ERREUR $RESET] Impossible de récupérer un id d'authentification suite à l'enregistrement."
 		ERROR_STATUS=1
 		clean_exit
 	fi
 
 	# Si l'enregistrement a été effectué, on vérifie qu'on a bien pu récupérer un token
 	if [ -z "$REGISTER_TOKEN" ] || [ "$REGISTER_TOKEN" == "null" ];then
-		echo -e "[$JAUNE ERREUR $RESET] Impossible de récupérer un token suite à l'enregistrement."
+		echo -e "[$YELLOW ERREUR $RESET] Impossible de récupérer un token suite à l'enregistrement."
 		ERROR_STATUS=1
 		clean_exit
 	fi
 
 	# Enfin si tout s'est bien passé jusque là, on ajoute l'id et le token dans le fichier de conf et on affiche un message
-	sed -i "s/ID.*/ID=\"$REGISTER_ID\"/g" $MOD_CONF
-	sed -i "s/TOKEN.*/TOKEN=\"$REGISTER_TOKEN\"/g" $MOD_CONF
-	echo -e "[$VERT OK $RESET]"	
+	sed -i "s/^ID.*/ID=\"$REGISTER_ID\"/g" $MOD_CONF
+	sed -i "s/^TOKEN.*/TOKEN=\"$REGISTER_TOKEN\"/g" $MOD_CONF
+	echo -e "[$GREEN OK $RESET]"	
 	clean_exit
 }
 
@@ -85,54 +85,54 @@ function unregister {
 	# Si la configuration est incomplète alors on quitte
 	getModConf
 	if [ -z "$REPOSERVER_URL" ];then
-		echo -e " [$JAUNE ERREUR $RESET] Impossible de supprimer l'enregistrement auprès du serveur Repomanager. Vous devez configurer l'url du serveur."
+		echo -e " [$YELLOW ERREUR $RESET] Impossible de supprimer l'enregistrement auprès du serveur Repomanager. Vous devez configurer l'url du serveur."
 		ERROR_STATUS=1
 		clean_exit
 	fi
 
 	# Si pas d'ID configuré alors on quitte
 	if [ -z "$HOST_ID" ];then
-		echo -e " [$JAUNE ERREUR $RESET] Aucun ID d'authentification n'est configuré sur cet hôte."
+		echo -e " [$YELLOW ERREUR $RESET] Aucun ID d'authentification n'est configuré sur cet hôte."
 		ERROR_STATUS=1
 		clean_exit
 	fi
 
 	# Si pas de token configuré alors on quitte
 	if [ -z "$TOKEN" ];then
-		echo -e " [$JAUNE ERREUR $RESET] Aucun token d'authentification n'est configuré sur cet hôte."
+		echo -e " [$YELLOW ERREUR $RESET] Aucun token d'authentification n'est configuré sur cet hôte."
 		ERROR_STATUS=1
 		clean_exit
 	fi
 
 	# On teste l'accès à l'url avec un curl pour vérifier que le serveur est joignable
-	testConn
+	testConnection
 
 	# Tentative de suppression de l'enregistrement
-	echo -ne " Suppression de l'enregistrement auprès de ${JAUNE}${REPOSERVER_URL}${RESET} : "
+	echo -ne " Suppression de l'enregistrement auprès de ${YELLOW}${REPOSERVER_URL}${RESET} : "
 	CURL=$(curl -s -q -H "Content-Type: application/json" -X DELETE -d "{\"id\":\"$HOST_ID\", \"token\":\"$TOKEN\"}" "${REPOSERVER_URL}/api/hosts/delete.php" 2> /dev/null)
 	UNREGISTER_RETURN=$(jq -r '.return' <<< "$CURL")
 	UNREGISTER_MESSAGE=$(jq -r '.message' <<< "$CURL")
 
 	# Si une erreur est survenue (code de retour différent de 201 ou vide), on tente d'afficher le message retourné par le serveur
 	if [ -z "$UNREGISTER_RETURN" ];then
-		echo -e "[$JAUNE ERREUR $RESET] La suppression a échouée, erreur inconnue."
+		echo -e "[$YELLOW ERREUR $RESET] La suppression a échouée, erreur inconnue."
 		ERROR_STATUS=1
 		clean_exit
 	fi
 	if [ "$UNREGISTER_RETURN" != "201" ];then
-		echo -e "[$JAUNE ERREUR $RESET] $UNREGISTER_MESSAGE"
+		echo -e "[$YELLOW ERREUR $RESET] $UNREGISTER_MESSAGE"
 		ERROR_STATUS=1
 		clean_exit
 	fi
 
-	echo -e "[$VERT OK $RESET]"
+	echo -e "[$GREEN OK $RESET]"
 	clean_exit
 }
 
-function testConn {
+function testConnection {
 	# On teste l'accès à l'url avec un curl pour vérifier que le serveur est joignable
 	if ! curl -s -q -H "Content-Type: application/json" -X GET "${REPOSERVER_URL}/api/hosts/get.php" 2> /dev/null;then
-		echo -e " [$JAUNE ERREUR $RESET] Impossible de joindre le serveur Repomanager à l'adresse $REPOSERVER_URL"
+		echo -e " [$YELLOW ERREUR $RESET] Impossible de joindre le serveur Repomanager à l'adresse $REPOSERVER_URL"
 		ERROR_STATUS=1
 		clean_exit
 	fi
@@ -161,7 +161,7 @@ function mod_install {
 	
 	# Activation du module
 	mod_enable &&
-	echo -e "Installation du module ${JAUNE}reposerver${RESET} : [$VERT OK $RESET]"
+	echo -e "Installation du module ${YELLOW}reposerver${RESET} : [$GREEN OK $RESET]"
 	
 	# Configuration du module
 	mod_configure
@@ -171,14 +171,14 @@ function mod_install {
 function enableReposerverAgent {
 	cd ${AGENTS_ENABLED_DIR}/ &&
 	ln -sfn "../mods-available/agent/reposerver.agent" &&
-	echo -e "Agent ${JAUNE}reposerver${RESET} activé"
+	echo -e "Agent ${YELLOW}reposerver${RESET} activé"
 	return 0
 }
 
 # Désactivation de l'agent reposerver
 function disableReposerverAgent {
 	rm "${AGENTS_ENABLED_DIR}/reposerver.agent" -f &&
-	echo -e "Agent ${JAUNE}reposerver${RESET} désactivé"
+	echo -e "Agent ${YELLOW}reposerver${RESET} désactivé"
 	return 0
 }
 
@@ -206,8 +206,7 @@ function mod_configure {
 	UPDATE_REQUEST_TYPE=""
 	UPDATE_REQUEST_STATUS=""
 	SEND_GENERAL_STATUS="no"
-	SEND_AVAILABLE_PACKAGES_STATUS="no"
-	SEND_INSTALLED_PACKAGE_STATUS="no"
+	SEND_PACKAGES_STATUS="no"
 	SEND_FULL_HISTORY="no"
 	SEND_FULL_HISTORY_LIMIT=""
 
@@ -221,22 +220,55 @@ function mod_configure {
 			--url)
 				REPOSERVER_URL="$2"
 				shift
+				# Ajout du paramètre dans le fichier de conf
+				if ! grep -q "^URL" $MOD_CONF;then
+					sed -i "/^\[REPOSERVER\]/a URL=\"$REPOSERVER_URL\"" $MOD_CONF
+				else
+					sed -i "s|URL.*|URL=\"$REPOSERVER_URL\"|g" $MOD_CONF
+				fi
 			;;
 			--fail-level)
 				FAILLEVEL="$2"
 				shift
+				# Ajout du paramètre dans le fichier de conf
+				if ! grep -q "^FAILLEVEL" $MOD_CONF;then
+					sed -i "/^\[MODULE\]/a FAILLEVEL=\"$FAILLEVEL\"" $MOD_CONF
+				else
+					sed -i "s/FAILLEVEL.*/FAILLEVEL=\"$FAILLEVEL\"/g" $MOD_CONF
+				fi
 			;;
 			--allow-conf-update)
 				if [ "$2" == "yes" ];then REPOSERVER_ALLOW_CONFUPDATE="yes"; else REPOSERVER_ALLOW_CONFUPDATE="no";fi
 				shift
+				# Ajout du paramètre dans le fichier de conf
+				if ! grep -q "^REPOSERVER_ALLOW_CONFUPDATE" $MOD_CONF;then
+					sed -i "/^\[CLIENT\]/a REPOSERVER_ALLOW_CONFUPDATE=\"$REPOSERVER_ALLOW_CONFUPDATE\"" $MOD_CONF
+				else
+					sed -i "s/REPOSERVER_ALLOW_CONFUPDATE.*/REPOSERVER_ALLOW_CONFUPDATE=\"$REPOSERVER_ALLOW_CONFUPDATE\"/g" $MOD_CONF
+				fi
 			;;
 			--allow-repos-update)
 				if [ "$2" == "yes" ];then REPOSERVER_ALLOW_REPOSFILES_UPDATE="yes"; else REPOSERVER_ALLOW_REPOSFILES_UPDATE="no";fi
 				shift
+				# Ajout du paramètre dans le fichier de conf
+				if ! grep -q "^REPOSERVER_ALLOW_REPOSFILES_UPDATE" $MOD_CONF;then
+					sed -i "/^\[CLIENT\]/a REPOSERVER_ALLOW_REPOSFILES_UPDATE=\"$REPOSERVER_ALLOW_REPOSFILES_UPDATE\"" $MOD_CONF
+				else 
+					sed -i "s/REPOSERVER_ALLOW_REPOSFILES_UPDATE.*/REPOSERVER_ALLOW_REPOSFILES_UPDATE=\"$REPOSERVER_ALLOW_REPOSFILES_UPDATE\"/g" $MOD_CONF
+				fi
 			;;
 			--allow-overwrite)
 				if [ "$2" == "yes" ];then REPOSERVER_ALLOW_OVERWRITE="yes"; else REPOSERVER_ALLOW_OVERWRITE="no";fi
 				shift
+				# Ajout du paramètre dans le fichier de conf
+				if ! grep -q "^REPOSERVER_ALLOW_OVERWRITE" $MOD_CONF;then
+					sed -i "/^\[CLIENT\]/a REPOSERVER_ALLOW_OVERWRITE=\"$REPOSERVER_ALLOW_OVERWRITE\"" $MOD_CONF
+				else 
+					sed -i "s/REPOSERVER_ALLOW_OVERWRITE.*/REPOSERVER_ALLOW_OVERWRITE=\"$REPOSERVER_ALLOW_OVERWRITE\"/g" $MOD_CONF
+				fi
+			;;
+			--get-server-conf)
+				getServerConf
 			;;
 			--register)
 				# Si une adresse IP est précisée alors on enregistrera cette adresse IP
@@ -259,9 +291,7 @@ function mod_configure {
 			--send-full-status)
 				# Si on a précisé --full alors on enverra le status complet du serveur
 				SEND_GENERAL_STATUS="yes"
-				SEND_AVAILABLE_PACKAGES_STATUS="yes"
-				SEND_INSTALLED_PACKAGE_STATUS="yes"
-				SEND_FULL_HISTORY="yes"
+				SEND_PACKAGES_STATUS="yes"
 				send_status
 			;;
 			--send-general-status)
@@ -270,17 +300,7 @@ function mod_configure {
 				send_status
 			;;
 			--send-packages-status)
-				# Si on a précisé --packages alors on enverra seulement le status des paquets
-				SEND_AVAILABLE_PACKAGES_STATUS="yes"
-				SEND_INSTALLED_PACKAGE_STATUS="yes"
-				send_status
-			;;
-			--send-available-packages-status)
-				SEND_AVAILABLE_PACKAGES_STATUS="yes"
-				send_status
-			;;
-			--send-installed-packages-status)
-				SEND_INSTALLED_PACKAGE_STATUS="yes"
+				SEND_PACKAGES_STATUS="yes"
 				send_status
 			;;
 			--send-full-history)
@@ -291,65 +311,25 @@ function mod_configure {
 				SEND_FULL_HISTORY="yes"
 				send_status
 			;;
+			# *)
+			# 	echo "Paramètre de module inconnu: $1"
+			# 	clean_exit
+			# ;;
 		esac
 		shift
 	done
-	set -u
-
-	# Configuration du fichier /etc/linupdate/modules/reposerver.conf
-	# Section [MODULE]
-	if [ ! -z "$FAILLEVEL" ];then
-		if ! grep -q "^FAILLEVEL" $MOD_CONF;then
-			sed -i "/^\[MODULE\]/a FAILLEVEL=\"$FAILLEVEL\"" $MOD_CONF
-		else
-			sed -i "s/FAILLEVEL.*/FAILLEVEL=\"$FAILLEVEL\"/g" $MOD_CONF
-		fi
-	fi
-
-	# Section [CLIENT]
-	if [ ! -z "$REPOSERVER_ALLOW_CONFUPDATE" ];then
-		if ! grep -q "^REPOSERVER_ALLOW_CONFUPDATE" $MOD_CONF;then
-			sed -i "/^\[CLIENT\]/a REPOSERVER_ALLOW_CONFUPDATE=\"$REPOSERVER_ALLOW_CONFUPDATE\"" $MOD_CONF
-		else
-			sed -i "s/REPOSERVER_ALLOW_CONFUPDATE.*/REPOSERVER_ALLOW_CONFUPDATE=\"$REPOSERVER_ALLOW_CONFUPDATE\"/g" $MOD_CONF
-		fi
-	fi
-
-	if [ ! -z "$REPOSERVER_ALLOW_REPOSFILES_UPDATE" ];then
-		if ! grep -q "^REPOSERVER_ALLOW_REPOSFILES_UPDATE" $MOD_CONF;then
-			sed -i "/^\[CLIENT\]/a REPOSERVER_ALLOW_REPOSFILES_UPDATE=\"$REPOSERVER_ALLOW_REPOSFILES_UPDATE\"" $MOD_CONF
-		else 
-			sed -i "s/REPOSERVER_ALLOW_REPOSFILES_UPDATE.*/REPOSERVER_ALLOW_REPOSFILES_UPDATE=\"$REPOSERVER_ALLOW_REPOSFILES_UPDATE\"/g" $MOD_CONF
-		fi
-	fi
-
-	if [ ! -z "$REPOSERVER_ALLOW_OVERWRITE" ];then
-		if ! grep -q "^REPOSERVER_ALLOW_OVERWRITE" $MOD_CONF;then
-			sed -i "/^\[CLIENT\]/a REPOSERVER_ALLOW_OVERWRITE=\"$REPOSERVER_ALLOW_OVERWRITE\"" $MOD_CONF
-		else 
-			sed -i "s/REPOSERVER_ALLOW_OVERWRITE.*/REPOSERVER_ALLOW_OVERWRITE=\"$REPOSERVER_ALLOW_OVERWRITE\"/g" $MOD_CONF
-		fi
-	fi
-
-	# Section [REPOSERVER]
-	if [ ! -z "$REPOSERVER_URL" ];then
-		if ! grep -q "^URL" $MOD_CONF;then
-			sed -i "/^\[REPOSERVER\]/a URL=\"$REPOSERVER_URL\"" $MOD_CONF
-		else
-			sed -i "s|URL.*|URL=\"$REPOSERVER_URL\"|g" $MOD_CONF
-		fi
-	fi
+	# set -u
 }
 
 # La fonction mod_load() permet de s'assurer que le module est un minimum configuré avant qu'il soit intégré à l'exécution du programme principal
 # Retourner 1 si des éléments sont manquants
 # Retourner 0 si tout est OK
 function mod_load {
-	echo -e "  - ${JAUNE}reposerver${RESET}"
+	echo -e "  - ${YELLOW}reposerver${RESET}"
 
 	# Si le fichier de configuration du module est introuvable alors on ne charge pas le module
 	if [ ! -f "$MOD_CONF" ] || [ ! -s "$MOD_CONF" ];then
-		echo -e "    [$JAUNE WARNING $RESET] Le fichier de configuration du module est introuvable. Ce module ne peut pas être chargé."
+		echo -e "    [$YELLOW WARNING $RESET] Le fichier de configuration du module est introuvable. Ce module ne peut pas être chargé."
 		return 1
 	fi
 
@@ -420,12 +400,12 @@ function mod_load {
 
 	# Si l'URL du serveur de repo n'est pas renseignée alors on ne charge pas le module
 	if [ -z $(grep "^URL=" $MOD_CONF | cut -d'=' -f2 | sed 's/"//g') ];then
-		echo -e "     [$JAUNE WARNING $RESET] L'URL du serveur ${JAUNE}reposerver${RESET} n'est pas renseignée. Ce module ne peut pas être chargé."
+		echo -e "     [$YELLOW WARNING $RESET] L'URL du serveur ${YELLOW}reposerver${RESET} n'est pas renseignée. Ce module ne peut pas être chargé."
 		return 1
 	fi
 
 	LOADED_MODULES+=("reposerver")
-	echo -e "  - Module reposerver : ${JAUNE}Activé${RESET}"
+	echo -e "  - Module reposerver : ${YELLOW}Activé${RESET}"
 
 	return 0
 }
@@ -455,11 +435,11 @@ function getModConf {
 
 	# Si on n'a pas pu récupérer le FAILLEVEL dans le fichier de conf alors on le set à 1 par défaut
 	# De même si le FAILLEVEL récupéré n'est pas un chiffre alors on le set à 1
-	if [ -z "$FAILLEVEL" ];then echo -e "[$JAUNE WARNING $RESET] Paramètre FAILLEVEL non configuré pour ce module → configuré à 1 (arrêt en cas d'erreur mineure ou critique)"; FAILLEVEL="1";fi
-	if ! [[ "$FAILLEVEL" =~ ^[0-9]+$ ]];then echo -e "[$JAUNE WARNING $RESET] Paramètre FAILLEVEL non configuré pour ce module → configuré à 1 (arrêt en cas d'erreur mineure ou critique)"; FAILLEVEL="1";fi
+	if [ -z "$FAILLEVEL" ];then echo -e "[$YELLOW WARNING $RESET] Paramètre FAILLEVEL non configuré pour ce module → configuré à 1 (arrêt en cas d'erreur mineure ou critique)"; FAILLEVEL="1";fi
+	if ! [[ "$FAILLEVEL" =~ ^[0-9]+$ ]];then echo -e "[$YELLOW WARNING $RESET] Paramètre FAILLEVEL non configuré pour ce module → configuré à 1 (arrêt en cas d'erreur mineure ou critique)"; FAILLEVEL="1";fi
 
 	if [ -z "$REPOSERVER_URL" ];then
-		echo -e " - Module reposerver : [${JAUNE} ERREUR ${RESET}] URL du serveur de repo inconnue ou vide"
+		echo -e " - Module reposerver : [${YELLOW} ERREUR ${RESET}] URL du serveur de repo inconnue ou vide"
 		return 2
 	fi
 
@@ -470,11 +450,14 @@ function getModConf {
 	return 0
 }
 
-function updateModConf {
+function getServerConf {
+	# On charge les paramètres du module
+	getModConf
+
 	# On re-télécharge la conf complète du serveur de repo afin de la mettre à jour dans le fichier de conf
 	GET_CONF=$(curl -s "${REPOSERVER_URL}/main.conf")
 	if [ -z "$GET_CONF" ];then
-		echo -e " [${JAUNE} ERREUR ${RESET}] La configuration du serveur de repo récupérée est vide"
+		echo -e " [${YELLOW} ERREUR ${RESET}] La configuration du serveur de repo récupérée est vide"
 		return 2
 	fi
 
@@ -493,6 +476,8 @@ function updateModConf {
 	# On remplace alors le fichier de conf actuel par le nouveau
 	cat "$TMP_FILE" > "$MOD_CONF"
 
+	rm "$TMP_FILE" -f
+
 	# Puis on recharge à nouveau les paramètres
 	getModConf
 }
@@ -501,23 +486,23 @@ function updateModConf {
 function preCheck {
 	# Si l'url d'accès aux profils est inconnue alors on ne peut pas continuer
 	if [ -z "$REPOSERVER_PROFILES_URL" ];then
-		echo -e "   [${JAUNE} ERREUR ${RESET}] L'URL d'accès aux profils est inconnue."
+		echo -e "   [${YELLOW} ERREUR ${RESET}] L'URL d'accès aux profils est inconnue."
 		return 1
 	fi
 
 	# Si REPOSERVER_OS_FAMILY, *NAME ou *VERSION diffère du type de serveur sur lequel est exécuté ce module (par exemple le serveur reposerver est un serveur CentOS et nous somme sur un serveur Debian), alors on affiche un warning
 	if [ "$REPOSERVER_OS_FAMILY" != "$OS_FAMILY" ];then
-		echo -e "   [${JAUNE} ERREUR ${RESET}] Le serveur de repo distant ne gère pas la même famille d'OS que cette machine."
+		echo -e "   [${YELLOW} ERREUR ${RESET}] Le serveur de repo distant ne gère pas la même famille d'OS que cette machine."
 		return 2
 	fi
 
 	if [ "$REPOSERVER_OS_ID" != "$OS_NAME" ];then
-		echo -e "   [${JAUNE} WARNING ${RESET}] Le serveur de repo distant ne gère pas le même OS que cette machine, les paquets peuvent être incompatibles."
+		echo -e "   [${YELLOW} WARNING ${RESET}] Le serveur de repo distant ne gère pas le même OS que cette machine, les paquets peuvent être incompatibles."
 		return 1
 	fi
 
 	if [ "$REPOSERVER_OS_VERSION" != "$OS_VERSION" ];then
-		echo -e "   [${JAUNE} ERREUR ${RESET}] Le serveur de repo distant ne gère pas la même version d'OS que cette machine."
+		echo -e "   [${YELLOW} ERREUR ${RESET}] Le serveur de repo distant ne gère pas la même version d'OS que cette machine."
 		return 2
 	fi
 }
@@ -529,28 +514,28 @@ function updateConfFile {
 
 	if [ "$REPOSERVER_MANAGE_CLIENTS_CONF" == "no" ] || [ "$REPOSERVER_ALLOW_CONFUPDATE" == "no" ];then
 		if [ "$REPOSERVER_MANAGE_CLIENTS_CONF" == "no" ];then
-			echo -e "${JAUNE}Désactivé (non pris en charge par le serveur Repomanager)${RESET}"
+			echo -e "${YELLOW}Désactivé (non pris en charge par le serveur Repomanager)${RESET}"
 		fi
 		if [ "$REPOSERVER_ALLOW_CONFUPDATE" == "no" ];then
-			echo -e "${JAUNE}Désactivé${RESET}"
+			echo -e "${YELLOW}Désactivé${RESET}"
 		fi
 
 		return 1
 	fi
 
-	echo -e "${JAUNE}Activé${RESET}"
+	echo -e "${YELLOW}Activé${RESET}"
 
 	# Sinon, on récupère la conf auprès du serveur de repo, PROFILE étant le nom de profil
 	# 1er test pour voir la conf est récupérable (et qu'on ne choppe pas une 404 ou autre erreur)
 	if ! curl -s -f -o /dev/null "${REPOSERVER_PROFILES_URL}/${SERVER_PROFILE}/config";then
-		echo -e "   [$JAUNE ERREUR $RESET] pendant la récupération de la configuration du profil ${JAUNE}${SERVER_PROFILE}${RESET} depuis ${JAUNE}${REPOSERVER_PROFILES_URL}${RESET}"
+		echo -e "   [$YELLOW ERREUR $RESET] pendant la récupération de la configuration du profil ${YELLOW}${SERVER_PROFILE}${RESET} depuis ${YELLOW}${REPOSERVER_PROFILES_URL}${RESET}"
 		return 2
 	fi
 
 	# 2ème fois : cette fois on récupère la conf
 	GET_CONF=$(curl -s "${REPOSERVER_PROFILES_URL}/${SERVER_PROFILE}/config")
 	if [ -z "$GET_CONF" ];then
-		echo -e "   [$JAUNE ERREUR $RESET] pendant la récupération de la configuration du profil ${JAUNE}${SERVER_PROFILE}${RESET} depuis ${JAUNE}${REPOSERVER_PROFILES_URL}${RESET}"
+		echo -e "   [$YELLOW ERREUR $RESET] pendant la récupération de la configuration du profil ${YELLOW}${SERVER_PROFILE}${RESET} depuis ${YELLOW}${REPOSERVER_PROFILES_URL}${RESET}"
 		return 2
 	fi
 
@@ -588,8 +573,8 @@ function updateReposConfFiles { # Mets à jour les fichiers de conf .repo en all
 		fi
 
 		if [ "$RESULT" -ne "0" ];then
-			if [ "$OS_FAMILY" == "Redhat" ];then echo -e "[$JAUNE ERREUR $RESET] lors du téléchargement des fichiers de conf .repo depuis ${REPOSERVER_URL}";fi
-			if [ "$OS_FAMILY" == "Debian" ];then echo -e "[$JAUNE ERREUR $RESET] lors du téléchargement des fichiers de conf .list depuis ${REPOSERVER_URL}";fi
+			if [ "$OS_FAMILY" == "Redhat" ];then echo -e "[$YELLOW ERREUR $RESET] lors du téléchargement des fichiers de conf .repo depuis ${REPOSERVER_URL}";fi
+			if [ "$OS_FAMILY" == "Debian" ];then echo -e "[$YELLOW ERREUR $RESET] lors du téléchargement des fichiers de conf .list depuis ${REPOSERVER_URL}";fi
 			return 2
 		fi
 
@@ -600,9 +585,9 @@ function updateReposConfFiles { # Mets à jour les fichiers de conf .repo en all
 			cd /etc/yum.repos.d/ &&
 			mkdir -p backups/ &&
 			# Puis on crée un backup archive à la date du jour
-			tar czf backup_yum.repos.d_${DATE_AMJ}.tar.gz *.repo &&
+			tar czf backup_yum.repos.d_${DATE_YMD}.tar.gz *.repo &&
 			# Qu'on déplace ensuite dans le dossier backups
-			mv backup_yum.repos.d_${DATE_AMJ}.tar.gz backups/ &&
+			mv backup_yum.repos.d_${DATE_YMD}.tar.gz backups/ &&
 			# Suppression des fichiers .repo actuels, qui vont être remplacés par les nouveaux
 			rm /etc/yum.repos.d/*.repo -f &&
 			# Déplacement des nouveaux fichiers de conf dans /etc/yum.repos.d/
@@ -611,7 +596,7 @@ function updateReposConfFiles { # Mets à jour les fichiers de conf .repo en all
 			chown root:root /etc/yum.repos.d/*.repo && chmod 660 /etc/yum.repos.d/*.repo &&
 			# Vidage du cache yum
 			yum clean all -q && 
-			echo -e "[$VERT OK $RESET]"
+			echo -e "[$GREEN OK $RESET]"
 		fi
 
 		if [ "$OS_FAMILY" == "Debian" ];then
@@ -621,9 +606,9 @@ function updateReposConfFiles { # Mets à jour les fichiers de conf .repo en all
 			cd /etc/apt/sources.list.d/ &&
 			mkdir -p backups/ &&
 			# Puis on crée un backup archive à la date du jour
-			tar czf backup_apt.sourceslist.d_${DATE_AMJ}.tar.gz *.list &&
+			tar czf backup_apt.sourceslist.d_${DATE_YMD}.tar.gz *.list &&
 			# Qu'on déplace ensuite dans le dossier backups
-			mv backup_apt.sourceslist.d_${DATE_AMJ}.tar.gz backups/ &&
+			mv backup_apt.sourceslist.d_${DATE_YMD}.tar.gz backups/ &&
 			# Suppression des fichiers .list actuels, qui vont être remplacés par les nouveaux
 			rm /etc/apt/sources.list.d/*.list -f &&
 			# Déplacement des nouveaux fichiers de conf dans /etc/apt/sources.list.d/
@@ -632,16 +617,16 @@ function updateReposConfFiles { # Mets à jour les fichiers de conf .repo en all
 			chown root:root /etc/apt/sources.list.d/*.list && chmod 660 /etc/apt/sources.list.d/*.list &&
 			# Vidage du cache apt
 			apt-get clean && 
-			echo -e "[$VERT OK $RESET]"
+			echo -e "[$GREEN OK $RESET]"
 		fi
 	else
 		if [ "$REPOSERVER_MANAGE_CLIENTS_REPOSCONF" != "yes" ];then
-			echo -e "${JAUNE}Désactivé (non pris en charge par le serveur Repomanager)${RESET}"
+			echo -e "${YELLOW}Désactivé (non pris en charge par le serveur Repomanager)${RESET}"
 			return 1
 		fi
 
 		if [ "$REPOSERVER_ALLOW_REPOSFILES_UPDATE" != "yes" ];then
-			echo -e "${JAUNE}Désactivé${RESET}"
+			echo -e "${YELLOW}Désactivé${RESET}"
 			return 1
 		fi
 	fi
@@ -660,7 +645,7 @@ function pre {
 	# Erreur mineure :  return 1
 	# Erreur critique : return 2
 
-	echo -e " Exécution du module ${JAUNE}reposerver${RESET}"
+	echo -e " Exécution du module ${YELLOW}reposerver${RESET}"
 
 	# On récupère la configuration du module, en l'occurence la configuration du serveur de repo
 	getModConf
@@ -669,7 +654,7 @@ function pre {
 	if [ "$FAILLEVEL" -eq "3" ] && [ "$RESULT" -gt "0" ];then return 1;fi 	 					# Si FAILLEVEL = 3 et qu'il y a une erreur au chargement de la conf du module alors on quitte le module sans pour autant quitter repomanager (clean_exit)
 
 	# On met à jour la configuration du serveur de repo distant en lui demandant de renvoyer sa conf
-	updateModConf
+	getServerConf
 	RESULT="$?"
 	if [ "$FAILLEVEL" -eq "1" ] && [ "$RESULT" -gt "0" ];then (( MOD_ERROR++ )); clean_exit;fi
 	if [ "$FAILLEVEL" -eq "2" ] && [ "$RESULT" -ge "2" ];then (( MOD_ERROR++ )); clean_exit;fi
@@ -705,11 +690,20 @@ function pre {
 function post {
 	# Aquittement du status auprès du serveur reposerver
 	UPDATE_REQUEST_TYPE="packages-update"
-	UPDATE_REQUEST_STATUS="done"
+	if [ "$UPDATE_ERROR" -gt "0" ];then
+		UPDATE_REQUEST_STATUS="error"
+	else 
+		UPDATE_REQUEST_STATUS="done"
+	fi
 	update_request_status
 
-	# On renvoie les 2 derniers historique d'évènements au serveur reposerver
-	/opt/linupdate/linupdate --mod-configure reposerver --from-agent --send-full-history 2
+	# Généralement les paquets "*-release" sur Redhat/CentOS remettent en place des fichiers .repo. Si un paquet de ce type a été mis à jour alors on remets à jour la configuration des repos à partir du serveurs de repo (profils), si cela est autorisé des deux côtés
+	if echo "${PACKAGES[*]}" | grep -q "-release";then
+		updateReposConfFiles
+	fi
+
+	# On renvoie les 4 derniers historique d'évènements au serveur reposerver
+	/opt/linupdate/linupdate --mod-configure reposerver --from-agent --send-full-history 4
 	/opt/linupdate/linupdate --mod-configure reposerver --from-agent --send-available-packages-status
 
 	return 0
@@ -728,18 +722,18 @@ function send_status {
 	IFS=$'\n'
 
 	# On teste l'accès à l'url avec un curl pour vérifier que le serveur est joignable
-	testConn
+	testConnection
 
 	# Envoi du récapitulatif de toutes les mises à jour effectuées à partir du fichier historique
 
 	# Si on n'a pas d'ID ou de token alors on ne peut pas effectuer cette opération
 	if [ -z "$HOST_ID" ];then
-		echo -e "[$JAUNE ERREUR $RESET] L'ID de cette machine est manquant"
+		echo -e "[$YELLOW ERREUR $RESET] L'ID de cette machine est manquant"
 		ERROR_STATUS=1
 		clean_exit
 	fi
 	if [ -z "$TOKEN" ];then
-		echo -e "[$JAUNE ERREUR $RESET] Le token de cette machine est manquant"
+		echo -e "[$YELLOW ERREUR $RESET] Le token de cette machine est manquant"
 		ERROR_STATUS=1
 		clean_exit
 	fi
@@ -751,6 +745,16 @@ function send_status {
 		send_general_status
 	fi
 
+	# Paquets
+	if [ "$SEND_PACKAGES_STATUS" == "yes" ];then
+		send_packages_status
+	fi
+
+	# Historique des évènements apt ou yum
+	if [ "$SEND_FULL_HISTORY" == "yes" ];then  
+		genFullHistory
+	fi
+
 	# Paquets disponibles sur cet hôte
 	if [ "$SEND_AVAILABLE_PACKAGES_STATUS" == "yes" ];then
 		send_available_packages_status
@@ -759,11 +763,6 @@ function send_status {
 	# Paquets installés sur cet hôte
 	if [ "$SEND_INSTALLED_PACKAGE_STATUS" == "yes" ];then
 		send_installed_packages_status
-	fi
-
-	# Historique des évènements apt ou yum
-	if [ "$SEND_FULL_HISTORY" == "yes" ];then  
-		genFullHistory
 	fi
 
 	IFS="$OLD_IFS"
@@ -787,7 +786,7 @@ function update_request_status {
 
 	# Si une erreur est survenue (code de retour différent de 201 ou vide), on tente d'afficher le message retourné par le serveur
 	if [ -z "$UPDATE_RETURN" ];then
-		echo -e "[$JAUNE ERREUR $RESET] L'envoi des mises à jour a échouée, erreur inconnue."
+		echo -e "[$YELLOW ERREUR $RESET] L'envoi des mises à jour a échouée, erreur inconnue."
 		ERROR_STATUS=1
 		return
 	fi
@@ -800,7 +799,7 @@ function update_request_status {
 
 		# $UPDATE_MESSAGE_ERROR est un array pouvant contenir plusieurs messages d'erreurs
 		for MESSAGE in "${UPDATE_MESSAGE_ERROR[@]}"; do
-			echo -e "[$JAUNE ERREUR $RESET] $MESSAGE"
+			echo -e "[$YELLOW ERREUR $RESET] $MESSAGE"
 		done
 		ERROR_STATUS=1
 	fi
@@ -820,7 +819,7 @@ function send_general_status {
 
 	# Paramètres généraux (os, version, profil...)
 	if [ ! -z "$OS_NAME" ] && [ ! -z "$OS_VERSION" ];then
-		CURL_PARAMS+=", \"os\":\"$OS_NAME\", \"os_version\":\"$OS_VERSION\""
+		CURL_PARAMS+=", \"os\":\"$OS_NAME\", \"os_version\":\"$OS_VERSION\", \"os_family\":\"$OS_FAMILY\", \"type\":\"$VIRT_TYPE\", \"kernel\":\"$KERNEL\", \"arch\":\"$ARCH\""
 	fi
 	if [ ! -z "$SERVER_PROFILE" ];then
 		CURL_PARAMS+=", \"profile\":\"$SERVER_PROFILE\""
@@ -832,13 +831,13 @@ function send_general_status {
 	# Fin de construction des paramètres curl puis envoi.
 
 	# Envoi des données :
-	echo -e " Envoi du status à ${JAUNE}${REPOSERVER_URL}${RESET} : "
+	echo -e " Envoi du status à ${YELLOW}${REPOSERVER_URL}${RESET} : "
 	CURL=$(curl -s -q -H "Content-Type: application/json" -X PUT -d "{$CURL_PARAMS}" "${REPOSERVER_URL}/api/hosts/update.php" 2> /dev/null)
 	UPDATE_RETURN=$(jq -r '.return' <<< "$CURL")
 
 	# Si une erreur est survenue (code de retour différent de 201 ou vide), on tente d'afficher le message retourné par le serveur
 	if [ -z "$UPDATE_RETURN" ];then
-		echo -e "[$JAUNE ERREUR $RESET] L'envoi des mises à jour a échouée, erreur inconnue."
+		echo -e "[$YELLOW ERREUR $RESET] L'envoi des mises à jour a échouée, erreur inconnue."
 		ERROR_STATUS=1
 		return
 	fi
@@ -851,7 +850,7 @@ function send_general_status {
 
 		# $UPDATE_MESSAGE_ERROR est un array pouvant contenir plusieurs messages d'erreurs
 		for MESSAGE in "${UPDATE_MESSAGE_ERROR[@]}"; do
-			echo -e "[$JAUNE ERREUR $RESET] $MESSAGE"
+			echo -e "[$YELLOW ERREUR $RESET] $MESSAGE"
 		done
 		ERROR_STATUS=1
 
@@ -864,10 +863,42 @@ function send_general_status {
 
 		# $UPDATE_MESSAGE_SUCCESS est un array pouvant contenir plusieurs messages d'erreurs
 		for MESSAGE in "${UPDATE_MESSAGE_SUCCESS[@]}"; do
-			echo -e "[$VERT OK $RESET] $MESSAGE"
+			echo -e "[$GREEN OK $RESET] $MESSAGE"
 		done
 
 		UPDATE_REQUEST_STATUS="done"
+	fi
+
+	update_request_status
+}
+
+function send_packages_status {
+	INSTALLED_PACKAGES=""
+	UPDATE_MESSAGE_SUCCESS=""
+	UPDATE_MESSAGE_ERROR=""
+
+	UPDATE_REQUEST_TYPE="packages-status-update"
+	UPDATE_REQUEST_STATUS="running"
+	update_request_status
+
+	# Exécution des différentes fonctions
+
+	# Sauf si il y a une erreur, le status sera done
+	UPDATE_REQUEST_STATUS="done"
+
+	genFullHistory
+	if [ "$?" -ne "0" ];then
+		UPDATE_REQUEST_STATUS="error"
+	fi
+
+	send_available_packages_status
+	if [ "$?" -ne "0" ];then
+		UPDATE_REQUEST_STATUS="error"
+	fi
+
+	send_installed_packages_status
+	if [ "$?" -ne "0" ];then
+		UPDATE_REQUEST_STATUS="error"
 	fi
 
 	update_request_status
@@ -879,10 +910,6 @@ function send_installed_packages_status {
 	UPDATE_MESSAGE_SUCCESS=""
 	UPDATE_MESSAGE_ERROR=""
 
-	UPDATE_REQUEST_TYPE="installed-packages-status-update"
-	UPDATE_REQUEST_STATUS="running"
-	update_request_status
-
 	# Paramètres concernant les paquets installés sur le système (tous les paquets)
 	echo "Construction de la liste des paquets installés sur le système..."
 
@@ -891,7 +918,7 @@ function send_installed_packages_status {
 	# Construction de la liste des paquets
 	# Cas Redhat
 	if [ "$OS_FAMILY" == "Redhat" ];then
-		repoquery -a --installed --qf="%{name} %{version}-%{release}.%{arch}" > "$INSTALLED_PACKAGES_TMP"
+		repoquery -a --installed --qf="%{name} %{epoch}:%{version}-%{release}.%{arch}" > "$INSTALLED_PACKAGES_TMP"
 	fi
 	# Cas Debian
 	if [ "$OS_FAMILY" == "Debian" ];then
@@ -907,20 +934,18 @@ function send_installed_packages_status {
 		if [ "$OS_FAMILY" == "Redhat" ];then
 			PACKAGE_NAME=$(echo "$LINE" | awk '{print $1}')
 			PACKAGE_ACT_VERSION=$(echo "$LINE" | awk '{print $2}')
+			# On retire l'epoch si celui-ci vaut 0: (epoch : https://docs.fedoraproject.org/en-US/Fedora_Draft_Documentation/0.1/html/RPM_Guide/ch09s03.html)
+			PACKAGE_ACT_VERSION=$(echo "$PACKAGE_ACT_VERSION" | sed 's/^0://g')
 		fi
 		if [ "$OS_FAMILY" == "Debian" ];then
 			PACKAGE_NAME=$(echo "$LINE" | awk '{print $1}' | sed 's/:amd64//g' | sed 's/:i386//g' | sed 's/:armhf//g')
 			PACKAGE_ACT_VERSION=$(echo "$LINE" | awk '{print $2}' | sed 's/"//g' | sed "s/'//g")
-			# awk récupère de la 5ème à la dernière colonne pour obtenir la description entière :
-			# Description désactivée car provoque des pb à l'import en BDD
-			#PACKAGE_DESCRIPTION=$(echo "$LINE" | awk '{for(i=5;i<=NF;++i)printf $i""FS ; print ""}' | sed 's/"//g' | sed "s/'//g" | sed "s/|//g" | sed "s/,//g") 
 		fi
 
 		# Si le nom du paquet est vide, on passe au suivant
 		if [ -z "$PACKAGE_NAME" ];then continue;fi
 				
 		# Ajout du nom du paquet, sa version actuelle et sa version disponible à l'array $INSTALLED_PACKAGES
-		#INSTALLED_PACKAGES+="${PACKAGE_NAME}|${PACKAGE_ACT_VERSION}|${PACKAGE_DESCRIPTION}, "
 		INSTALLED_PACKAGES+="${PACKAGE_NAME}|${PACKAGE_ACT_VERSION},"
 	done
 
@@ -928,16 +953,16 @@ function send_installed_packages_status {
 	INSTALLED_PACKAGES=$(echo "${INSTALLED_PACKAGES::-1}")
 	
 	# Construction des paramètres curl à envoyer
-	CURL_PARAMS="$CURL_PARAMS, \"packages_installed\":\"$INSTALLED_PACKAGES\""
+	CURL_PARAMS="$CURL_PARAMS, \"installed_packages\":\"$INSTALLED_PACKAGES\""
 
 	# Envoi des données :
-	echo -ne " Envoi des informations à ${JAUNE}${REPOSERVER_URL}${RESET} : "
+	echo -ne " Envoi des informations à ${YELLOW}${REPOSERVER_URL}${RESET} : "
 	CURL=$(curl -s -q -H "Content-Type: application/json" -X PUT -d "{$CURL_PARAMS}" "${REPOSERVER_URL}/api/hosts/update.php" 2> /dev/null)
 	UPDATE_RETURN=$(jq -r '.return' <<< "$CURL")
 
 	# Si une erreur est survenue (code de retour différent de 201 ou vide), on tente d'afficher le message retourné par le serveur
 	if [ -z "$UPDATE_RETURN" ];then
-		echo -e "[$JAUNE ERREUR $RESET] L'envoi des mises à jour a échouée, erreur inconnue."
+		echo -e "[$YELLOW ERREUR $RESET] L'envoi des mises à jour a échouée, erreur inconnue."
 		ERROR_STATUS=1
 
 		UPDATE_REQUEST_STATUS="error"
@@ -951,7 +976,7 @@ function send_installed_packages_status {
 
 		# $UPDATE_MESSAGE_ERROR est un array pouvant contenir plusieurs messages d'erreurs
 		for MESSAGE in "${UPDATE_MESSAGE_ERROR[@]}"; do
-			echo -e "[$JAUNE ERREUR $RESET] $MESSAGE"
+			echo -e "[$YELLOW ERREUR $RESET] $MESSAGE"
 		done
 		ERROR_STATUS=1
 
@@ -964,7 +989,7 @@ function send_installed_packages_status {
 
 		# $UPDATE_MESSAGE_SUCCESS est un array pouvant contenir plusieurs messages d'erreurs
 		for MESSAGE in "${UPDATE_MESSAGE_SUCCESS[@]}"; do
-			echo -e "[$VERT OK $RESET] $MESSAGE"
+			echo -e "[$GREEN OK $RESET] $MESSAGE"
 		done
 
 		UPDATE_REQUEST_STATUS="done"
@@ -972,16 +997,16 @@ function send_installed_packages_status {
 
 	rm "$INSTALLED_PACKAGES_TMP" -f
 
-	update_request_status
+	if [ "$UPDATE_REQUEST_STATUS" == "error" ];then
+		return 1
+	fi
+
+	return 0
 }
 
 # Envoi au serveur Repomanager de la liste des paquets disponibles pour mettre à jour
 function send_available_packages_status {
 	AVAILABLE_PACKAGES=""
-
-	UPDATE_REQUEST_TYPE="available-packages-status-update"
-	UPDATE_REQUEST_STATUS="running"
-	update_request_status
 
 	# Paramètres d'authentification (id et token)
 	CURL_PARAMS="\"id\":\"$HOST_ID\", \"token\":\"$TOKEN\""
@@ -996,26 +1021,26 @@ function send_available_packages_status {
 	# Cas Redhat
 	if [ "$OS_FAMILY" == "Redhat" ];then
 		# Récupération des paquets disponibles pour mise à jour
-		repoquery -q -a --qf="%{name} %{version}-%{release}.%{arch} %{repoid}" --pkgnarrow=updates > "$AVAILABLE_PACKAGES_TMP"
+		repoquery -q -a --qf="%{name} %{epoch}:%{version}-%{release}.%{arch}" --pkgnarrow=updates > "$AVAILABLE_PACKAGES_TMP" # toto
 	fi
 	# Cas Debian
 	if [ "$OS_FAMILY" == "Debian" ];then
 		# Récupération des paquets disponibles pour mise à jour
-		#apt-get --just-print dist-upgrade | grep "^Inst " | awk '{print $2, $3, $4}' > "$AVAILABLE_PACKAGES_TMP"
 		aptitude -F"%p %v %V" --disable-columns search ~U > "$AVAILABLE_PACKAGES_TMP"
 	fi
 	
 	# Si le fichier généré est vide, alors il n'y a aucun paquet à mettre à jour, on n'envoit rien à Repomanager
 	if [ ! -s "$AVAILABLE_PACKAGES_TMP" ];then
-		echo -e "[$JAUNE OK $RESET] Il n'y aucun paquet à mettre à jour. Rien n'a été transmis à ${JAUNE}${REPOSERVER_URL}${RESET}"
+		AVAILABLE_PACKAGES="none"
 
-		UPDATE_REQUEST_STATUS="done"
 	else
 		# Sinon on parcourt toutes les lignes du fichiers pour lister les paquets disponibles
 		for LINE in $(cat "$AVAILABLE_PACKAGES_TMP");do
 			if [ "$OS_FAMILY" == "Redhat" ];then
 				PACKAGE_NAME=$(echo "$LINE" | awk '{print $1}')
 				PACKAGE_AVL_VERSION=$(echo "$LINE" | awk '{print $2}')
+				# On retire l'epoch si celui-ci vaut 0:
+				PACKAGE_AVL_VERSION=$(echo "$PACKAGE_AVL_VERSION" | sed 's/^0://g')
 			fi
 			if [ "$OS_FAMILY" == "Debian" ];then
 				PACKAGE_NAME=$(echo "$LINE" | awk '{print $1}')
@@ -1031,51 +1056,57 @@ function send_available_packages_status {
 
 		# Suppression de la dernière virgule :
 		AVAILABLE_PACKAGES=$(echo "${AVAILABLE_PACKAGES::-1}")
-	
-		# Construction des paramètres curl à envoyer
-		CURL_PARAMS="$CURL_PARAMS, \"available_packages\":\"$AVAILABLE_PACKAGES\""
+	fi
 
-		# Envoi des données :
-		echo -ne " Envoi du status à ${JAUNE}${REPOSERVER_URL}${RESET} : "
-		CURL=$(curl -s -q -H "Content-Type: application/json" -X PUT -d "{$CURL_PARAMS}" "${REPOSERVER_URL}/api/hosts/update.php" 2> /dev/null)
-		UPDATE_RETURN=$(jq -r '.return' <<< "$CURL")
+	# Construction des paramètres curl à envoyer
+	CURL_PARAMS="$CURL_PARAMS, \"available_packages\":\"$AVAILABLE_PACKAGES\""
 
-		# Si une erreur est survenue (code de retour différent de 201 ou vide), on tente d'afficher le message retourné par le serveur
-		if [ -z "$UPDATE_RETURN" ];then
-			echo -e "[$JAUNE ERREUR $RESET] L'envoi des mises à jour a échouée, erreur inconnue."
-			ERROR_STATUS=1
-			UPDATE_REQUEST_STATUS="error"
-		fi
+	# Envoi des données :
+	echo -ne " Envoi du status à ${YELLOW}${REPOSERVER_URL}${RESET} : "
+	CURL=$(curl -s -q -H "Content-Type: application/json" -X PUT -d "{$CURL_PARAMS}" "${REPOSERVER_URL}/api/hosts/update.php" 2> /dev/null)
+	UPDATE_RETURN=$(jq -r '.return' <<< "$CURL")
 
-		# Récupération et affichage des messages
+	# Si une erreur est survenue (code de retour différent de 201 ou vide), on tente d'afficher le message retourné par le serveur
+	if [ -z "$UPDATE_RETURN" ];then
+		echo -e "[$YELLOW ERREUR $RESET] L'envoi des mises à jour a échouée, erreur inconnue."
+		ERROR_STATUS=1
+		UPDATE_REQUEST_STATUS="error"
+	fi
 
-		# Si il y a eu des messages d'erreur on les affiche
-		if echo "$CURL" | grep -q "message_error";then
-			UPDATE_MESSAGE_ERROR=($(jq -r '.message_error[]' <<< "$CURL")) # array
+	# Récupération et affichage des messages
 
-			# $UPDATE_MESSAGE_ERROR est un array pouvant contenir plusieurs messages d'erreurs
-			for MESSAGE in "${UPDATE_MESSAGE_ERROR[@]}"; do
-				echo -e "[$JAUNE ERREUR $RESET] $MESSAGE"
-			done
-			ERROR_STATUS=1
-			UPDATE_REQUEST_STATUS="error"
-		fi
+	# Si il y a eu des messages d'erreur on les affiche
+	if echo "$CURL" | grep -q "message_error";then
+		UPDATE_MESSAGE_ERROR=($(jq -r '.message_error[]' <<< "$CURL")) # array
 
-		# Si il y a eu des message de succès on les affiche
-		if echo "$CURL" | grep -q "message_success";then
-			UPDATE_MESSAGE_SUCCESS=($(jq -r '.message_success[]' <<< "$CURL")) # array
+		# $UPDATE_MESSAGE_ERROR est un array pouvant contenir plusieurs messages d'erreurs
+		for MESSAGE in "${UPDATE_MESSAGE_ERROR[@]}"; do
+			echo -e "[$YELLOW ERREUR $RESET] $MESSAGE"
+		done
 
-			# $UPDATE_MESSAGE_SUCCESS est un array pouvant contenir plusieurs messages d'erreurs
-			for MESSAGE in "${UPDATE_MESSAGE_SUCCESS[@]}"; do
-				echo -e "[$VERT OK $RESET] $MESSAGE"
-			done
-			UPDATE_REQUEST_STATUS="done"
-		fi
+		ERROR_STATUS=1
+		UPDATE_REQUEST_STATUS="error"
+	fi
+
+	# Si il y a eu des message de succès on les affiche
+	if echo "$CURL" | grep -q "message_success";then
+		UPDATE_MESSAGE_SUCCESS=($(jq -r '.message_success[]' <<< "$CURL")) # array
+
+		# $UPDATE_MESSAGE_SUCCESS est un array pouvant contenir plusieurs messages de succes
+		for MESSAGE in "${UPDATE_MESSAGE_SUCCESS[@]}"; do
+			echo -e "[$GREEN OK $RESET] $MESSAGE"
+		done
+
+		UPDATE_REQUEST_STATUS="done"
 	fi
 
 	rm "$AVAILABLE_PACKAGES_TMP" -f
 
-	update_request_status
+	if [ "$UPDATE_REQUEST_STATUS" == "error" ];then
+		return 1
+	fi
+
+	return 0
 }
 
 # Fonction de parsage d'un évènement
@@ -1098,12 +1129,12 @@ function event_parser {
 		sed -i -n '/Packages Altered/,$p' "$TMP_EVENT_FILE"
 
 		# On peut également récupérer la liste des paquets installés, mis à jour jour, supprimés...
-		PACKAGES_INSTALLED_LIST=$(cat "$TMP_EVENT_FILE" | grep "Install " | grep -Ev "Dep-Install|Installed|Installing" | awk '{print $2}')
-		DEPENDENCIES_INSTALLED_LIST=$(cat "$TMP_EVENT_FILE" | grep "Dep-Install " | grep -Ev "Installed|Installing" | awk '{print $2}')
-		PACKAGES_UPGRADED_LIST=$(cat "$TMP_EVENT_FILE" | egrep "Updated |Update " | grep -v "Installing" | awk '{print $2}')
-		PACKAGES_REMOVED_LIST=$(cat "$TMP_EVENT_FILE" | grep "Erase " | awk '{print $2}')
-		PACKAGES_DOWNGRADED_LIST=$(cat "$TMP_EVENT_FILE" | grep "Downgrade " | awk '{print $2}')
-		PACKAGES_REINSTALLED_LIST=$(cat "$TMP_EVENT_FILE" | grep "Reinstall " | awk '{print $2}')
+		PACKAGES_INSTALLED_LIST=$(cat "$TMP_EVENT_FILE" | egrep "^ +Install " | grep -Ev "Dep-Install|Installed|Installing" | awk '{print $2}')
+		DEPENDENCIES_INSTALLED_LIST=$(cat "$TMP_EVENT_FILE" | egrep "^ +Dep-Install " | grep -Ev "Installed|Installing" | awk '{print $2}')
+		PACKAGES_UPGRADED_LIST=$(cat "$TMP_EVENT_FILE" | egrep "^ +Updated |^ +Update " | grep -v "Installing" | awk '{print $2}')
+		PACKAGES_REMOVED_LIST=$(cat "$TMP_EVENT_FILE" | egrep "^ +Erase " | awk '{print $2}')
+		PACKAGES_DOWNGRADED_LIST=$(cat "$TMP_EVENT_FILE" | egrep "^ +Downgrade " | awk '{print $2}')
+		PACKAGES_REINSTALLED_LIST=$(cat "$TMP_EVENT_FILE" | egrep "^ +Reinstall " | awk '{print $2}')
 	fi
 
 	if [ "$OS_FAMILY" == "Debian" ];then
@@ -1250,12 +1281,14 @@ if [ "$OS_FAMILY" == "Redhat" ];then
 		fi
 
 		PACKAGES_INSTALLED_LIST=""
+		DEPENDENCIES_INSTALLED_LIST=""
 		PACKAGES_UPGRADED_LIST=""
 		PACKAGES_REMOVED_LIST=""
 		PACKAGES_DOWNGRADED_LIST=""
 		PACKAGES_REINSTALLED_LIST=""
 
 		PACKAGES_INSTALLED=""
+		DEPENDENCIES_INSTALLED=""
 		PACKAGES_UPGRADED=""
 		PACKAGES_REMOVED=""
 		PACKAGES_DOWNGRADED=""
@@ -1275,6 +1308,20 @@ if [ "$OS_FAMILY" == "Redhat" ];then
 			PACKAGES_INSTALLED=$(echo "${PACKAGES_INSTALLED::-1}")
 			# Création de l'array contenant les paquets installés, au format JSON
 			PACKAGES_INSTALLED="\"installed\":[$PACKAGES_INSTALLED],"
+		fi
+
+		# Traitement de la liste des dépendances installées à cette date et heure
+		if [ ! -z "$DEPENDENCIES_INSTALLED_LIST" ];then
+			for LINE in $(echo "$DEPENDENCIES_INSTALLED_LIST");do
+				PACKAGE_NAME=$(echo "$LINE" | sed 's/-[0-9].*//g')
+				PACKAGE_VERSION=$(echo "$LINE" | sed "s/$PACKAGE_NAME//g" | sed 's/^-//g')
+				DEPENDENCIES_INSTALLED+="{\"name\":\"${PACKAGE_NAME}\",\"version\":\"${PACKAGE_VERSION}\"},"
+			done
+
+			# Suppression de la dernière virgule :
+			DEPENDENCIES_INSTALLED=$(echo "${DEPENDENCIES_INSTALLED::-1}")
+			# Création de l'array contenant les paquets installés, au format JSON
+			DEPENDENCIES_INSTALLED="\"dep_installed\":[$DEPENDENCIES_INSTALLED],"
 		fi
 
 		# Traitement de la liste des paquets mis à jour à cette date et heure
@@ -1349,6 +1396,12 @@ if [ "$OS_FAMILY" == "Redhat" ];then
 		if [ ! -z "$PACKAGES_INSTALLED" ];then
 			JSON+="$PACKAGES_INSTALLED"
 		fi
+
+		# Puis on ajoute les dépendances installées si il y en a eu
+		if [ ! -z "$DEPENDENCIES_INSTALLED" ];then
+			JSON+="$DEPENDENCIES_INSTALLED"
+		fi
+
 		# Puis on ajoute les paquets mis à jour si il y en a eu
 		if [ ! -z "$PACKAGES_UPGRADED" ];then
 			JSON+="$PACKAGES_UPGRADED"
@@ -1638,14 +1691,17 @@ EVENTS=$(echo "${EVENTS::-1}")
 # Insertion de tous les évènements dans le fichier JSON prévu au début
 sed -i "s/__INSERT_EVENTS__/$EVENTS/g" "$TMP_FILE"
 
+# Mise en forme finale du JSON afin qu'il soit plus lisible si besoin de debug
+jq . "$TMP_FILE" > "${TMP_FILE}.final"
+
 # Envoi des données :
-echo -ne " Envoi de l'historique à ${JAUNE}${REPOSERVER_URL}${RESET} : "
-CURL=$(curl -s -q -H "Content-Type: application/json" -X PUT -d @${TMP_FILE} "${REPOSERVER_URL}/api/hosts/update.php" 2> /dev/null)
+echo -ne " Envoi de l'historique à ${YELLOW}${REPOSERVER_URL}${RESET} : "
+CURL=$(curl -s -q -H "Content-Type: application/json" -X PUT -d @${TMP_FILE}.final "${REPOSERVER_URL}/api/hosts/update.php" 2> /dev/null)
 UPDATE_RETURN=$(jq -r '.return' <<< "$CURL")
 
 # Si une erreur est survenue (code de retour différent de 201 ou vide), on tente d'afficher le message retourné par le serveur
 if [ -z "$UPDATE_RETURN" ];then
-	echo -e "[$JAUNE ERREUR $RESET] L'envoi des données de mise à jour a échouée, erreur inconnue."
+	echo -e "[$YELLOW ERREUR $RESET] L'envoi des données de mise à jour a échouée, erreur inconnue."
 fi
 
 # Récupération et affichage des messages
@@ -1656,7 +1712,7 @@ if echo "$CURL" | grep -q "message_error";then
 
 	# UPDATE_MESSAGE_ERROR est un array pouvant contenir plusieurs messages d'erreurs
 	for MESSAGE in "${UPDATE_MESSAGE_ERROR[@]}"; do
-		echo -e "[$JAUNE ERREUR $RESET] $MESSAGE"
+		echo -e "[$YELLOW ERREUR $RESET] $MESSAGE"
 	done
 	ERROR_STATUS=1
 
@@ -1669,7 +1725,7 @@ if echo "$CURL" | grep -q "message_success";then
 
 	# UPDATE_MESSAGE_SUCCESS est un array pouvant contenir plusieurs messages d'erreurs
 	for MESSAGE in "${UPDATE_MESSAGE_SUCCESS[@]}"; do
-		echo -e "[$VERT OK $RESET] $MESSAGE"
+		echo -e "[$GREEN OK $RESET] $MESSAGE"
 	done
 
 	UPDATE_REQUEST_STATUS="done"
@@ -1678,6 +1734,13 @@ fi
 update_request_status
 
 rm "$TMP_FILE" -f
+rm "${TMP_FILE}.final" -f
 
 IFS=$OLD_IFS
+
+if [ "$UPDATE_REQUEST_STATUS" == "error" ];then
+	return 1
+fi
+
+return 0
 }

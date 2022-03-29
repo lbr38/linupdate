@@ -5,7 +5,7 @@ echo -ne "\nEspace restant sur le serveur : "
 
 SPACE_LEFT=$(df | egrep "/$" | awk '{print $4}')
 if [ "$SPACE_LEFT" -lt 1000000 ];then
-	echo -ne "${ROUGE}"; df -h | egrep "/$" | awk '{print $4}';	echo -ne "${RESET}"
+	echo -ne "${RED}"; df -h | egrep "/$" | awk '{print $4}';	echo -ne "${RESET}"
 	(( UPDATE_ERROR++ ))
 	if [ "$MAIL_ENABLED" -eq "yes" ];then 
 		sendMail

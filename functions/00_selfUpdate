@@ -9,19 +9,19 @@ fi
 
 VERSION_DISPO=$(curl -s "https://raw.githubusercontent.com/lbr38/linupdate/master/version")
 if [ -z "$VERSION_DISPO" ];then
-	echo -e "Vérification des mises à jour : [$ROUGE ERREUR $RESET] lors de la récupération du numéro de version disponible\n"
+	echo -e "Vérification des mises à jour : [$RED ERREUR $RESET] lors de la récupération du numéro de version disponible\n"
 
 elif [ "$VERSION" != "$VERSION_DISPO" ];then
-	echo -e "${JAUNE}Une nouvelle version est disponible : ${VERSION_DISPO}${RESET}"
+	echo -e "${YELLOW}Une nouvelle version est disponible : ${VERSION_DISPO}${RESET}"
 	rm /tmp/linupdate -rf
 	cd /tmp
 
 	# Téléchargement de la nouvelle version :
 	echo -ne " → Installation de la nouvelle version : " 
 	if git clone --quiet https://github.com/lbr38/linupdate.git > /dev/null;then
-		echo -e "[$VERT OK $RESET]"
+		echo -e "[$GREEN OK $RESET]"
 	else
-		echo -e "[$ROUGE ERREUR $RESET] lors du téléchargement"
+		echo -e "[$RED ERREUR $RESET] lors du téléchargement"
 		(( UPDATE_ERROR++ ))
 		clean_exit
 	fi
@@ -57,6 +57,6 @@ elif [ "$VERSION" != "$VERSION_DISPO" ];then
 else
 	# Dans le cas où on a fait une demande de mise à jour seulement (paramètre --update), on affiche quand même un message pour avertir qu'aucune nouvelle version n'est disponible
 	if [ "$ONLY_UPDATE" -eq "1" ];then
-		echo -e "${JAUNE}Aucune nouvelle version n'est disponible${RESET}"
+		echo -e "${YELLOW}Aucune nouvelle version n'est disponible${RESET}"
 	fi
 fi

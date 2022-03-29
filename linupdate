@@ -1,19 +1,15 @@
 #!/bin/bash
-set -u
+# set -u
 export LC_ALL="fr_FR.UTF-8"
 export TERM="xterm-256color"
 export COLUMNS=190
 
 ## ↓ VARIABLES ↓ ##
-DATE_J=$(date +%d)                                  # Date du jour au format 'JJ'
-DATE_JM=$(date +%d-%m)                              # Date du jour au format 'JJ-MM'
-DATE_JMA=$(date +%d-%m-%Y)                          # Date du jour au format 'JJ-MM-AAAA'
-DATE_AMJ=$(date +%Y-%m-%d)                          # Date du jour au format 'JJ-MM-AAAA'
+DATE_DMY=$(date +%d-%m-%Y)                          # Date du jour au format 'JJ-MM-AAAA'
+DATE_YMD=$(date +%Y-%m-%d)                          # Date du jour au format 'JJ-MM-AAAA'
 DATE_FULL=$(date +%d-%m-%Y_%Hh%M)                   # Date du jour au format 'JJ-MM-AAAA_hh-mm'
-DATE_NOM=$(date +%A)                                # Date du jour au format 'lundi'
-HEURE=$(date +%Hh%M)                                # Heure au format 00h00
-HEURE_FULL=$(date +%H:%M:%S)
-HEURE_FULL_ALT=$(date +%H-%M-%S)
+TIME=$(date +%Hh%M)                                # Heure au format 00h00
+TIME_FULL=$(date +%H:%M:%S)
 BASE_DIR="/opt/linupdate"                           # Répertoire du programme principal
 LINUPDATE="${BASE_DIR}/linupdate"                   # Programme principal
 FUNCTIONS="${BASE_DIR}/functions"                   # Répertoire des fonctions du programme
@@ -25,24 +21,13 @@ MODULES_ENABLED_DIR="${BASE_DIR}/mods-enabled"		# Répertoire des modules activ�
 AGENTS_ENABLED_DIR="${BASE_DIR}/agents-enabled"		# Répertoire des configurations d'agents activées
 MODULES_CONF_DIR="${ETC_DIR}/modules"				# La configuration des modules est stockée dans /etc pour plus de facilité de configuration pour l'utilisateur
 SERVICE_DIR="${BASE_DIR}/service"
-
-HISTORY_DIR="${BASE_DIR}/history"					# Répertoire contenant l'historique de toutes les mises à jour passées
-HISTORY_YUM_FILE="/tmp/.linupdate_yum.log"			# Fichier temporaire contenant la liste des paquets mis à jour, installés ou supprimés au cours de la mise à jour (Redhat)
-HISTORY_DPKG_FILE="/tmp/.linupdate_dpkg.log"		# Fichier temporaire contenant la liste des paquets mis à jour, installés ou supprimés au cours de la mise à jour (Debian)
-HISTORY_TAIL_YUM_PID=""
-HISTORY_TAIL_DPKG_PID=""
-
-# Version actuelle
-if [ -f "${BASE_DIR}/version" ];then
-	VERSION=$(cat ${BASE_DIR}/version)
-else
-	VERSION=""
-fi
-
-OS_FAMILY=""
 OS_NAME=""
 OS_ID=""
 OS_VERSION=""
+OS_FAMILY=""
+KERNEL=$(uname -r)
+ARCH=$(uname -m)
+VIRT_TYPE=""
 PKG_MANAGER=""
 SERVER_PROFILE=""
 SERVER_ENV=""
@@ -53,21 +38,24 @@ CONF_SOFT_EXCLUDE_MAJOR=""
 CONF_SOFT_EXCLUDE=""
 CONF_SOFT_NEED_RESTART=""
 CONF_SOFT_KEEP_CRON=""
-HISTORIQUE="${BASE_DIR}/linupdate.historique"                               # Emplacement du fichier d'historique des mises à jour
+HISTORIQUE="${BASE_DIR}/linupdate.historique"                              # Emplacement du fichier d'historique des mises à jour
 if [ -f "${BASE_DIR}/linupdate" ];then
-	MD5SUM="$(/usr/bin/md5sum ${BASE_DIR}/linupdate | awk '{print $1}')"    # md5sum de ce script
+	MD5SUM="$(/usr/bin/md5sum ${BASE_DIR}/linupdate | awk '{print $1}')"   # md5sum de ce script
 fi
-RAPPORT="linupdate-${DATE_FULL}_${HOSTNAME}.log"                            # Nom du fichier de log/rapport
-LOG="${LOGS_DIR}/${RAPPORT}"                                                # Emplacement du fichier de log
-LOG_RAPPORT_MAIL="/tmp/${RAPPORT}"                                          # Le même fichier mais qui sera légèrement reformaté pour être envoyé par mail puis supprimé
+REPORT="${DATE_YMD}_${TIME}_linupdate_${HOSTNAME}.log"                     # Nom du fichier de log/rapport
+LOG="${LOGS_DIR}/${REPORT}"                                                # Emplacement du fichier de log
+LOG_REPORT_MAIL="/tmp/${REPORT}"                                           # Le même fichier mais qui sera légèrement reformaté pour être envoyé par mail puis supprimé
 DIST_UPGRADE="0"
 KEEP_OLDCONF="0"
 UPDATE_ERROR="0"
+UPDATE_EXEC="yes"
 IGNORE_EXCLUDE="0"
-MAJ_EXCLUDE=""
-MAJ_NEED_RESTART=""
+UPDATE_EXCLUDE=""
+UPDATE_SERVICE_RESTART_NEEDED=""
+READ_PACKAGES_TO_EXCLUDE=""
+READ_PACKAGES_TO_EXCLUDE_MAJOR=""
 CRONTAB_PATH=""
-ERROR_STATUS=""
+ERROR_STATUS="0"
 ASSUME_YES="0"
 ONLY_UPDATE="0"
 PROCID=$(echo "$RANDOM")
@@ -78,35 +66,34 @@ LOADED_MODULES=""
 
 # Affichage dans le terminal
 # Variables de couleurs :
-BLANC=$(tput setaf 7)
-GRIS=$(tput setaf 8)
-VERT=$(tput setaf 2)
-ROUGE=$(tput setaf 1)
-JAUNE=$(tput setaf 3)
+WHITE=$(tput setaf 7)
+GRAY=$(tput setaf 8)
+GREEN=$(tput setaf 2)
+RED=$(tput setaf 1)
+YELLOW=$(tput setaf 3)
 CYAN=$(tput setaf 6)
 RESET=$(tput sgr0)
 # en version bold :
-BLANCB=$(tput bold;tput setaf 7)
-GRISB=$(tput bold;tput setaf 8)
-VERTB=$(tput bold;tput setaf 2)
-ROUGEB=$(tput bold;tput setaf 1)
-JAUNEB=$(tput bold;tput setaf 3)
+WHITEB=$(tput bold;tput setaf 7)
+GRAYB=$(tput bold;tput setaf 8)
+GREENB=$(tput bold;tput setaf 2)
+REDB=$(tput bold;tput setaf 1)
+YELLOWB=$(tput bold;tput setaf 3)
 CYANB=$(tput bold;tput setaf 6)
-
-#tabs 20                                                          	# Taille des tabulations
 SEP=$(printf '%*s\n' "${COLUMNS:-$(tput cols)}" '' | tr ' ' '=')	# Séparateur ligne plein écran
+
+# Détermine la version actuelle
+if [ -f "${BASE_DIR}/version" ];then
+	VERSION=$(cat ${BASE_DIR}/version)
+else
+	VERSION=""
+fi
 
 # Détection de l'utilisateur
 if [ "$(id -u)" -ne "0" ];then
-	echo -e "\n${JAUNE}Doit être exécuté avec sudo ${RESET}\n"
+	echo -e "\n${YELLOW}Doit être exécuté avec sudo ${RESET}\n"
 	exit
 fi
-
-# Détection d'un process linupdate déjà actif
-# if ps a | grep "linupdate" | grep -vq "grep";then
-# 	echo -e "\n${JAUNE}Un processus linupdate est déjà en cours d'exécution${RESET}\n"
-# 	exit
-# fi
 
 # Détection du système
 # Le fichier /etc/os-release est présent sur les OS récents et permet de récupérer toutes les infos nécéssaires
@@ -119,7 +106,7 @@ if [ -f "/etc/os-release" ];then
 	fi
 	
 	if [ -z "$OS_FAMILY" ];then
-		echo -e "[${ROUGE} ERREUR ${RESET}] Famille d'OS non reconnue"
+		echo -e "[${RED} ERREUR ${RESET}] Famille d'OS non reconnue"
 		exit
 	fi
 
@@ -135,20 +122,20 @@ if [ -f "/etc/os-release" ];then
 
 	# Enfin si OS_FAMILY n'est ni égale à Redhat ni à Debian alors on est sur un OS non pris en charge
 	if ! echo "$OS_FAMILY" | egrep -q -i 'Redhat|Debian';then
-		echo -e "[${ROUGE} ERREUR ${RESET}] Famille d'OS non pris en charge ($OS_FAMILY)"
+		echo -e "[${RED} ERREUR ${RESET}] Famille d'OS non pris en charge ($OS_FAMILY)"
 		exit
 	fi
 
 	# Toujours à partir de /etc/os-release, on récupère le nom de l'OS et sa version
 	OS_NAME=$(grep "^ID=" /etc/os-release | cut -d'=' -f2 | sed 's/"//g')
 	if [ -z "$OS_NAME" ];then
-		echo -e "[${ROUGE} ERREUR ${RESET}] Nom d'OS inconnu"
+		echo -e "[${RED} ERREUR ${RESET}] Nom d'OS inconnu"
 		exit
 	fi
 
 	OS_VERSION=$(grep "^VERSION_ID=" /etc/os-release | cut -d'=' -f2 | sed 's/"//g')
 	if [ -z "$OS_VERSION" ];then
-		echo -e "[${ROUGE} ERREUR ${RESET}] Version d'OS inconnue"
+		echo -e "[${RED} ERREUR ${RESET}] Version d'OS inconnue"
 		exit
 	fi
 fi
@@ -166,7 +153,7 @@ if [ ! -f "/etc/os-release" ];then
 
 	# A ce stade si OS_FAMILY est vide alors on est sur un OS non pris en charge
 	if [ -z "$OS_FAMILY" ];then
-		echo -e "[${ROUGE} ERREUR ${RESET}] Famille d'OS inconnue, système non pris en charge"
+		echo -e "[${RED} ERREUR ${RESET}] Famille d'OS inconnue, système non pris en charge"
 		exit
 	fi
 
@@ -190,7 +177,7 @@ if [ ! -f "/etc/os-release" ];then
 	else
 		# Dernier recours on vérifie la présence d'un fichier os-release sinon on quitte
 		if [ ! -f "/etc/os-release" ];then
-			echo -e "[${ROUGE} ERREUR ${RESET}] Impossible de déterminer la version du système"
+			echo -e "[${RED} ERREUR ${RESET}] Impossible de déterminer la version du système"
 			exit
 		fi
 
@@ -201,11 +188,11 @@ if [ ! -f "/etc/os-release" ];then
 
 	# On quitte le script si on n'a rien trouvé à ce stade
 	if [ -z "$OS_NAME" ];then
-		echo -e "[${ROUGE} ERREUR ${RESET}] Nom d'OS inconnu"
+		echo -e "[${RED} ERREUR ${RESET}] Nom d'OS inconnu"
 		exit
 	fi 
 	if [ -z "$OS_VERSION" ];then
-		echo -e "[${ROUGE} ERREUR ${RESET}] Version d'OS inconnue"
+		echo -e "[${RED} ERREUR ${RESET}] Version d'OS inconnue"
 		exit
 	fi
 fi
@@ -234,18 +221,7 @@ mkdir -p "$MODULES_DIR"
 mkdir -p "$MODULES_ENABLED_DIR"
 mkdir -p "$AGENTS_ENABLED_DIR"
 mkdir -p "$SERVICE_DIR"
-mkdir -p "$HISTORY_DIR"
 
-# Génération d'un ID et d'un fichier d'historique, ce fichier contiendra l'historique des paquets installés
-# Si le répertoire $HISTORY_DIR est vide alors l'ID commencera par '1'
-if [ ! "$(ls -A ${HISTORY_DIR}/)" ];then
-	UPDATE_ID="1"
-else
-	# Sinon on récupère le dernier ID et on l'incrémente de +1
-	UPDATE_ID=$(ls -A1 ${HISTORY_DIR}/ | sort -n | tail -n1 | cut -d'_' -f1)
-	(( UPDATE_ID++ ))
-fi
-HISTORY_FILE="${HISTORY_DIR}/${UPDATE_ID}_${DATE_FULL}_linupdate"
 
 ## ↓ FONCTIONS ↓ ##
 
@@ -305,6 +281,7 @@ if [ -d "$FUNCTIONS" ];then
 	getModules() 				{ source "${FUNCTIONS}/00_getModules"; }
 	listModules()				{ source "${FUNCTIONS}/00_listModules"; }
 	spaceLeft() 				{ source "${FUNCTIONS}/00_spaceLeft"; }
+	exclude()                   { source "${FUNCTIONS}/00_exclude"; }
 	loadModules() 				{ source "${FUNCTIONS}/01_loadModules"; }
 	checkPackagesBeforeUpdate() { source "${FUNCTIONS}/02_checkPackagesBeforeUpdate"; }
 	update() 					{ source "${FUNCTIONS}/04_update"; }
@@ -322,6 +299,9 @@ fi
 ## 1. Si /opt/linupdate n'existe pas alors on procède à la première installation du script
 if [ ! -d "$BASE_DIR" ] || [ ! -d "$BASE_DIR/functions" ];then
 	selfInstall
+	
+	# Installation des dépendances
+	checkDependencies
 fi
 
 ## 2. Si aucun fichier de conf n'est présent dans /etc/linupdate/linupdate.conf, alors on procède à son installation
@@ -343,6 +323,12 @@ chmod 660 "$LOG"
 # On écrit tout ce qu'il se passe dans le fichier de log principal
 exec &> >(tee -a "$LOG")
 
+# Détection du type de virtualisation si il s'agit d'une VM
+VIRT_TYPE=$(virt-what)
+if [ -z "$VIRT_TYPE" ];then
+	VIRT_TYPE="Bare metal"
+fi
+
 # Sauvegarde des paramètres passés au script avant qu'il ne disparaissent à cause du shift ci-dessous. Permet de conserver une trace des paramètres passés au cas où.
 echo "$@" > /tmp/.linupdate_${PROCID}_main_params.tmp
 
@@ -354,36 +340,36 @@ while [ $# -ge 1 ];do
 			clean_exit
 		;;
 		--version|-v|-V)
-			echo "Version : ${JAUNE}$VERSION${RESET}"
+			echo "Version : ${YELLOW}$VERSION${RESET}"
 			clean_exit
 		;;
 		--force|--assume-yes)
 			ASSUME_YES="1"
 		;;
-		--profile|--type|--print-profile|-p)
+		--profile|--type|--print-profile)
 			# Si rien n'a été précisé en 2nd paramètre alors on affiche simplement le profil actuel
 			if [ -z "$2" ];then
 				PROFILE=$(grep "^PROFILE=" $CONF | sed 's/PROFILE=//g' | sed 's/"//g')
-				echo -e "Profil actuel : ${JAUNE}$PROFILE${RESET}"
+				echo -e "Profil actuel : ${YELLOW}$PROFILE${RESET}"
 			else
 			# Si un nom de profil a été précisé alors on modifie le profil actuel
 				if grep -q "PROFILE=" $CONF;then
 					sed -i "s/PROFILE=.*/PROFILE=\"$2\"/g" $CONF &&
-					echo -e "Profil modifié : ${JAUNE}$2${RESET}"
+					echo -e "Profil modifié : ${YELLOW}$2${RESET}"
 				fi
 			fi
 			clean_exit
 		;;
-		--environnement|--env|-e)
+		--environnement|--env)
 			# Si rien n'a été précisé en 2nd paramètre alors on affiche simplement l'env actuel
 			if [ -z "$2" ];then
 				ENV=$(grep "^ENV=" $CONF | sed 's/ENV=//g' | sed 's/"//g')
-				echo -e "Environnement actuel : ${JAUNE}$ENV${RESET}"
+				echo -e "Environnement actuel : ${YELLOW}$ENV${RESET}"
 			else
 			# Si un nom d'env a été précisé alors on modifie l'env actuel
 				if grep -q "ENV=" $CONF;then
 					sed -i "s/ENV=.*/ENV=\"$2\"/g" $CONF &&
-					echo -e "Environnement modifié : ${JAUNE}$2${RESET}"
+					echo -e "Environnement modifié : ${YELLOW}$2${RESET}"
 				fi
 			fi
 			clean_exit
@@ -414,11 +400,6 @@ while [ $# -ge 1 ];do
 			listModules
 			clean_exit
 		;;
-		# --upgrade-repos|-U)
-		# 	getConf
-		# 	update_repos_conf
-		# 	clean_exit
-		# ;;
 		--ignore-exclude|-ie)
 			IGNORE_EXCLUDE=1
 		;;
@@ -433,6 +414,21 @@ while [ $# -ge 1 ];do
 		--keep-oldconf|-ko)
 			KEEP_OLDCONF=1
 		;;
+		--exclude|-e)
+			if [ ! -z "$2" ];then
+	    		READ_PACKAGES_TO_EXCLUDE="$2"
+			fi
+			exclude
+			clean_exit
+		;;
+		--exclude-major|-em)
+			if [ ! -z "$2" ];then
+	    		READ_PACKAGES_TO_EXCLUDE="$2"
+			fi
+			READ_PACKAGES_TO_EXCLUDE_MAJOR="1"
+			exclude
+			clean_exit
+		;;
 		--mod-enable|-mod-enable|-me)
 			MODULE=$2
 			shift
@@ -440,7 +436,7 @@ while [ $# -ge 1 ];do
 			# Activation du module
 			source "${MODULES_DIR}/${MODULE}.mod"
 			mod_enable &&
-			echo -e "Module ${JAUNE}${MODULE}${RESET} activé"
+			echo -e "Module ${YELLOW}${MODULE}${RESET} activé"
 			clean_exit
 		;;
 		--mod-disable|-mod-disable|-md)
@@ -449,10 +445,10 @@ while [ $# -ge 1 ];do
 			if [ ! -f "${MODULES_DIR}/${MODULE}.mod" ];then echo "Erreur : module $MODULE inconnu"; clean_exit; fi
 			source "${MODULES_DIR}/${MODULE}.mod"
 			mod_disable &&
-			echo -e "Module ${JAUNE}${MODULE}${RESET} désactivé"
+			echo -e "Module ${YELLOW}${MODULE}${RESET} désactivé"
 			clean_exit
 		;;
-		--mod-configure|-mod-configure|-mod|-mc)
+		--mod-configure|-mod-configure|-mod|-mc|--mod-exec)
 			getConf
 			MODULE=$2
 			shift
@@ -460,7 +456,7 @@ while [ $# -ge 1 ];do
 			# Activation du module
 			source "${MODULES_DIR}/${MODULE}.mod"
 			mod_configure $@ &&
-			echo -e "Module ${JAUNE}${MODULE}${RESET} configuré"
+			echo -e "Module ${YELLOW}${MODULE}${RESET} configuré"
 			clean_exit
 		;;
 		--agent-deploy|--deploy-agent)
@@ -492,14 +488,14 @@ while [ $# -ge 1 ];do
 			clean_exit
 		;;
     	*)
-		echo "Paramètre inconnu: $1"
-		printHelp
-		clean_exit
+			echo "Paramètre inconnu: $1"
+			printHelp
+			clean_exit
 		;;
     esac
     shift
 done
-set -u
+# set -u
 
 echo -e "\n\n
  .__  .__                        .___       __          
@@ -510,7 +506,10 @@ echo -e "\n\n
               \/      |__|        \/     \/          \/ 
 
 
- ${JAUNE}linupdate${RESET} - advanced package updater for linux distributions\n\n"
+ ${YELLOW}linupdate${RESET} - advanced package updater for linux distributions\n\n"
+
+# Vérification des dépendances
+checkDependencies
 
 # Lecture du fichier de conf
 getConf 		# pour déterminer le type de serveur sur lequel nous sommes
@@ -534,18 +533,21 @@ for MODULE in $(ls -A1 ${MODULES_ENABLED_DIR});do
 	fi
 done
 
-echo -e " Nom d'hôte :      ${JAUNE}${HOSTNAME}${RESET}"
-echo -e " Profil :          ${JAUNE}${SERVER_PROFILE}${RESET}"
-echo -e " Environnement :   ${JAUNE}${SERVER_ENV}${RESET}"
-echo -e " Exécution le :    ${JAUNE}${DATE_JMA} à ${HEURE}${RESET}"
-echo -ne " Exécuté par :    ${JAUNE} "; whoami; echo -ne "${RESET}"
-if [ -t 0 ];then
-	echo -e " Exécution :       ${JAUNE}manuelle${RESET}"
-else
-	echo -e " Exécution :       ${JAUNE}automatique (cron)${RESET}"
+echo -e " Nom d'hôte :      ${YELLOW}${HOSTNAME}${RESET}"
+echo -e " OS :              ${YELLOW}${OS_NAME} $OS_VERSION ${RESET}"
+echo -e " Kernel :          ${YELLOW}$KERNEL ${ARCH}${RESET}"
+if [ ! -z "$VIRT_TYPE" ];then
+	echo -e " Virtualisation :  ${YELLOW}${VIRT_TYPE}${RESET}"
 fi
-
-checkDependencies
+echo -e " Profil :          ${YELLOW}${SERVER_PROFILE}${RESET}"
+echo -e " Environnement :   ${YELLOW}${SERVER_ENV}${RESET}"
+echo -e " Exécution le :    ${YELLOW}${DATE_DMY} à ${TIME}${RESET}"
+echo -ne " Exécuté par :    ${YELLOW} "; whoami; echo -ne "${RESET}"
+if [ -t 0 ];then
+	echo -e " Exécution :       ${YELLOW}manuelle${RESET}"
+else
+	echo -e " Exécution :       ${YELLOW}automatique (cron)${RESET}"
+fi
 
 # Vérification des paquets à exclure avant de lancer la mise à jour
 checkPackagesBeforeUpdate

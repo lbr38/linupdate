@@ -1,25 +1,31 @@
 #!/bin/bash
 
+# Si la vérification des paquets n'a trouvé aucun paquet à mettre à jour alors il est inutile d'exécuter les mises à jour
+# On sort de la fonction
+if [ "$UPDATE_EXEC" == "no" ];then
+	return
+fi
+
 # Fonction lançant les mises à jour yum
 {
 	echo -e "\nMises à jour en cours..."
 	echo -ne "Nettoyage du cache au préalable : "
 	if [ "$OS_FAMILY" == "Redhat" ];then yum clean all -q;fi
 	if [ "$OS_FAMILY" == "Debian" ];then apt-get clean;fi
-	echo -e "[$VERT OK $RESET]"
+	echo -e "[$GREEN OK $RESET]"
 
 	echo -e "\nInstallation des mises à jour :"
 	# Si c'est du Debian, on charge la liste des paquets
 	if [ "$OS_FAMILY" == "Debian" ];then apt-get -o Acquire::Check-Valid-Until=false -qq --allow-releaseinfo-change update;fi
 
-	# Si $MAJ_EXCLUDE n'est pas vide, alors on exclu les paquets de la mise à jour
-	if [ ! -z "$MAJ_EXCLUDE" ];then
-		if [ "$OS_FAMILY" == "Redhat" ];then yum --exclude=${MAJ_EXCLUDE} update -y;fi
+	# Si $UPDATE_EXCLUDE n'est pas vide, alors on exclu les paquets de la mise à jour
+	if [ ! -z "$UPDATE_EXCLUDE" ];then
+		if [ "$OS_FAMILY" == "Redhat" ];then yum --exclude=${UPDATE_EXCLUDE} update -y;fi
 		if [ "$OS_FAMILY" == "Debian" ];then
-			echo -e "\nExclusion des paquets critiques : $JAUNE"
-			IFS=' ' # Dans $MAJ_EXCLUDE le séparateur est un espace
-			for PAQUET in ${MAJ_EXCLUDE[@]};do # Attention ne pas placer de double quote sur cette variable
-				apt-mark hold "$PAQUET"
+			echo -e "\nExclusion des paquets critiques : $YELLOW"
+			IFS=' ' # Dans $UPDATE_EXCLUDE le séparateur est un espace
+			for PACKAGE in ${UPDATE_EXCLUDE[@]};do # Attention ne pas placer de double quote sur cette variable
+				apt-mark hold "$PACKAGE"
 			done
 			echo -e "$RESET"
 			# Puis on met à jour, plusieurs cas possible avec Debian : mise à jour normale ou dist-upgrade ; écrasement des fichiers de conf ou conservation 
@@ -29,7 +35,7 @@
 			elif [ "$DIST_UPGRADE" -eq "0" ] && [ "$KEEP_OLDCONF" -eq "1" ];then apt-get -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" upgrade -y
 			fi
 		fi
-	else # Si $MAJ_EXCLUDE est vide alors on met à jour normalement, sans exclusion
+	else # Si $UPDATE_EXCLUDE est vide alors on met à jour normalement, sans exclusion
 		if [ "$OS_FAMILY" == "Redhat" ];then yum update -y;fi
 		if [ "$OS_FAMILY" == "Debian" ];then 
 			# Plusieurs cas possible avec Debian : mise à jour normale ou dist-upgrade ; écrasement des fichiers de conf ou conservation 

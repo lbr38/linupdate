@@ -4,17 +4,17 @@
 echo -e "Ce programme est destiné à mettre à jour votre système de manière interactive ou automatique."
 echo -e "Un certain nombre de modules complémentaires peuvent être ajoutés afin d'apporter des fonctionnalités supplémentaires"
 
-echo -ne "\n${JAUNE} Souhaitez-vous commencer l'installation ? (yes/no) : $RESET"; read -p "" CONFIRM &&
+echo -ne "\n${YELLOW} Souhaitez-vous commencer l'installation ? (yes/no) : $RESET"; read -p "" CONFIRM &&
 if [ "$CONFIRM" != "yes" ];then
     clean_exit
 fi
 
 # Vérifications avant de commencer
-if [ -z "$OS_FAMILY" ];then   echo -e "[$JAUNE ERREUR $RESET] OS non reconnu";clean_exit;fi
-if [ -z "$PKG_MANAGER" ];then echo -e "[$JAUNE ERREUR $RESET] Gestionnaire de paquets non reconnu";clean_exit;fi
+if [ -z "$OS_FAMILY" ];then   echo -e "[$YELLOW ERREUR $RESET] OS non reconnu";clean_exit;fi
+if [ -z "$PKG_MANAGER" ];then echo -e "[$YELLOW ERREUR $RESET] Gestionnaire de paquets non reconnu";clean_exit;fi
 
 # Configuration générale
-echo -e "\n ${JAUNE}Configuration générale\n${RESET}"
+echo -e "\n ${YELLOW}Configuration générale\n${RESET}"
 
 echo -ne " Quel est le profil de ce serveur ou de cette machine (exemple : front, back, db, PC,...) : ";read -p "" SERVER_PROFILE
 if [ -z "$SERVER_PROFILE" ];then SERVER_PROFILE="Host"; fi
@@ -51,7 +51,7 @@ echo "EXCLUDE_MAJOR=\"$CONF_SOFT_EXCLUDE_MAJOR\"" >> $CONF
 echo "EXCLUDE=\"$CONF_SOFT_EXCLUDE\"" >> $CONF
 echo "NEED_RESTART=\"$CONF_SOFT_NEED_RESTART\"" >> $CONF
 echo "KEEP_CRON=\"no\"" >> $CONF
-echo -e "[$VERT OK $RESET]\n"
+echo -e "[$GREEN OK $RESET]\n"
 
 echo -ne "Exécuter linupdate ? (yes/no) : ";read -p "" CONFIRM
 if [ "$CONFIRM" != "yes" ];then

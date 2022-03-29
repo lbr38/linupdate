@@ -11,7 +11,7 @@ echo -e "\n Modules activés :"
 for MODULE in $(ls -A1 "${MODULES_ENABLED_DIR}/"*.mod);do
 	MODULE=$(basename $MODULE)
 	MODULE=${MODULE%.mod}
-	echo -e " $VERT $MODULE $RESET"
+	echo -e " $GREEN $MODULE $RESET"
 
 	ENABLED_MODULES+=("$MODULE")
 done
@@ -23,6 +23,6 @@ for MODULE in $(ls -A1 "${MODULES_DIR}/"*.mod);do
 	MODULE=${MODULE%.mod}
 	if [[ ! ${ENABLED_MODULES[*]} =~ "$MODULE" ]]; then
 		MODULE=$(basename $MODULE | sed 's/.mod//g')
-		echo -e " $JAUNE $MODULE $RESET"
+		echo -e " $YELLOW $MODULE $RESET"
 	fi
 done
