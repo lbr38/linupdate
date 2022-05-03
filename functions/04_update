@@ -2,7 +2,7 @@
 
 # Si la vérification des paquets n'a trouvé aucun paquet à mettre à jour alors il est inutile d'exécuter les mises à jour
 # On sort de la fonction
-if [ "$UPDATE_EXEC" == "no" ];then
+if [ "$SOMETHING_TO_UPDATE" == "no" ];then
 	return
 fi
 

@@ -177,7 +177,7 @@ if [ ! -s "$CHECK_UPDATE_TMP" ];then
 	echo -e "${YELLOW}Aucun paquet disponible pour mise à jour${RESET}\n"
 
 	# On indique donc de ne pas exécuter les mises à jour (inutile)
-	UPDATE_EXEC="no"
+	SOMETHING_TO_UPDATE="no"
 
 	return
 fi
