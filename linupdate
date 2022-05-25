@@ -29,7 +29,7 @@ KERNEL=$(uname -r)
 ARCH=$(uname -m)
 VIRT_TYPE=""
 PKG_MANAGER=""
-SERVER_PROFILE=""
+PROFILE=""
 SERVER_ENV=""
 FAILLEVEL=""
 MAIL_ENABLED=""
@@ -37,7 +37,7 @@ MAIL_RECIPIENT=""
 CONF_SOFT_EXCLUDE_MAJOR=""
 CONF_SOFT_EXCLUDE=""
 CONF_SOFT_NEED_RESTART=""
-CONF_SOFT_KEEP_CRON=""
+# CONF_SOFT_KEEP_CRON=""
 HISTORIQUE="${BASE_DIR}/linupdate.historique"                              # Emplacement du fichier d'historique des mises à jour
 if [ -f "${BASE_DIR}/linupdate" ];then
 	MD5SUM="$(/usr/bin/md5sum ${BASE_DIR}/linupdate | awk '{print $1}')"   # md5sum de ce script
@@ -59,6 +59,7 @@ ERROR_STATUS="0"
 ASSUME_YES="0"
 ONLY_UPDATE="0"
 PROCID=$(echo "$RANDOM")
+VERBOSE="0"
 
 # Variables de modules
 MOD_ERROR="0"
@@ -343,6 +344,9 @@ while [ $# -ge 1 ];do
 			echo "Version : ${YELLOW}$VERSION${RESET}"
 			clean_exit
 		;;
+		-vv|--vv)
+			VERBOSE="1"
+		;;
 		--force|--assume-yes)
 			ASSUME_YES="1"
 		;;
@@ -390,8 +394,8 @@ while [ $# -ge 1 ];do
 			clean_exit
 		;;
 		--quick-install)
-			# Si un paramètre suit --quick-install, alors il s'agit du type de serveur qu'on souhaite installer, on le met dans $SERVER_PROFILE
-			if [ ! -z $2 ];then SERVER_PROFILE="$2";fi
+			# Si un paramètre suit --quick-install, alors il s'agit du type de serveur qu'on souhaite installer, on le met dans $PROFILE
+			if [ ! -z $2 ];then PROFILE="$2";fi
 			if [ ! -z $3 ];then SERVER_ENV="$3";fi
 			quickConfig
 			clean_exit
@@ -539,7 +543,7 @@ echo -e " Kernel :          ${YELLOW}$KERNEL ${ARCH}${RESET}"
 if [ ! -z "$VIRT_TYPE" ];then
 	echo -e " Virtualisation :  ${YELLOW}${VIRT_TYPE}${RESET}"
 fi
-echo -e " Profil :          ${YELLOW}${SERVER_PROFILE}${RESET}"
+echo -e " Profil :          ${YELLOW}${PROFILE}${RESET}"
 echo -e " Environnement :   ${YELLOW}${SERVER_ENV}${RESET}"
 echo -e " Exécution le :    ${YELLOW}${DATE_DMY} à ${TIME}${RESET}"
 echo -ne " Exécuté par :    ${YELLOW} "; whoami; echo -ne "${RESET}"

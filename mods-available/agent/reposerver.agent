@@ -2,12 +2,51 @@
 
 REPOSERVER_CONF="/etc/linupdate/modules/reposerver.conf"
 INOTIFY_RUNNING="no"
+# Paramètres ngrep
+NGREP_ENABLED="yes"
+NGREP_CMD="ngrep -q -t -W byline"
 NGREP_GNR_RUNNING="no"
 NGREP_PKG_UPDATE_RUNNING="no"
 NGREP_PKG_STATUS_RUNNING="no"
 NGREP_FULL_HISTORY_RUNNING="no"
 MAX_HISTORY="0"
 COUNTER="0"
+
+
+## Fonctions ##
+
+function general_checks {
+    # Vérification de l'activation du module reposerver
+    if [ ! -f "/opt/linupdate/mods-enabled/reposerver.mod" ];then
+        echo -e "[ ERREUR ] Le module reposerver n'est pas activé"
+        exit 1
+    fi
+
+    # Vérification de la présence d'un fichier de configuration pour le module reposerver
+    if [ ! -f "$REPOSERVER_CONF" ];then
+        echo -e "[ ERREUR ] Aucun fichier de configuration n'a été trouvé : '$REPOSERVER_CONF'"
+        exit 1
+    fi
+
+    # Vérification de la présence d'un fichier de log pour yum ou dpkg
+    if [ -f "/var/log/yum.log" ];then
+        LOGFILE="/var/log/yum.log"
+
+    elif [ -f "/var/log/apt/history.log" ];then
+        LOGFILE="/var/log/apt/history.log"
+
+    else
+        echo -e "[ ERREUR ] Aucun fichier de log pour dpkg ou yum n'a été trouvé sur cet hôte"
+        exit 1
+    fi
+
+    ## Récupération d'informations ##
+    REPOSERVER_IP=$(grep "^IP=" "$REPOSERVER_CONF" | sed 's/IP=//g' | sed 's/"//g')
+    if [ -z "$REPOSERVER_IP" ];then
+        echo -e "[ ERREUR ] Impossible de déterminer l'adresse IP du serveur Repomanager"
+        exit 1
+    fi
+}
 
 # Envoi des informations générales
 function send_general_status {
@@ -75,7 +114,7 @@ function inotify_package_event {
 function ngrep_general_update_request {
     if [ "$NGREP_GNR_RUNNING" == "no" ];then
         while true; do
-            ngrep -q -t -W byline 'r-general-status' "src host $REPOSERVER_IP" -n 1 > /dev/null
+            $NGREP_CMD 'r-general-status' "src host $REPOSERVER_IP" -n 1 > /dev/null
 
             echo "Une demande d'envoi des informations générales de cet hôte a été émise du serveur repomanager - envoi des informations au serveur."
 
@@ -92,7 +131,7 @@ function ngrep_general_update_request {
 function ngrep_packages_status_request {
     if [ "$NGREP_PKG_STATUS_RUNNING" == "no" ];then
         while true; do
-            ngrep -q -t -W byline 'r-pkgs-status' "src host $REPOSERVER_IP" -n 1 > /dev/null
+            $NGREP_CMD 'r-pkgs-status' "src host $REPOSERVER_IP" -n 1 > /dev/null
 
             echo "Une demande d'envoi des informations concernant les paquets de cet hôte a été émise du serveur repomanager - envoi des informations au serveur."
 
@@ -109,7 +148,7 @@ function ngrep_packages_status_request {
 function ngrep_packages_update_requested {
     if [ "$NGREP_PKG_UPDATE_RUNNING" == "no" ];then
         while true; do
-            ngrep -q -t -W byline 'r-update-pkgs' "src host $REPOSERVER_IP" -n 1 > /dev/null
+            $NGREP_CMD 'r-update-pkgs' "src host $REPOSERVER_IP" -n 1 > /dev/null
 
             echo "Une demande de mise à jour des paquets a été émise du serveur repomanager - exécution de la mise à jour."
 
@@ -128,7 +167,53 @@ function ngrep_packages_update_requested {
     fi
 }
 
+
+## Traitement ##
+
+# Vérification que tous les éléments nécessaire à l'agent sont présents
+general_checks
+
+# Vérification si les scans ngrep ont été volontairement désactivés
+WATCH_FOR_REQUEST=$(grep "^WATCH_FOR_REQUEST=" $REPOSERVER_CONF | sed 's/WATCH_FOR_REQUEST=//g' | sed 's/"//g')
+if [ "$WATCH_FOR_REQUEST" == "disabled" ];then
+    NGREP_ENABLED="no"
+fi
+
+# Si le scan est activé
+if [ "$NGREP_ENABLED" == "yes" ];then
+    # Détermination de l'interface réseau à scanner si renseignée
+    NGREP_INT=$(grep "^WATCH_INTERFACE=" $REPOSERVER_CONF | sed 's/WATCH_INTERFACE=//g' | sed 's/"//g')
+
+    # Si l'interface renseignée est "auto" ou est vide, alors l'agent doit déterminer automatiquement l'interface par défaut
+    if [ -z "$NGREP_INT" ] || [ "$NGREP_INT" == "auto" ];then
+        DEFAULT_INT=$(route | grep '^default' | grep -o '[^ ]*$')
+        DEFAULT_INT_COUNT=$(echo "$DEFAULT_INT" | wc -l)
+
+        if [ -z "$DEFAULT_INT" ];then
+            echo "Impossible de déterminer automatiquement l'interface réseau par défaut"
+            exit 1
+        fi
+
+        if [ "$DEFAULT_INT_COUNT" != "1" ];then
+            echo "Impossible de déterminer automatiquement l'interface réseau : plusieurs interfaces par défaut ont été détectées"
+            exit 1
+        fi
+
+        # On prend en compte l'interface automatiquement détectée
+        NGREP_CMD="$NGREP_CMD -d $DEFAULT_INT"
+
+    else
+        # Sinon on prend en compte directement l'interface renseignée
+        NGREP_CMD="$NGREP_CMD -d $NGREP_INT"
+    fi
+fi
+
+# Exécution des actions régulières
 while true; do
+    # Vérification que tous les éléments nécessaire à l'agent sont présents
+    # On vérifie cela régulièrement au cas où un changement de conf a eu lieu dans le fichier de configuration du module reposerver
+    general_checks
+
     # Envoi régulier d'informations au serveur repomanager toutes les heures
     # 3600 / 5sec (sleep 5) = 720
     if [ "$COUNTER" -eq "720" ];then
@@ -140,52 +225,24 @@ while true; do
         COUNTER="0"
     fi
 
-    ## Vérifications ##
-
-    # Vérification de l'activation du module reposerver
-    if [ ! -f "/opt/linupdate/mods-enabled/reposerver.mod" ];then
-        echo -e "[ ERREUR ] Le module reposerver n'est pas activé"
-        exit 1
-    fi
-
-    # Vérification de la présence d'un fichier de configuration pour le module reposerver
-    if [ ! -f "$REPOSERVER_CONF" ];then
-        echo -e "[ ERREUR ] Aucun fichier de configuration n'a été trouvé : '$REPOSERVER_CONF'"
-        exit 1
-    fi
-
-    # Vérification de la présence d'un fichier de log pour yum ou dpkg
-    if [ -f "/var/log/yum.log" ];then
-        LOGFILE="/var/log/yum.log"
-
-    elif [ -f "/var/log/apt/history.log" ];then
-        LOGFILE="/var/log/apt/history.log"
-
-    else
-        echo -e "[ ERREUR ] Aucun fichier de log pour dpkg ou yum n'a été trouvé sur cet hôte"
-        exit 1
-    fi
-
-    ## Récupération d'informations ##
-    REPOSERVER_IP=$(grep "^IP=" "$REPOSERVER_CONF" | sed 's/IP=//g' | sed 's/"//g')
-    if [ -z "$REPOSERVER_IP" ];then
-        echo -e "[ ERREUR ] Impossible de déterminer l'adresse IP du serveur Repomanager"
-        exit 1
-    fi
-
     # Si aucun process inotify ne tourne, on le lance en background
     inotify_package_event
 
-    # Surveillance des demandes d'envoi des informations générales en provenance du serveur Repomanager
-    ngrep_general_update_request
+    # Si les scans ngrep sont activés alors on les lance en arrière plan
+    if [ "$NGREP_ENABLED" == "yes" ];then
+        # Surveillance des demandes d'envoi des informations générales en provenance du serveur Repomanager
+        ngrep_general_update_request
 
-    # Surveillance des demandes d'envoi de status des paquets en provenance du serveur Repomanager
-    ngrep_packages_status_request
+        # Surveillance des demandes d'envoi de status des paquets en provenance du serveur Repomanager
+        ngrep_packages_status_request
 
-    # Surveillance des demandes de mise à jour de paquets en provenance du serveur Repomanager
-    ngrep_packages_update_requested
+        # Surveillance des demandes de mise à jour de paquets en provenance du serveur Repomanager
+        ngrep_packages_update_requested
+    fi
 
     sleep 5
 
     (( COUNTER++ ))
 done
+
+exit

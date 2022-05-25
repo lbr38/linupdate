@@ -16,8 +16,8 @@ if [ -z "$PKG_MANAGER" ];then echo -e "[$YELLOW ERREUR $RESET] Gestionnaire de p
 # Configuration générale
 echo -e "\n ${YELLOW}Configuration générale\n${RESET}"
 
-echo -ne " Quel est le profil de ce serveur ou de cette machine (exemple : front, back, db, PC,...) : ";read -p "" SERVER_PROFILE
-if [ -z "$SERVER_PROFILE" ];then SERVER_PROFILE="Host"; fi
+echo -ne " Quel est le profil de ce serveur ou de cette machine (exemple : front, back, db, PC,...) : ";read -p "" PROFILE
+if [ -z "$PROFILE" ];then PROFILE="Host"; fi
 
 echo -ne " Indiquez l'environnement de ce serveur (par defaut : prod) : ";read -p "" SERVER_ENV
 if [ -z "$SERVER_ENV" ];then SERVER_ENV="prod";fi # Si laissé vide, on met une valeur par défaut (prod)
@@ -41,7 +41,7 @@ echo -ne " Indiquez les paquets nécessitant un redémarrage de service si mis �
 echo -ne "\nGénération du fichier de conf : "
 echo -e "# Fichier de conf de linupdate pour $HOSTNAME" > $CONF
 echo "[CONFIGURATION]" >> $CONF
-echo "PROFILE=\"$SERVER_PROFILE\"" >> $CONF
+echo "PROFILE=\"$PROFILE\"" >> $CONF
 echo "ENV=\"$SERVER_ENV\"" >> $CONF
 echo "MAIL_ENABLED=\"$MAIL_ENABLED\"" >> $CONF
 echo "MAIL_RECIPIENT=\"$MAIL_RECIPIENT\"" >> $CONF
@@ -50,7 +50,7 @@ echo -e "\n[SOFTWARE CONFIGURATION]" >> $CONF
 echo "EXCLUDE_MAJOR=\"$CONF_SOFT_EXCLUDE_MAJOR\"" >> $CONF
 echo "EXCLUDE=\"$CONF_SOFT_EXCLUDE\"" >> $CONF
 echo "NEED_RESTART=\"$CONF_SOFT_NEED_RESTART\"" >> $CONF
-echo "KEEP_CRON=\"no\"" >> $CONF
+# echo "KEEP_CRON=\"no\"" >> $CONF
 echo -e "[$GREEN OK $RESET]\n"
 
 echo -ne "Exécuter linupdate ? (yes/no) : ";read -p "" CONFIRM
