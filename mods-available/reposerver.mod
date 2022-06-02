@@ -419,9 +419,13 @@ function mod_load {
 		grep "^URL=" "$MOD_CONF" >> "$TMP_MOD_CONF"
 	fi
 
+    # Section [AGENT]
+    echo -e "\n[AGENT]" >> "$TMP_MOD_CONF"
+    grep "^WATCH_FOR_REQUEST=" "$MOD_CONF" >> "$TMP_MOD_CONF"
+    grep "^WATCH_INTERFACE=" "$MOD_CONF" >> "$TMP_MOD_CONF"
+
 	# Remplacement du fichier de conf par le fichier précédemment construit
-	rm -f "$MOD_CONF"
-	\cp "$TMP_MOD_CONF" "$MOD_CONF"
+	cat "$TMP_MOD_CONF" > "$MOD_CONF"
 	rm -f "$TMP_MOD_CONF"
 
 	# Si l'URL du serveur de repo n'est pas renseignée alors on ne charge pas le module
