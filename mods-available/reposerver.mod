@@ -217,6 +217,32 @@ function mod_configure {
 			--from-agent)
 				FROM_AGENT="1"
 			;;
+            --agent-watch-int)
+                WATCH_INTERFACE="$2"
+                shift
+                # Ajout du paramètre dans le fichier de conf
+                if ! grep -q "^WATCH_INTERFACE" $MOD_CONF;then
+                    sed -i "/^\[AGENT\]/a WATCH_INTERFACE=\"$WATCH_INTERFACE\"" $MOD_CONF
+                else
+                    sed -i "s|WATCH_INTERFACE=.*|WATCH_INTERFACE=\"$WATCH_INTERFACE\"|g" $MOD_CONF
+                fi
+            ;;
+            --agent-enable-watch)
+                # Ajout du paramètre dans le fichier de conf
+                if ! grep -q "^WATCH_FOR_REQUEST" $MOD_CONF;then
+                    sed -i "/^\[AGENT\]/a WATCH_FOR_REQUEST=\"enabled\"" $MOD_CONF
+                else
+                    sed -i "s|WATCH_FOR_REQUEST=.*|WATCH_FOR_REQUEST=\"enabled\"|g" $MOD_CONF
+                fi
+            ;;
+            --agent-disable-watch)
+                # Ajout du paramètre dans le fichier de conf
+                if ! grep -q "^WATCH_FOR_REQUEST" $MOD_CONF;then
+                    sed -i "/^\[AGENT\]/a WATCH_FOR_REQUEST=\"disabled\"" $MOD_CONF
+                else
+                    sed -i "s|WATCH_FOR_REQUEST=.*|WATCH_FOR_REQUEST=\"disabled\"|g" $MOD_CONF
+                fi
+            ;;
 			--url)
 				REPOSERVER_URL="$2"
 				shift
@@ -224,7 +250,7 @@ function mod_configure {
 				if ! grep -q "^URL" $MOD_CONF;then
 					sed -i "/^\[REPOSERVER\]/a URL=\"$REPOSERVER_URL\"" $MOD_CONF
 				else
-					sed -i "s|URL.*|URL=\"$REPOSERVER_URL\"|g" $MOD_CONF
+					sed -i "s|URL=.*|URL=\"$REPOSERVER_URL\"|g" $MOD_CONF
 				fi
 			;;
 			--fail-level)
@@ -234,7 +260,7 @@ function mod_configure {
 				if ! grep -q "^FAILLEVEL" $MOD_CONF;then
 					sed -i "/^\[MODULE\]/a FAILLEVEL=\"$FAILLEVEL\"" $MOD_CONF
 				else
-					sed -i "s/FAILLEVEL.*/FAILLEVEL=\"$FAILLEVEL\"/g" $MOD_CONF
+					sed -i "s/FAILLEVEL=.*/FAILLEVEL=\"$FAILLEVEL\"/g" $MOD_CONF
 				fi
 			;;
 			--allow-conf-update)
@@ -244,7 +270,7 @@ function mod_configure {
 				if ! grep -q "^REPOSERVER_ALLOW_CONFUPDATE" $MOD_CONF;then
 					sed -i "/^\[CLIENT\]/a REPOSERVER_ALLOW_CONFUPDATE=\"$REPOSERVER_ALLOW_CONFUPDATE\"" $MOD_CONF
 				else
-					sed -i "s/REPOSERVER_ALLOW_CONFUPDATE.*/REPOSERVER_ALLOW_CONFUPDATE=\"$REPOSERVER_ALLOW_CONFUPDATE\"/g" $MOD_CONF
+					sed -i "s/REPOSERVER_ALLOW_CONFUPDATE=.*/REPOSERVER_ALLOW_CONFUPDATE=\"$REPOSERVER_ALLOW_CONFUPDATE\"/g" $MOD_CONF
 				fi
 			;;
 			--allow-repos-update)
@@ -254,7 +280,7 @@ function mod_configure {
 				if ! grep -q "^REPOSERVER_ALLOW_REPOSFILES_UPDATE" $MOD_CONF;then
 					sed -i "/^\[CLIENT\]/a REPOSERVER_ALLOW_REPOSFILES_UPDATE=\"$REPOSERVER_ALLOW_REPOSFILES_UPDATE\"" $MOD_CONF
 				else 
-					sed -i "s/REPOSERVER_ALLOW_REPOSFILES_UPDATE.*/REPOSERVER_ALLOW_REPOSFILES_UPDATE=\"$REPOSERVER_ALLOW_REPOSFILES_UPDATE\"/g" $MOD_CONF
+					sed -i "s/REPOSERVER_ALLOW_REPOSFILES_UPDATE=.*/REPOSERVER_ALLOW_REPOSFILES_UPDATE=\"$REPOSERVER_ALLOW_REPOSFILES_UPDATE\"/g" $MOD_CONF
 				fi
 			;;
 			--allow-overwrite)
@@ -264,7 +290,7 @@ function mod_configure {
 				if ! grep -q "^REPOSERVER_ALLOW_OVERWRITE" $MOD_CONF;then
 					sed -i "/^\[CLIENT\]/a REPOSERVER_ALLOW_OVERWRITE=\"$REPOSERVER_ALLOW_OVERWRITE\"" $MOD_CONF
 				else 
-					sed -i "s/REPOSERVER_ALLOW_OVERWRITE.*/REPOSERVER_ALLOW_OVERWRITE=\"$REPOSERVER_ALLOW_OVERWRITE\"/g" $MOD_CONF
+					sed -i "s/REPOSERVER_ALLOW_OVERWRITE=.*/REPOSERVER_ALLOW_OVERWRITE=\"$REPOSERVER_ALLOW_OVERWRITE\"/g" $MOD_CONF
 				fi
 			;;
 			--get-server-conf)
@@ -461,22 +487,46 @@ function getServerConf {
 		return 2
 	fi
 
-	TMP_FILE="/tmp/.linupdate_${PROCID}_mod_reposerver.tmp"
+	TMP_FILE_MODULE="/tmp/.linupdate_${PROCID}_mod_reposerver_section_module.tmp"
+    TMP_FILE_CLIENT="/tmp/.linupdate_${PROCID}_mod_reposerver_section_client.tmp"
+    TMP_FILE_AGENT="/tmp/.linupdate_${PROCID}_mod_reposerver_section_agent.tmp"
+    TMP_FILE_REPOSERVER="/tmp/.linupdate_${PROCID}_mod_reposerver_section_reposerver.tmp"
 
 	# On recrée le fichier de conf
 	# Sauvegarde de la partie [MODULE]
-	sed -n -e '/\[MODULE\]/,/^$/p' "$MOD_CONF" > "$TMP_FILE"
+	sed -n -e '/\[MODULE\]/,/^$/p' "$MOD_CONF" > "$TMP_FILE_MODULE"
+    # Ajout d'un saut de ligne car chaque section doit être correctement séparée
+    echo "" >> "$TMP_FILE_MODULE"
 	
 	# Sauvegarde de la partie [CLIENT]
-	sed -n -e '/\[CLIENT\]/,/^$/p' "$MOD_CONF" >> "$TMP_FILE"
+	sed -n -e '/\[CLIENT\]/,/^$/p' "$MOD_CONF" > "$TMP_FILE_CLIENT"
+    # Ajout d'un saut de ligne car chaque section doit être correctement séparée
+    echo "" >> "$TMP_FILE_CLIENT"
+
+    # Sauvegarde de la partie [AGENT] si existe
+	sed -n -e '/\[AGENT\]/,/^$/p' "$MOD_CONF" > "$TMP_FILE_AGENT"
+    # Ajout d'un saut de ligne car chaque section doit être correctement séparée
+    echo "" >> "$TMP_FILE_AGENT"
 
 	# Ajout de la nouvelle conf [REPOSERVER]
-	echo -e "$GET_CONF" >> "$TMP_FILE"
+	echo -e "$GET_CONF" > "$TMP_FILE_REPOSERVER"
+    # Ajout d'un saut de ligne car chaque section doit être correctement séparée
+    echo "" >> "$TMP_FILE_REPOSERVER"
 
-	# On remplace alors le fichier de conf actuel par le nouveau
-	cat "$TMP_FILE" > "$MOD_CONF"
+    # On reconstruit le fichier de configuration
+    cat "$TMP_FILE_MODULE" > "$MOD_CONF"
+    cat "$TMP_FILE_CLIENT" >> "$MOD_CONF"
+    cat "$TMP_FILE_REPOSERVER" >> "$MOD_CONF"
+    cat "$TMP_FILE_AGENT" >> "$MOD_CONF"
 
-	rm "$TMP_FILE" -f
+    # Suppression des doubles saut de ligne si il y en a
+    sed -i '/^$/N;/^\n$/D' "$MOD_CONF"
+
+    # Suppression des fichiers temporaires
+	rm "$TMP_FILE_MODULE" -f
+    rm "$TMP_FILE_CLIENT" -f
+    rm "$TMP_FILE_AGENT" -f
+    rm "$TMP_FILE_REPOSERVER" -f
 
 	# Puis on recharge à nouveau les paramètres
 	getModConf
