@@ -244,3 +244,5 @@ while true; do
 
     (( COUNTER++ ))
 done
+
+exit

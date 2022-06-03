@@ -1,21 +1,21 @@
 #!/bin/bash
 
 # Supprime la tâche cron après maj, si existe
-if [ "$CONF_SOFT_KEEP_CRON" != "yes" ];then # On conserve uniquement la tâche cron si le paramètre est égal 'yes'. Dans tous les autres cas (!= yes) on supprime par sécurité
-	# Il faut déjà déterminer le chemin de la crontab (différent selon si c'est Debian ou Redhat)
-	ACTUAL_USER=$(whoami)
-	if [ ! -z "$ACTUAL_USER" ];then
-		CRONTAB_PATH=""
-		if [ -f "/var/spool/cron/${ACTUAL_USER}" ];then CRONTAB_PATH="/var/spool/cron/${ACTUAL_USER}";fi
-		if [ -f "/var/spool/cron/crontabs/${ACTUAL_USER}" ];then CRONTAB_PATH="/var/spool/cron/crontabs/${ACTUAL_USER}";fi
+# if [ "$CONF_SOFT_KEEP_CRON" != "yes" ];then # On conserve uniquement la tâche cron si le paramètre est égal 'yes'. Dans tous les autres cas (!= yes) on supprime par sécurité
+# 	# Il faut déjà déterminer le chemin de la crontab (différent selon si c'est Debian ou Redhat)
+# 	ACTUAL_USER=$(whoami)
+# 	if [ ! -z "$ACTUAL_USER" ];then
+# 		CRONTAB_PATH=""
+# 		if [ -f "/var/spool/cron/${ACTUAL_USER}" ];then CRONTAB_PATH="/var/spool/cron/${ACTUAL_USER}";fi
+# 		if [ -f "/var/spool/cron/crontabs/${ACTUAL_USER}" ];then CRONTAB_PATH="/var/spool/cron/crontabs/${ACTUAL_USER}";fi
 		
-		# Suppression de la tâche cron si la crontab a été définie
-		if [ ! -z "$CRONTAB_PATH" ];then
-			if grep -q "linupdate" "${CRONTAB_PATH}";then
-				echo -ne "Suppression de la tâche cron en place : "
-				sed -i '/linupdate/d' "${CRONTAB_PATH}" &&
-				echo -e "[$GREEN OK $RESET]"
-			fi
-		fi
-	fi
-fi
+# 		# Suppression de la tâche cron si la crontab a été définie
+# 		if [ ! -z "$CRONTAB_PATH" ];then
+# 			if grep -q "linupdate" "${CRONTAB_PATH}";then
+# 				echo -ne "Suppression de la tâche cron en place : "
+# 				sed -i '/linupdate/d' "${CRONTAB_PATH}" &&
+# 				echo -e "[$GREEN OK $RESET]"
+# 			fi
+# 		fi
+# 	fi
+# fi
