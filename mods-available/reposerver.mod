@@ -187,7 +187,36 @@ function curl_result_parse
     IFS=$OLD_IFS
 }
 
-### MODULE ###
+# Aide
+function mod_help
+{
+    echo -e "Paramètres du module ${YELLOW}reposerver${RESET} :\n\n"
+    echo -e " Général :"
+    echo -e "  --url http(s)://...           → Configurer l'URL du serveur Repomanager distant"
+    echo -e "  --fail-level 1|2|3            → Défini la criticité d'erreur du module (entre 1 et 3)"
+    echo -e "                                  1 : linupdate s'arrête à la moindre erreur (module désactivé, le serveur ne gère pas le même type de paquet que cet hôte, erreur mineure ou critique)"
+    echo -e "                                  2 : linupdate s'arrête seulement en cas d'erreur critique (continue en cas d'erreur mineure)"
+    echo -e "                                  3 : continue l'exécution de linupdate même en cas d'erreur critique (eg: impossible de récupérer le profil de configuration auprès de Repomanager)"
+    echo -e "  --allow-conf-update yes|no    → Autorise ou non le serveur Repomanager à définir les paquets à exclure sur l'hôte"
+    echo -e "  --allow-repos-update yes|no   → Autorise ou non le serveur Repomanager à définir les fichiers de repos (.repo ou .list) à configurer sur l'hôte"
+    echo -e "  --allow-overwrite yes|no      → Autorise ou non le serveur Repomanager à modifier les deux paramètres précédents (yes ou no)"
+    echo -e "  --get-server-conf             → "
+    echo -e "  --register                    → Enregistrer cet hôte auprès du serveur Repomanager"
+    echo -e "  --unregister                  → Dé-enregistrer cet hôte auprès du serveur Repomanager"
+    echo -e "  --send-general-status         → Envoyer les informations générales concernant cet hôte au serveur Repomanager (OS, version, kernel..)s"
+    echo -e "  --send-full-history           → Envoyer les informations concernant l'historique des paquets (installation, mise à jour, désinstallation...) sur cet hôte"
+    echo -e "  --send-packages-status        → Envoyer les informations concernant les paquets (installés, disponibles) sur cet hôte et leur historique"
+    echo -e "  --send-full-status            → Exécute les 3 paramètres précédents"
+    echo -e ""
+    echo -e " Module d'agent :"
+    echo -e "  --enable-agent                → Activer le module d'agent reposerver afin qu'il soit exécuté par le service systemd principal de linupdate"
+    echo -e "                                  Cet agent enverra régulièrement les informations concernant cet hôte (générales, paquets) au serveur Repomanager"
+    echo -e "  --disable-agent               → Désactiver le module d'agent reposerver"
+    echo -e "  --agent-watch-enable          → Activer la surveillance de requêtes en provenance du serveur Repomanager"
+    echo -e "  --agent-watch-disable         → Désactiver la surveillance de requêtes en provenance du serveur Repomanager"
+    echo -e "  --agent-watch-int             → Préciser l'interface réseau sur laquelle surveiller les requêtes en provenance du serveur Repomanager"
+    echo -e ""
+}
 
 # Activation du module
 function mod_enable
@@ -220,7 +249,8 @@ function mod_install
 }
 
 # Activation de l'agent reposerver
-function enableReposerverAgent {
+function enableReposerverAgent
+{
     cd ${AGENTS_ENABLED_DIR}/ &&
     ln -sfn "../mods-available/agent/reposerver.agent" &&
     echo -e "Agent ${YELLOW}reposerver${RESET} activé"
@@ -228,21 +258,20 @@ function enableReposerverAgent {
 }
 
 # Désactivation de l'agent reposerver
-function disableReposerverAgent {
+function disableReposerverAgent
+{
     rm "${AGENTS_ENABLED_DIR}/reposerver.agent" -f &&
     echo -e "Agent ${YELLOW}reposerver${RESET} désactivé"
     return 0
 }
 
 # Configuration du module
-function mod_configure {
+function mod_configure
+{
     # Si il n'y a aucun fichier de configuration pour ce module, on lance l'installation
     if [ ! -f "$MOD_CONF" ];then
         mod_install
     fi
-
-    # Defini si le module est exécuté par l'agent ou non
-    FROM_AGENT="0"
 
     REGISTER_HOSTNAME=""
     REGISTER_IP=""
@@ -262,10 +291,28 @@ function mod_configure {
     SEND_FULL_HISTORY="no"
     SEND_FULL_HISTORY_LIMIT=""
 
+    # Defini si le module est exécuté par l'agent ou non
+    FROM_AGENT="0"
+
+    # Défini le status de l'agent linupdate (démarré, arrêté)
+    if systemctl is-active --quiet linupdate.service;then
+        AGENT_STATUS="running"
+    else
+        AGENT_STATUS="stopped"
+    fi
+    # Cependant si le module d'agent reposerver n'est pas activé alors on défini le status de l'agent à 'disabled'
+    if [ ! -f "${AGENTS_ENABLED_DIR}/reposerver.agent" ];then
+        AGENT_STATUS="disabled"
+    fi
+
     # Récupération des paramètres passés à la fonction
     set +u
     while [ $# -ge 1 ];do
         case "$1" in
+            --help)
+                mod_help
+                clean_exit
+            ;;
             --from-agent)
                 FROM_AGENT="1"
             ;;
@@ -368,13 +415,13 @@ function mod_configure {
                 clean_exit
             ;;
             --send-full-status)
-                # Si on a précisé --full alors on enverra le status complet du serveur
+                # Envoi du status complet du serveur
                 SEND_GENERAL_STATUS="yes"
                 SEND_PACKAGES_STATUS="yes"
                 send_status
             ;;
             --send-general-status)
-                # Si on a précisé --generel alors on enverra seulement le status général du serveur (OS..)
+                # Envoi du status général du serveur (OS, kernel..)
                 SEND_GENERAL_STATUS="yes"
                 send_status
             ;;
@@ -403,7 +450,8 @@ function mod_configure {
 # La fonction mod_load() permet de s'assurer que le module est un minimum configuré avant qu'il soit intégré à l'exécution du programme principal
 # Retourner 1 si des éléments sont manquants
 # Retourner 0 si tout est OK
-function mod_load {
+function mod_load
+{
     echo -e "  - ${YELLOW}reposerver${RESET}"
 
     # Si le fichier de configuration du module est introuvable alors on ne charge pas le module
@@ -494,7 +542,8 @@ function mod_load {
 }
 
 # Récupération de la configuration complète du module, dans son fichier de conf
-function getModConf {
+function getModConf
+{
     # Configuration client (section [CLIENT])
     HOST_ID="$(grep "^ID=" $MOD_CONF | cut -d'=' -f2 | sed 's/"//g')"
     TOKEN="$(grep "^TOKEN=" $MOD_CONF | cut -d'=' -f2 | sed 's/"//g')"
@@ -504,11 +553,7 @@ function getModConf {
 
     # Configuration serveur (section [REPOSERVER])
     REPOSERVER_URL="$(grep "^URL=" $MOD_CONF | cut -d'=' -f2 | sed 's/"//g')"
-    REPOSERVER_OS_FAMILY="$(grep "^OS_FAMILY=" $MOD_CONF | cut -d'=' -f2 | sed 's/"//g')"
-    REPOSERVER_OS_NAME="$(grep "^OS_NAME=" $MOD_CONF | cut -d'=' -f2 | sed 's/"//g')"
-    REPOSERVER_OS_ID="$(grep "^OS_ID=" $MOD_CONF | cut -d'=' -f2 | sed 's/"//g')"
-    REPOSERVER_OS_VERSION="$(grep "^OS_VERSION=" $MOD_CONF | cut -d'=' -f2 | sed 's/"//g')"
-    REPOSERVER_PACKAGES_OS_VERSION="$(grep "^PACKAGES_OS_VERSION=" $MOD_CONF | cut -d'=' -f2 | sed 's/"//g')"
+    REPOSERVER_PACKAGE_TYPE="$(grep "^PACKAGE_TYPE=" $MOD_CONF | cut -d'=' -f2 | sed 's/"//g')"
     REPOSERVER_MANAGE_CLIENT_CONF="$(grep "^MANAGE_CLIENTS_CONF=" $MOD_CONF | cut -d'=' -f2 | sed 's/"//g')"
     REPOSERVER_MANAGE_CLIENT_REPOS="$(grep "^MANAGE_CLIENTS_REPOSCONF=" $MOD_CONF | cut -d'=' -f2 | sed 's/"//g')"
 
@@ -517,24 +562,26 @@ function getModConf {
 
     # Si on n'a pas pu récupérer le FAILLEVEL dans le fichier de conf alors on le set à 1 par défaut
     # De même si le FAILLEVEL récupéré n'est pas un chiffre alors on le set à 1
-    if [ -z "$FAILLEVEL" ];then echo -e "[$YELLOW WARNING $RESET] Paramètre FAILLEVEL non configuré pour ce module → configuré à 1 (arrêt en cas d'erreur mineure ou critique)"; FAILLEVEL="1";fi
-    if ! [[ "$FAILLEVEL" =~ ^[0-9]+$ ]];then echo -e "[$YELLOW WARNING $RESET] Paramètre FAILLEVEL non configuré pour ce module → configuré à 1 (arrêt en cas d'erreur mineure ou critique)"; FAILLEVEL="1";fi
+    if [ -z "$FAILLEVEL" ];then
+        echo -e "[$YELLOW WARNING $RESET] Paramètre FAILLEVEL non configuré pour ce module → configuré à 1 (arrêt en cas d'erreur mineure ou critique)"
+        FAILLEVEL="1"
+    fi
+    if ! [[ "$FAILLEVEL" =~ ^[0-9]+$ ]];then
+        echo -e "[$YELLOW WARNING $RESET] Paramètre FAILLEVEL non configuré pour ce module → configuré à 1 (arrêt en cas d'erreur mineure ou critique)"
+        FAILLEVEL="1"
+    fi
 
     if [ -z "$REPOSERVER_URL" ];then
         echo -e " - Module reposerver : [${YELLOW} ERREUR ${RESET}] URL du serveur de repo inconnue ou vide"
         return 2
     fi
 
-    # Si REPOSERVER_PACKAGES_OS_VERSION n'est pas vide, cela signifie que le serveur distant dispose de miroirs de paquets dont la version est différente de sa propre version
-    # Dans ce cas on overwrite la variable REPOSERVER_OS_VERSION
-    if [ ! -z "$REPOSERVER_PACKAGES_OS_VERSION" ];then REPOSERVER_OS_VERSION="$REPOSERVER_PACKAGES_OS_VERSION";fi
-
     return 0
 }
 
 # Récupération de la configuration générale du serveur de repos
-function getServerConf {
-
+function getServerConf
+{
     TMP_FILE_MODULE="/tmp/.linupdate_${PROCID}_mod_reposerver_section_module.tmp"
     TMP_FILE_CLIENT="/tmp/.linupdate_${PROCID}_mod_reposerver_section_client.tmp"
     TMP_FILE_AGENT="/tmp/.linupdate_${PROCID}_mod_reposerver_section_agent.tmp"
@@ -563,12 +610,7 @@ function getServerConf {
 
         REPOSERVER_IP=$(_jq '.Ip')
         REPOSERVER_URL=$(_jq '.Url')
-        REPOSERVER_OS_FAMILY=$(_jq '.Os_family')
-        REPOSERVER_OS_NAME=$(_jq '.Os_name')
-        REPOSERVER_OS_ID=$(_jq '.Os_id')
-        REPOSERVER_OS_VERSION=$(_jq '.Os_version')
         REPOSERVER_PACKAGE_TYPE=$(_jq '.Package_type')
-        REPOSERVER_PACKAGE_OS_VERSION=$(_jq '.Package_os_version')
         REPOSERVER_MANAGE_CLIENT_CONF=$(_jq '.Manage_client_conf')
         REPOSERVER_MANAGE_CLIENT_REPOS=$(_jq '.Manage_client_repos')
     done
@@ -592,12 +634,7 @@ function getServerConf {
     echo "[REPOSERVER]" >> "$TMP_FILE_REPOSERVER"
     echo "IP=\"$REPOSERVER_IP\"" >> "$TMP_FILE_REPOSERVER"
     echo "URL=\"$REPOSERVER_URL\"" >> "$TMP_FILE_REPOSERVER"
-    echo "OS_FAMILY=\"$REPOSERVER_OS_FAMILY\"" >> "$TMP_FILE_REPOSERVER"
-    echo "OS_NAME=\"$REPOSERVER_OS_NAME\"" >> "$TMP_FILE_REPOSERVER"
-    echo "OS_ID=\"$REPOSERVER_OS_ID\"" >> "$TMP_FILE_REPOSERVER"
-    echo "OS_VERSION=\"$REPOSERVER_OS_VERSION\"" >> "$TMP_FILE_REPOSERVER"
     echo "PACKAGE_TYPE=\"$REPOSERVER_PACKAGE_TYPE\"" >> "$TMP_FILE_REPOSERVER"
-    echo "PACKAGE_OS_VERSION=\"$REPOSERVER_PACKAGE_OS_VERSION\"" >> "$TMP_FILE_REPOSERVER"
     echo "MANAGE_CLIENTS_CONF=\"$REPOSERVER_MANAGE_CLIENT_CONF\"" >> "$TMP_FILE_REPOSERVER"
     echo "MANAGE_CLIENTS_REPOSCONF=\"$REPOSERVER_MANAGE_CLIENT_REPOS\"" >> "$TMP_FILE_REPOSERVER"
     echo "" >> "$TMP_FILE_REPOSERVER"
@@ -622,26 +659,18 @@ function getServerConf {
 }
 
 # Fonction exécutée pre-mise à jour
-function preCheck {
-    # Si REPOSERVER_OS_FAMILY, *NAME ou *VERSION diffère du type de serveur sur lequel est exécuté ce module (par exemple le serveur reposerver est un serveur CentOS et nous somme sur un serveur Debian), alors on affiche un warning
-    if [ "$REPOSERVER_OS_FAMILY" != "$OS_FAMILY" ];then
-        echo -e "   [${YELLOW} ERREUR ${RESET}] Le serveur de repo distant ne gère pas la même famille d'OS que cette machine."
-        return 2
-    fi
-
-    if [ "$REPOSERVER_OS_ID" != "$OS_NAME" ];then
-        echo -e "   [${YELLOW} WARNING ${RESET}] Le serveur de repo distant ne gère pas le même OS que cette machine, les paquets peuvent être incompatibles."
-        return 1
-    fi
-
-    if [ "$REPOSERVER_OS_VERSION" != "$OS_VERSION" ];then
-        echo -e "   [${YELLOW} ERREUR ${RESET}] Le serveur de repo distant ne gère pas la même version d'OS que cette machine."
+function preCheck
+{
+    # Vérification que le serveur Repomanager gère le même type de paquet que cet hôte
+    if ! echo "$REPOSERVER_PACKAGE_TYPE" | grep -q "$PKG_TYPE";then
+        echo -e "  [${YELLOW} ERREUR ${RESET}] Le serveur de repo distant ne gère pas le même type de paquet : $REPOSERVER_PACKAGE_TYPE que cet hôte ($PKG_TYPE)."
         return 2
     fi
 }
 
 # Récupération de la configuration générale du profil de l'hôte, auprès du serveur de repos
-function getProfileConf {
+function getProfileConf
+{
     # Si le serveur reposerver ne gère pas les profils ou que le client refuse d'être mis à jour par son serveur de repo, on quitte la fonction
     echo -ne "  → Mise à jour de la configuration du profil $PROFILE : "
 
@@ -704,11 +733,12 @@ function getProfileConf {
 }
 
 # Récupération de la configuration des repos du profil de l'hôte, auprès du serveur de repos
-function getProfileRepos {
-    # Si on est autorisé à mettre à jour les fichiers de conf de repos et si le serveur de repos le gère
-    echo -ne "  → Mise à jour de la configuration des repos : "
-
+function getProfileRepos
+{
     if [ "$REPOSERVER_MANAGE_CLIENT_REPOS" == "yes" ] && [ "$REPOSERVER_ALLOW_REPOSFILES_UPDATE" == "yes" ];then
+
+        # Si on est autorisé à mettre à jour les fichiers de conf de repos et si le serveur de repos le gère
+        echo -ne "  → Mise à jour de la configuration des repos : "
 
         # Demande de la configuration des repos auprès du serveur de repos
         # Ce dernier renverra la configuration au format JSON
@@ -740,6 +770,7 @@ function getProfileRepos {
         # Puis on récupère la configuration des nouveaux fichiers .repo ou .list transmis par le serveur au format JSON
         # On parcourt chaque configuration et on récupère le nom du fichier à créer, la description et le contenu à insérer
         # On remplace à la volée l'environnement dans le contenu récupéré
+        IFS=$'\n'
         for ROW in $(echo "${CURL}" | jq -r '.configuration[] | @base64'); do
             _jq() {
             echo ${ROW} | base64 --decode | jq -r ${1}
@@ -769,6 +800,8 @@ function getProfileRepos {
             # Application de permissions et vidage du cache yum
             chown root:root /etc/yum.repos.d/*.repo
             chmod 660 /etc/yum.repos.d/*.repo
+
+            checkYumLock
             yum clean all -q
         fi
 
@@ -796,7 +829,8 @@ function getProfileRepos {
 }
 
 # Exécution pre-mise à jour des paquets
-function pre {
+function pre
+{
     # Fail-level :
     # 1 = quitte à la moindre erreur (module désactivé, le serveur ne gère pas le même OS, erreur mineure, critique)
     # 2 = quitte seulement en cas d'erreur critique
@@ -807,7 +841,7 @@ function pre {
     # Erreur mineure :  return 1
     # Erreur critique : return 2
 
-    echo -e " Exécution du module ${YELLOW}reposerver${RESET}"
+    echo -e "  → Exécution du module ${YELLOW}reposerver${RESET}"
 
     # On récupère la configuration du module, en l'occurence la configuration du serveur de repo
     getModConf
@@ -849,7 +883,8 @@ function pre {
 }
 
 # Exécution post-mise à jour des paquets
-function post {
+function post
+{
     # Aquittement du status auprès du serveur reposerver
     UPDATE_REQUEST_TYPE="packages-update"
     if [ "$UPDATE_ERROR" -gt "0" ];then
@@ -867,8 +902,7 @@ function post {
         fi
 
         # On renvoie les 4 derniers historique d'évènements au serveur reposerver
-        /opt/linupdate/linupdate --mod-configure reposerver --from-agent --send-full-history 4
-        /opt/linupdate/linupdate --mod-configure reposerver --from-agent --send-available-packages-status
+        /opt/linupdate/linupdate --mod-configure reposerver --from-agent --send-packages-status
     fi
 
     return 0
@@ -878,7 +912,8 @@ function post {
 
 # Envoi au serveur Repomanager l'état actuel de l'hôte
 # Fonction principale
-function send_status {
+function send_status
+{
     # Au préalable, récupération des informations concernant le serveur repomanager
     # Si la configuration est incomplète alors on quitte
     getModConf
@@ -936,7 +971,8 @@ function send_status {
 }
 
 # Mettre à jour le status d'une demande initialisée par le serveur repomanager
-function update_request_status {
+function update_request_status
+{
     if [ -z "$UPDATE_REQUEST_TYPE" ];then
         return
     fi
@@ -959,7 +995,8 @@ function update_request_status {
 }
 
 # Envoi au serveur Repomanager l'état général de l'hôte (son os, version, profil, env)
-function send_general_status {
+function send_general_status
+{
     UPDATE_REQUEST_TYPE="general-status-update"
     UPDATE_REQUEST_STATUS="running"
     update_request_status
@@ -980,11 +1017,14 @@ function send_general_status {
     if [ ! -z "$SERVER_ENV" ];then
         CURL_PARAMS+=", \"env\":\"$SERVER_ENV\""
     fi
+    if [ ! -z "$AGENT_STATUS" ];then
+        CURL_PARAMS+=", \"agent_status\":\"$AGENT_STATUS\""
+    fi
 
     # Fin de construction des paramètres curl puis envoi.
 
     # Envoi des données :
-    echo -e " Envoi du status à ${YELLOW}${REPOSERVER_URL}${RESET} : "
+    echo -e "→ Envoi du status à ${YELLOW}${REPOSERVER_URL}${RESET} : "
     CURL=$(curl -s -q -H "Content-Type: application/json" -X PUT -d "{$CURL_PARAMS}" "${REPOSERVER_URL}/api/hosts" 2> /dev/null)
     UPDATE_RETURN=$(jq -r '.return' <<< "$CURL")
 
@@ -1000,7 +1040,9 @@ function send_general_status {
     update_request_status
 }
 
-function send_packages_status {
+# Envoi du status des paquets (installés, disponibles)
+function send_packages_status
+{
     INSTALLED_PACKAGES=""
     UPDATE_MESSAGE_SUCCESS=""
     UPDATE_MESSAGE_ERROR=""
@@ -1033,7 +1075,8 @@ function send_packages_status {
 }
 
 # Envoi au serveur Repomanager de la liste des paquets installés sur l'hôte
-function send_installed_packages_status {
+function send_installed_packages_status
+{
     INSTALLED_PACKAGES=""
     UPDATE_MESSAGE_SUCCESS=""
     UPDATE_MESSAGE_ERROR=""
@@ -1071,7 +1114,9 @@ function send_installed_packages_status {
         fi
 
         # Si le nom du paquet est vide, on passe au suivant
-        if [ -z "$PACKAGE_NAME" ];then continue;fi
+        if [ -z "$PACKAGE_NAME" ];then
+            continue
+        fi
                 
         # Ajout du nom du paquet, sa version actuelle et sa version disponible à l'array $INSTALLED_PACKAGES
         INSTALLED_PACKAGES+="${PACKAGE_NAME}|${PACKAGE_ACT_VERSION},"
@@ -1086,7 +1131,7 @@ function send_installed_packages_status {
     CURL_PARAMS="$CURL_PARAMS, \"installed_packages\":\"$INSTALLED_PACKAGES\""
 
     # Envoi des données :
-    echo -ne " Envoi des informations à ${YELLOW}${REPOSERVER_URL}${RESET} : "
+    echo -ne "→ Envoi des informations à ${YELLOW}${REPOSERVER_URL}${RESET} : "
     CURL=$(curl -s -q -H "Content-Type: application/json" -X PUT -d "{$CURL_PARAMS}" "${REPOSERVER_URL}/api/hosts" 2> /dev/null)
     
     # Récupération et affichage des messages
@@ -1103,7 +1148,8 @@ function send_installed_packages_status {
 }
 
 # Envoi au serveur Repomanager de la liste des paquets disponibles pour mettre à jour
-function send_available_packages_status {
+function send_available_packages_status
+{
     AVAILABLE_PACKAGES=""
 
     # Paramètres d'authentification (id et token)
@@ -1162,7 +1208,7 @@ function send_available_packages_status {
     CURL_PARAMS="$CURL_PARAMS, \"available_packages\":\"$AVAILABLE_PACKAGES\""
 
     # Envoi des données :
-    echo -ne " Envoi du status à ${YELLOW}${REPOSERVER_URL}${RESET} : "
+    echo -ne "→ Envoi du status à ${YELLOW}${REPOSERVER_URL}${RESET} : "
     CURL=$(curl -s -q -H "Content-Type: application/json" -X PUT -d "{$CURL_PARAMS}" "${REPOSERVER_URL}/api/hosts" 2> /dev/null)
     
     # Récupération et affichage des messages
@@ -1180,11 +1226,17 @@ function send_available_packages_status {
 
 # Fonction de parsage d'un évènement
 # Appelée par la fonction genFullHistory
-function event_parser {
+function event_parser
+{
     if [ "$OS_FAMILY" == "Redhat" ];then
+        
+        checkYumLock
+
         # On extrait tout le contenu de l'évènement dans un fichier
         TMP_EVENT_FILE="/tmp/.linupdate_${PROCID}_mod_reposerver_yum_event.tmp"
         LC_ALL="en_US.UTF-8" yum history info "$YUM_HISTORY_ID" > "$TMP_EVENT_FILE"
+        # Suppression de '**' si présent dans le fichier
+        sed -i 's/**//g' "$TMP_EVENT_FILE"
         # Extrait la date et l'heure au format : Thu Mar 25 10:40:37 2021
         EVENT_DATE=$(grep "^Begin time" "$TMP_EVENT_FILE" | sed 's/  //g' | sed 's/Begin time : //g')
         # Extrait la date de la chaine précédemment récupéréé
@@ -1200,7 +1252,8 @@ function event_parser {
         # On peut également récupérer la liste des paquets installés, mis à jour jour, supprimés...
         PACKAGES_INSTALLED_LIST=$(cat "$TMP_EVENT_FILE" | egrep "^ +Install " | grep -Ev "Dep-Install|Installed|Installing" | awk '{print $2}')
         DEPENDENCIES_INSTALLED_LIST=$(cat "$TMP_EVENT_FILE" | egrep "^ +Dep-Install " | grep -Ev "Installed|Installing" | awk '{print $2}')
-        PACKAGES_UPGRADED_LIST=$(cat "$TMP_EVENT_FILE" | egrep "^ +Updated |^ +Update " | grep -v "Installing" | awk '{print $2}')
+        #PACKAGES_UPGRADED_LIST=$(cat "$TMP_EVENT_FILE" | egrep "^ +Updated |^ +Update |^ +Obsoleting" | grep -v "Installing" | awk '{print $2}')
+        PACKAGES_UPGRADED_LIST=$(cat "$TMP_EVENT_FILE" | egrep "^ +Updated |^ +Update |^ +Obsoleting" | grep -v "Installing")
         PACKAGES_REMOVED_LIST=$(cat "$TMP_EVENT_FILE" | egrep "^ +Erase " | awk '{print $2}')
         PACKAGES_DOWNGRADED_LIST=$(cat "$TMP_EVENT_FILE" | egrep "^ +Downgrade " | awk '{print $2}')
         PACKAGES_REINSTALLED_LIST=$(cat "$TMP_EVENT_FILE" | egrep "^ +Reinstall " | awk '{print $2}')
@@ -1235,7 +1288,8 @@ function event_parser {
 
 # Fonction de parsage de multiples évènements ayant lieu à la même date et heure
 # Debian (apt) uniquement
-function multiple_event_parser {
+function multiple_event_parser
+{
     # Si le fichier temporaire est vide alors on ne traite pas
     if [ ! -s "$MULTIPLE_EVENTS_TMP" ];then
         return
@@ -1339,6 +1393,8 @@ OLD_IFS=$IFS
 if [ "$OS_FAMILY" == "Redhat" ];then
     echo "Construction de l'historique des évènements yum..."
 
+    checkYumLock
+
     # Récupération de tous les ID d'évènements dans la base de données de yum
     YUM_HISTORY_IDS=$(yum history list all | tail -n +4 | awk '{print $1}' | grep -v "history" | tac)
 
@@ -1396,23 +1452,48 @@ if [ "$OS_FAMILY" == "Redhat" ];then
         # Traitement de la liste des paquets mis à jour à cette date et heure
         if [ ! -z "$PACKAGES_UPGRADED_LIST" ];then
             for LINE in $(echo "$PACKAGES_UPGRADED_LIST");do
+                # Suppression de "@/" si il apparait dans la ligne, car provoque des problèmes dans le parsage
+                # Cela signifie que le paquet ne provient pas d'un repo mais a probablement été installé à la main avec rpm
+                LINE=$(echo "$LINE" | sed 's#@/##g')
+
                 # Dans le cas d'une mise à jour, le numéro de version installé se trouve sur la ligne en dessous du paquet mis à jour, ex :
                 # netdata-1.29.3-1.el7.x86_64 @epel
                 #         1.33.1-1.el7.x86_64 @epel
                 # Du coup si la ligne en cours de traitement commence par un chiffre alors on ne la traite pas directement (il s'agit de la seconde ligne contenant la version)
-                if echo "$LINE" | grep -q "^[0-9]";then
+                #if echo "$LINE" | grep -q "^[0-9]";then
+                if echo "$LINE" | awk '{print $2}' | grep -q "^[0-9]";then
                     continue
                 fi
-                PACKAGE_NAME=$(echo "$LINE" | sed 's/-[0-9].*//g')
-                # Pour rappel, le numéro de version installé se trouve sur la ligne qui suit le nom du paquet
-                PACKAGE_VERSION=$(echo "$PACKAGES_UPGRADED_LIST" | sed  -n "/^${LINE}/{n;p}")
+
+                # Si la ligne contient 'Obsoleting' alors on passe à la suivante
+                if echo "$LINE" | egrep -q "^ +Obsoleting";then
+                    continue
+                fi
+
+                # Si la ligne contient 'Obsoleted' alors on passe à la suivante
+                if echo "$LINE" | egrep -q "^ +Obsoleted";then
+                    continue
+                fi
+
+                #PACKAGE_NAME=$(echo "$LINE" | sed 's/-[0-9].*//g')
+                PACKAGE_NAME=$(echo "$LINE" | awk '{print $2}' | sed 's/-[0-9].*//g')
+                # Pour rappel, le numéro de version installé se trouve sur la ligne qui suit le nom du paquet, sauf si cette 
+                # deuxieme ligne contient 'Obsoleting', dans ce cas là il faut faire un parsage supplémentaire pour retirer le 
+                # terme 'Obsoleting' et le nom du paquet
+                if echo "$PACKAGES_UPGRADED_LIST" | sed  -n "/^${LINE}/{n;p}" | egrep -q "^ +Obsoleting";then
+                    PACKAGE_VERSION=$(echo "$PACKAGES_UPGRADED_LIST" | sed  -n "/^${LINE}/{n;p}" | awk '{print $2}' | sed 's/ //g' | sed "s/${PACKAGE_NAME}-//g")
+                else
+                    PACKAGE_VERSION=$(echo "$PACKAGES_UPGRADED_LIST" | sed  -n "/^${LINE}/{n;p}" | awk '{print $2}')
+                fi
                 PACKAGES_UPGRADED+="{\"name\":\"${PACKAGE_NAME}\",\"version\":\"${PACKAGE_VERSION}\"},"
             done
 
-            # Suppression de la dernière virgule :
-            PACKAGES_UPGRADED=$(echo "${PACKAGES_UPGRADED::-1}")
-            # Création de l'array contenant les paquets mis à jour, au format JSON
-            PACKAGES_UPGRADED="\"upgraded\":[$PACKAGES_UPGRADED],"
+            if [ ! -z "$PACKAGES_UPGRADED" ];then
+                # Suppression de la dernière virgule :
+                PACKAGES_UPGRADED=$(echo "${PACKAGES_UPGRADED::-1}")
+                # Création de l'array contenant les paquets mis à jour, au format JSON
+                PACKAGES_UPGRADED="\"upgraded\":[$PACKAGES_UPGRADED],"
+            fi
         fi
 
         # Traitement de la liste des paquets supprimés à cette date et heure
@@ -1766,7 +1847,7 @@ jq . "$TMP_FILE" > "${TMP_FILE}.final"
 IFS=$OLD_IFS
 
 # Envoi des données :
-echo -ne " Envoi de l'historique à ${YELLOW}${REPOSERVER_URL}${RESET} : "
+echo -ne "→ Envoi de l'historique à ${YELLOW}${REPOSERVER_URL}${RESET} : "
 CURL=$(curl -s -q -H "Content-Type: application/json" -X PUT -d @${TMP_FILE}.final "${REPOSERVER_URL}/api/hosts" 2> /dev/null)
 
 # Récupération et affichage des messages

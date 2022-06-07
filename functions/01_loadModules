@@ -10,7 +10,9 @@ if [ -d "$MODULES_ENABLED_DIR" ];then
 			# Source de module.mod
 			source "$MODULE"
 			# Appel de la fonction mod_load à l'intérieur du fichier précédemment sourcé
-			mod_load			
+			mod_load
 		done
+
+		echo ""
 	fi
 fi

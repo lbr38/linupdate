@@ -33,26 +33,30 @@ Emplacement des fichiers de configuration :
 Général
 --help|-h                                            afficher l'aide
 --version|-v|-V                                      afficher la version
+-vv|--vv                                             active le mode verbeux
 --update|-u                                          mettre à jour manuellement linupdate vers la dernière version
 --enable-self-update|--enable-auto-update            activer la mise à jour automatique de linupdate
 --disable-self-update|--disable-auto-update          désactiver la mise à jour automatique de linupdate
 --install|--reinstall|-i                             installe ou réinstalle linupdate (entraine la suppression complète de l'installation actuelle)
 
 Profil
---profile|--type|--print-profile|-p PROFILE          modifier le profil de configuration de l'hôte ou l'afficher (si rien n'est précisé)
+--profile|--type|--print-profile PROFILE             modifier le profil de configuration de l'hôte ou l'afficher (si rien n'est précisé)
 --environnement|--env                                modifier l'environnement de l'hôte ou l'afficher (si rien n'est précisé)
 
 Exécution de linupdate (mise à jour des paquets)
 --assume-yes|--force                                 activer 'assume yes' (répondre 'yes' à chaque confirmation)
 --dist-upgrade|-du                                   activer le paramètre dist-upgrade (Debian uniquement)
 --keep-oldconf|-ko                                   lors d'une mise à jour impactant des fichiers de configurations, conserve l'ancien fichier de configuration plutôt que l'écraser (Debian uniquement)
+--exclude|-e PACKAGE                                 liste des paquets à exclure, séparés par une virgule. Indiquer "none" pour vider la liste.
+--exclude-major|-em PACKAGE                          liste des paquets à exclure en cas de mise à jour majeure, séparés par une virgule. Indiquer "none" pour vider la liste.
 --ignore-exclude|-ie                                 ignorer temporairement les exclusions de paquets configurées (met à jour tous les paquets disponibles)
 
 Modules
---list-modules|--list-mods|--list-mod|-m             lister les modules disponibles
+--list-modules|--list-mod|-m                         lister les modules disponibles
 --mod-enable|-mod-enable|-me MODULE                  activer le module spécifié
 --mod-disable|-mod-disable|-md MODULE                désactiver le module spécifié
---mod-configure|-mod-configure|-mod|-mc MODULE       configurer le module spécifié (en combinaison avec les commandes spécifiques du module, voir la documentation du module)
+--mod-configure|-mc|--mod-exec MODULE                configurer le module spécifié (en combinaison avec les commandes spécifiques du module, voir la documentation du module)
+--mod-configure MODULE --help                        afficher l'aide et les commandes du module
 
 Agent
 --agent-deploy|--deploy-agent                        déployer l'agent linupdate

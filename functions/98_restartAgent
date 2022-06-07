@@ -1,4 +1,4 @@
 #!/bin/bash
 
 systemctl restart linupdate &&
-echo -e "Agent ${YELLOW}linupdate${RESET} redémarré"
+echo -e " Agent ${YELLOW}linupdate${RESET} redémarré"

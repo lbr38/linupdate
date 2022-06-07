@@ -75,7 +75,7 @@ if [ "$IGNORE_EXCLUDE" -eq "0" ];then
 				old_IFS=$IFS # Sauvegarde du séparateur de champ (virgule) de la boucle for ci-dessus car il faudra la rétablir ensuite
 				IFS=$'\n'    # La commande egrep ci-dessous va afficher chaque occurence trouvée sur une nouvelle ligne, le séparateur est donc un saut de ligne (\n)
 				for OCCURENCE in $(egrep "^${PACKAGE} " $CHECK_UPDATE_TMP | awk '{print $1}');do # Pr chaque occurence trouvée, on vérifie s'il s'agit d'une maj majeure 
-					echo -e "${YELLOW}⚠ ${OCCURENCE} :$RESET" &&
+					echo -e "${YELLOW} ⚠ ${OCCURENCE} :$RESET" &&
 					# ici on va parser le fichier un peu différemment selon si c'est repoquery ou apt qui a généré le contenu de $CHECK_UPDATE_TMP
 					PQT_NOM=$(egrep "^${OCCURENCE} " "$CHECK_UPDATE_TMP" | awk '{print $1}') &&  # On récupère le nom exact du paquet à mettre à jour
 					PQT_VER=$(egrep "^${OCCURENCE} " "$CHECK_UPDATE_TMP" | awk '{print $2}') &&  # Et sa nouvelle version disponible
@@ -104,13 +104,13 @@ if [ "$IGNORE_EXCLUDE" -eq "0" ];then
 						echo -e "   → Version actuelle   : ${YELLOW}${PQT_VER_ACT}${RESET}" &&
 						echo -e "   → Version disponible : ${YELLOW}${PQT_VER}${RESET}" &&
 						UPDATE_EXCLUDE="$UPDATE_EXCLUDE $OCCURENCE"
-					else # tutu
+					else
 						echo -e "  Une mise à jour est disponible mais pas de version majeure pour ce paquet (Version actuelle : ${PQT_VER_ACT} / Nouvelle version : $PQT_VER)."
 					fi
 				done
 					IFS=$old_IFS # Rétablissement du séparateur de champ précédent (qui était défini comme une virgule (,) pour la boucle for précédente)
 			else
-				echo -e "${YELLOW}⚠ ${PACKAGE} :$RESET" &&
+				echo -e "${YELLOW} ⚠ ${PACKAGE} :$RESET" &&
 				echo -e "  Pas de mise à jour disponible pour ce paquet."
 			fi
 		done
@@ -159,7 +159,7 @@ if [ ! -z "$CONF_SOFT_NEED_RESTART" ];then
 			if echo "$UPDATE_EXCLUDE" | grep -q "$SERVICE";then
 				echo -e "Le paquet du service '$SERVICE' a été exclu de la mise à jour. Il est donc ignoré et son service ne sera pas redémarré en fin de traitement."
 			else
-				echo -e "Le service '$SERVICE' sera redémarré en fin de traitement."
+				#echo -e "Le service '$SERVICE' sera redémarré en fin de traitement."
 				UPDATE_SERVICE_RESTART_NEEDED="$UPDATE_SERVICE_RESTART_NEEDED $SERVICE"
 			fi
 		fi
@@ -169,8 +169,12 @@ fi
 
 echo ""
 
-if [ ! -z "$UPDATE_EXCLUDE" ];then echo -e "Les paquets suivants seront exclus : ${YELLOW}${UPDATE_EXCLUDE}${RESET}";fi
-if [ ! -z "$UPDATE_SERVICE_RESTART_NEEDED" ];then echo -e "Services qui seront redémarrés : ${YELLOW}${UPDATE_SERVICE_RESTART_NEEDED}${RESET}";fi
+if [ ! -z "$UPDATE_EXCLUDE" ];then
+	echo -e "Les paquets suivants seront exclus : ${YELLOW}${UPDATE_EXCLUDE}${RESET}"
+fi
+if [ ! -z "$UPDATE_SERVICE_RESTART_NEEDED" ];then
+	echo -e "Services qui seront redémarrés : ${YELLOW}${UPDATE_SERVICE_RESTART_NEEDED}${RESET}"
+fi
 echo -e "\n$SEP\n"
 
 if [ ! -s "$CHECK_UPDATE_TMP" ];then

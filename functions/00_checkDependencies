@@ -4,6 +4,8 @@
 CHECK_DEP=""
 CHECK_LOCALE=""
 
+echo -e " Vérification des dépendances...\n"
+
 # Dépendances Debian :
 if [ "$OS_FAMILY" == "Debian" ];then
 	# apt-transport-https

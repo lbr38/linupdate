@@ -40,11 +40,18 @@ function general_checks {
         exit 1
     fi
 
-    ## Récupération d'informations ##
+    # Récupération de l'adresse IP du serveur Repomanager
+    # Si l'information est manquante alors on attend quelque seconde avant de réessayer car le fichier de
+    # configuration cible est peut être en cours de manipulation
     REPOSERVER_IP=$(grep "^IP=" "$REPOSERVER_CONF" | sed 's/IP=//g' | sed 's/"//g')
     if [ -z "$REPOSERVER_IP" ];then
-        echo -e "[ ERREUR ] Impossible de déterminer l'adresse IP du serveur Repomanager"
-        exit 1
+        sleep 3
+
+        REPOSERVER_IP=$(grep "^IP=" "$REPOSERVER_CONF" | sed 's/IP=//g' | sed 's/"//g')
+        if [ -z "$REPOSERVER_IP" ];then
+            echo -e "[ ERREUR ] Impossible de déterminer l'adresse IP du serveur Repomanager"
+            exit 1
+        fi
     fi
 }
 

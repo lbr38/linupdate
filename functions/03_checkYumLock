@@ -1,0 +1,11 @@
+#!/bin/bash
+
+# Vérifie la présence d'un lock yum et attend pour sa libération si c'est le cas
+
+if [ -f "/var/run/yum.pid" ];then
+    echo -e "En attente de la libération du ${YELLOW}lock${RESET} de yum..."
+fi
+
+while [ -f "/var/run/yum.pid" ];do
+    sleep 2
+done

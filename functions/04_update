@@ -10,8 +10,13 @@ fi
 {
 	echo -e "\nMises à jour en cours..."
 	echo -ne "Nettoyage du cache au préalable : "
-	if [ "$OS_FAMILY" == "Redhat" ];then yum clean all -q;fi
-	if [ "$OS_FAMILY" == "Debian" ];then apt-get clean;fi
+	if [ "$OS_FAMILY" == "Redhat" ];then
+		checkYumLock
+		yum clean all -q
+	fi
+	if [ "$OS_FAMILY" == "Debian" ];then
+		apt-get clean
+	fi
 	echo -e "[$GREEN OK $RESET]"
 
 	echo -e "\nInstallation des mises à jour :"
