@@ -367,7 +367,7 @@ chmod 660 "$LOG"
 exec &> >(tee -a "$LOG")
 
 # Détection du type de virtualisation si il s'agit d'une VM
-VIRT_TYPE=$(virt-what)
+VIRT_TYPE=$(/usr/sbin/virt-what)
 if [ -z "$VIRT_TYPE" ];then
     VIRT_TYPE="Bare metal"
 fi
