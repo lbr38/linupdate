@@ -1,17 +1,20 @@
 #!/bin/bash
 # Vérification que l'espace disque restant est suffisant pour effectuer la mise à jour (au moins 1Go d'espace)
 
-echo -ne "\nEspace restant sur le serveur : "
+function spaceLeft
+{
+    echo -ne "\nEspace restant sur le serveur : "
 
-SPACE_LEFT=$(df | egrep "/$" | awk '{print $4}')
-if [ "$SPACE_LEFT" -lt 1000000 ];then
-	echo -ne "${RED}"; df -h | egrep "/$" | awk '{print $4}';	echo -ne "${RESET}"
-	(( UPDATE_ERROR++ ))
-	if [ "$MAIL_ENABLED" -eq "yes" ];then 
-		sendMail
-	fi
-	clean_exit
-	
-else
-	df -h | egrep "/$" | awk '{print $4}'
-fi
+    SPACE_LEFT=$(df | egrep "/$" | awk '{print $4}')
+    if [ "$SPACE_LEFT" -lt 1000000 ];then
+        echo -ne "${RED}"; df -h | egrep "/$" | awk '{print $4}';    echo -ne "${RESET}"
+        (( UPDATE_ERROR++ ))
+        if [ "$MAIL_ENABLED" -eq "yes" ];then 
+            sendMail
+        fi
+        clean_exit
+        
+    else
+        df -h | egrep "/$" | awk '{print $4}'
+    fi
+}

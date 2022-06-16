@@ -3,15 +3,18 @@
 # Nettoyage et fin du script
 # Mettre ici tous les fichiers ou répertoires à nettoyer avant l'arrêt du script
 
-# Nettoyage des fichiers temporaires
-rm "/opt/linupdate.maj.sh" -f
-rm "/opt/reposconf/" -rf
-rm "$LOG_REPORT_MAIL" -f
-rm "/tmp/linupdate"* -rf
-rm "/tmp/.linupdate_${PROCID}"* -rf
+function clean_exit
+{
+    # Nettoyage des fichiers temporaires
+    rm "/opt/linupdate.maj.sh" -f
+    rm "/opt/reposconf/" -rf
+    rm "$LOG_REPORT_MAIL" -f
+    rm "/tmp/linupdate"* -rf
+    rm "/tmp/.linupdate_${PROCID}"* -rf
 
-if [ "$MOD_ERROR" -gt "0" ];then
-	sendMail
-fi
+    if [ "$MOD_ERROR" -gt "0" ];then
+        sendMail
+    fi
 
-exit $ERROR_STATUS
+    exit $ERROR_STATUS
+}

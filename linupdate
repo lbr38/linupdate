@@ -310,33 +310,10 @@ selfInstall() {
 
 # Chargement des fonctions du répertoire functions
 if [ -d "$FUNCTIONS" ];then
-    selfUpdate()                { source "${FUNCTIONS}/00_selfUpdate"; }
-    enableSelfUpdate()          { source "${FUNCTIONS}/00_enableSelfUpdate"; }
-    disableSelfUpdate()         { source "${FUNCTIONS}/00_disableSelfUpdate"; }
-    configure()                 { source "${FUNCTIONS}/00_configure"; }
-    quickConfig()               { source "${FUNCTIONS}/00_quickConfig"; }
-    getConf()                   { source "${FUNCTIONS}/00_getConf"; }
-    checkDependencies()         { source "${FUNCTIONS}/00_checkDependencies"; }
-    checkVersion()              { source "${FUNCTIONS}/00_checkVersion"; }
-    getModules()                { source "${FUNCTIONS}/00_getModules"; }
-    listModules()               { source "${FUNCTIONS}/00_listModules"; }
-    spaceLeft()                 { source "${FUNCTIONS}/00_spaceLeft"; }
-    exclude()                   { source "${FUNCTIONS}/00_exclude"; }
-    loadModules()               { source "${FUNCTIONS}/01_loadModules"; }
-    execPreModules()            { source "${FUNCTIONS}/01_execPreModules"; }
-    checkPackagesBeforeUpdate() { source "${FUNCTIONS}/02_checkPackagesBeforeUpdate"; }
-    checkYumLock()              { source "${FUNCTIONS}/03_checkYumLock"; }
-    update()                    { source "${FUNCTIONS}/04_update"; }
-    delCron()                   { source "${FUNCTIONS}/05_delCron"; }
-    delCron()                   { source "${FUNCTIONS}/05_delCron"; }
-    execPostModules()           { source "${FUNCTIONS}/09_execPostModules"; }
-    sendMail()                  { source "${FUNCTIONS}/10_sendMail"; }
-    deployAgent()               { source "${FUNCTIONS}/95_deployAgent"; }
-    startAgent()                { source "${FUNCTIONS}/96_startAgent"; }
-    stopAgent()                 { source "${FUNCTIONS}/97_stopAgent"; }
-    restartAgent()              { source "${FUNCTIONS}/98_restartAgent"; }
-    enableAgent()               { source "${FUNCTIONS}/99_enableAgent"; }
-    clean_exit()                { source "${FUNCTIONS}/99_cleanExit"; }
+
+    for FUNCTION_FILE in $(ls -A1 "$FUNCTIONS");do
+        source $FUNCTIONS/$FUNCTION_FILE
+    done
 fi
 
 ## 1. Si /opt/linupdate n'existe pas alors on procède à la première installation du script
@@ -529,6 +506,10 @@ while [ $# -ge 1 ];do
             enableAgent
             clean_exit
         ;;
+        --agent-disable|--disable-agent)
+            disableAgent
+            clean_exit
+        ;;
         --enable-self-update|--enable-auto-update)
             enableSelfUpdate
             clean_exit
@@ -593,9 +574,6 @@ checkPackagesBeforeUpdate
 
 # Exécution des mises à jour
 update
-
-# Suppression de la tâche cron
-delCron
 
 # Réactivation des paquets ignorés par apt-mark
 if [ "$OS_FAMILY" == "Debian" ];then

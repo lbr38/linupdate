@@ -1,38 +1,40 @@
 #!/bin/bash
 
-SERVICE_FILE="/etc/systemd/system/linupdate.service"
-AGENT_FILE="/opt/linupdate/service/linupdate-agent"
+function deployAgent
+{
+    SERVICE_FILE="/etc/systemd/system/linupdate.service"
+    AGENT_FILE="/opt/linupdate/service/linupdate-agent"
 
-if [ ! -d "/etc/systemd/system/" ];then
-    echo -e "Le répertoire /etc/systemd/system/ n'existe pas"
-    return
-fi
+    if [ ! -d "/etc/systemd/system/" ];then
+        echo -e "Le répertoire /etc/systemd/system/ n'existe pas"
+        return
+    fi
 
-# man systemd.service
-echo "[Unit]
-Description=linupdate-agent
+    # man systemd.service
+    echo "[Unit]
+    Description=linupdate-agent
 
-[Service]
-Type=simple
-ExecStart=/opt/linupdate/service/linupdate-agent
-#CPUQuota=50%
+    [Service]
+    Type=simple
+    ExecStart=/opt/linupdate/service/linupdate-agent
+    #CPUQuota=50%
 
-[Install]
-WantedBy=multi-user.target" > "$SERVICE_FILE"
+    [Install]
+    WantedBy=multi-user.target" > "$SERVICE_FILE"
 
-systemctl daemon-reload
+    systemctl daemon-reload
 
-chmod 500 "$AGENT_FILE"
+    chmod 500 "$AGENT_FILE"
 
-echo -e "${YELLOW}Agent déployé${RESET}"
+    echo -e "${YELLOW}Agent déployé${RESET}"
 
-echo -ne "\nActiver l'agent ${YELLOW}linupdate${RESET} au démarrage du système ? (yes/no) : ";read -p "" CONFIRM
-if [ "$CONFIRM" == "yes" ];then 
-    enableAgent
-fi
+    echo -ne "\nActiver l'agent ${YELLOW}linupdate${RESET} au démarrage du système ? (yes/no) : ";read -p "" CONFIRM
+    if [ "$CONFIRM" == "yes" ];then 
+        enableAgent
+    fi
 
-echo -ne "\nDémarrer l'agent ${YELLOW}linupdate${RESET} maintenant ? (yes/no) : ";read -p "" CONFIRM
-if [ "$CONFIRM" == "yes" ];then 
-    startAgent
-fi
-
+    echo -ne "\nDémarrer l'agent ${YELLOW}linupdate${RESET} maintenant ? (yes/no) : ";read -p "" CONFIRM
+    if [ "$CONFIRM" == "yes" ];then 
+        startAgent
+    fi
+}

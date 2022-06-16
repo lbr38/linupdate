@@ -1,61 +1,62 @@
 #!/bin/bash
 # Si il s'agit de la première configuration du script
 
-echo -e "Ce programme est destiné à mettre à jour votre système de manière interactive ou automatique."
-echo -e "Un certain nombre de modules complémentaires peuvent être ajoutés afin d'apporter des fonctionnalités supplémentaires"
+function configure
+{
+    echo -e "Ce programme est destiné à mettre à jour votre système de manière interactive ou automatique."
+    echo -e "Un certain nombre de modules complémentaires peuvent être ajoutés afin d'apporter des fonctionnalités supplémentaires"
 
-echo -ne "\n${YELLOW} Souhaitez-vous commencer l'installation ? (yes/no) : $RESET"; read -p "" CONFIRM &&
-if [ "$CONFIRM" != "yes" ];then
-    clean_exit
-fi
+    echo -ne "\n${YELLOW} Souhaitez-vous commencer l'installation ? (yes/no) : $RESET"; read -p "" CONFIRM &&
+    if [ "$CONFIRM" != "yes" ];then
+        clean_exit
+    fi
 
-# Vérifications avant de commencer
-if [ -z "$OS_FAMILY" ];then   echo -e "[$YELLOW ERREUR $RESET] OS non reconnu";clean_exit;fi
-if [ -z "$PKG_MANAGER" ];then echo -e "[$YELLOW ERREUR $RESET] Gestionnaire de paquets non reconnu";clean_exit;fi
+    # Vérifications avant de commencer
+    if [ -z "$OS_FAMILY" ];then   echo -e "[$YELLOW ERREUR $RESET] OS non reconnu";clean_exit;fi
+    if [ -z "$PKG_MANAGER" ];then echo -e "[$YELLOW ERREUR $RESET] Gestionnaire de paquets non reconnu";clean_exit;fi
 
-# Configuration générale
-echo -e "\n ${YELLOW}Configuration générale\n${RESET}"
+    # Configuration générale
+    echo -e "\n ${YELLOW}Configuration générale\n${RESET}"
 
-echo -ne " Quel est le profil de ce serveur ou de cette machine (exemple : front, back, db, PC,...) : ";read -p "" PROFILE
-if [ -z "$PROFILE" ];then PROFILE="Host"; fi
+    echo -ne " Quel est le profil de ce serveur ou de cette machine (exemple : front, back, db, PC,...) : ";read -p "" PROFILE
+    if [ -z "$PROFILE" ];then PROFILE="Host"; fi
 
-echo -ne " Indiquez l'environnement de ce serveur (par defaut : prod) : ";read -p "" SERVER_ENV
-if [ -z "$SERVER_ENV" ];then SERVER_ENV="prod";fi # Si laissé vide, on met une valeur par défaut (prod)
+    echo -ne " Indiquez l'environnement de ce serveur (par defaut : prod) : ";read -p "" SERVER_ENV
+    if [ -z "$SERVER_ENV" ];then SERVER_ENV="prod";fi # Si laissé vide, on met une valeur par défaut (prod)
 
-echo -ne " Recevoir les rapports de mise à jour et d'erreurs par mail (yes/no) : ";read -p "" CONFIRM
-if [ "$CONFIRM" == "yes" ];then 
-	MAIL_ENABLED="yes"
-	echo -ne " Sur quelle adresse mail envoyer les rapports ? : ";read -p "" MAIL_RECIPIENT
-else
-	MAIL_ENABLED="no"
-fi
+    echo -ne " Recevoir les rapports de mise à jour et d'erreurs par mail (yes/no) : ";read -p "" CONFIRM
+    if [ "$CONFIRM" == "yes" ];then 
+        MAIL_ENABLED="yes"
+        echo -ne " Sur quelle adresse mail envoyer les rapports ? : ";read -p "" MAIL_RECIPIENT
+    else
+        MAIL_ENABLED="no"
+    fi
 
-echo -ne " Vérifier et installer automatiquement les mises à jour de ce script à chaque exécution (yes/no) : ";read -p "" ALLOW_SELF_UPDATE
+    echo -ne " Vérifier et installer automatiquement les mises à jour de ce script à chaque exécution (yes/no) : ";read -p "" ALLOW_SELF_UPDATE
 
-# Configuration des exclusions
-echo -ne " Indiquez les paquets à exclure en cas de mise à jour majeure (laisser vide si N/A) : ";read -p "" CONF_SOFT_EXCLUDE_MAJOR
-echo -ne " Indiquez les paquets à exclure dans tous les cas (laisser vide si N/A) : ";read -p "" CONF_SOFT_EXCLUDE
-echo -ne " Indiquez les paquets nécessitant un redémarrage de service si mis à jour (laisser vide si N/A) : ";read -p "" CONF_SOFT_NEED_RESTART
+    # Configuration des exclusions
+    echo -ne " Indiquez les paquets à exclure en cas de mise à jour majeure (laisser vide si N/A) : ";read -p "" CONF_SOFT_EXCLUDE_MAJOR
+    echo -ne " Indiquez les paquets à exclure dans tous les cas (laisser vide si N/A) : ";read -p "" CONF_SOFT_EXCLUDE
+    echo -ne " Indiquez les paquets nécessitant un redémarrage de service si mis à jour (laisser vide si N/A) : ";read -p "" CONF_SOFT_NEED_RESTART
 
-# Génération du fichier de configuration
-echo -ne "\nGénération du fichier de conf : "
-echo -e "# Fichier de conf de linupdate pour $HOSTNAME" > $CONF
-echo "[CONFIGURATION]" >> $CONF
-echo "PROFILE=\"$PROFILE\"" >> $CONF
-echo "ENV=\"$SERVER_ENV\"" >> $CONF
-echo "MAIL_ENABLED=\"$MAIL_ENABLED\"" >> $CONF
-echo "MAIL_RECIPIENT=\"$MAIL_RECIPIENT\"" >> $CONF
-echo "ALLOW_SELF_UPDATE=\"$ALLOW_SELF_UPDATE\"" >> $CONF
-echo -e "\n[SOFTWARE CONFIGURATION]" >> $CONF
-echo "EXCLUDE_MAJOR=\"$CONF_SOFT_EXCLUDE_MAJOR\"" >> $CONF
-echo "EXCLUDE=\"$CONF_SOFT_EXCLUDE\"" >> $CONF
-echo "NEED_RESTART=\"$CONF_SOFT_NEED_RESTART\"" >> $CONF
-# echo "KEEP_CRON=\"no\"" >> $CONF
-echo -e "[$GREEN OK $RESET]\n"
+    # Génération du fichier de configuration
+    echo -ne "\nGénération du fichier de conf : "
+    echo -e "# Fichier de conf de linupdate pour $HOSTNAME" > $CONF
+    echo "[CONFIGURATION]" >> $CONF
+    echo "PROFILE=\"$PROFILE\"" >> $CONF
+    echo "ENV=\"$SERVER_ENV\"" >> $CONF
+    echo "MAIL_ENABLED=\"$MAIL_ENABLED\"" >> $CONF
+    echo "MAIL_RECIPIENT=\"$MAIL_RECIPIENT\"" >> $CONF
+    echo "ALLOW_SELF_UPDATE=\"$ALLOW_SELF_UPDATE\"" >> $CONF
+    echo -e "\n[SOFTWARE CONFIGURATION]" >> $CONF
+    echo "EXCLUDE_MAJOR=\"$CONF_SOFT_EXCLUDE_MAJOR\"" >> $CONF
+    echo "EXCLUDE=\"$CONF_SOFT_EXCLUDE\"" >> $CONF
+    echo "NEED_RESTART=\"$CONF_SOFT_NEED_RESTART\"" >> $CONF
+    # echo "KEEP_CRON=\"no\"" >> $CONF
+    echo -e "[$GREEN OK $RESET]\n"
 
-echo -ne "Exécuter linupdate ? (yes/no) : ";read -p "" CONFIRM
-if [ "$CONFIRM" != "yes" ];then
-	clean_exit
-fi
-
-# + ajouter un raccourci dans bash_aliases pour appeler ce script
+    echo -ne "Exécuter linupdate ? (yes/no) : ";read -p "" CONFIRM
+    if [ "$CONFIRM" != "yes" ];then
+        clean_exit
+    fi
+}

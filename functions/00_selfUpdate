@@ -1,62 +1,64 @@
 #!/bin/bash
 
 # Vérifie si une nouvelle version de ce script est disponible sur github et l'installe
+function selfUpdate
+{
+    # Si la mise à jour automatique n'est pas activé alors on quitte la fonction
+    if [ "$ALLOW_SELF_UPDATE" != "yes" ];then
+        return
+    fi
 
-# Si la mise à jour automatique n'est pas activé alors on quitte la fonction
-if [ "$ALLOW_SELF_UPDATE" != "yes" ];then
-	return
-fi
+    VERSION_DISPO=$(curl -s "https://raw.githubusercontent.com/lbr38/linupdate/master/version")
+    if [ -z "$VERSION_DISPO" ];then
+        echo -e "Vérification des mises à jour : [$RED ERREUR $RESET] lors de la récupération du numéro de version disponible\n"
 
-VERSION_DISPO=$(curl -s "https://raw.githubusercontent.com/lbr38/linupdate/master/version")
-if [ -z "$VERSION_DISPO" ];then
-	echo -e "Vérification des mises à jour : [$RED ERREUR $RESET] lors de la récupération du numéro de version disponible\n"
+    elif [ "$VERSION" != "$VERSION_DISPO" ];then
+        echo -e "${YELLOW}Une nouvelle version est disponible : ${VERSION_DISPO}${RESET}"
+        rm /tmp/linupdate -rf
+        cd /tmp
 
-elif [ "$VERSION" != "$VERSION_DISPO" ];then
-	echo -e "${YELLOW}Une nouvelle version est disponible : ${VERSION_DISPO}${RESET}"
-	rm /tmp/linupdate -rf
-	cd /tmp
+        # Téléchargement de la nouvelle version :
+        echo -ne " → Installation de la nouvelle version : " 
+        if git clone --quiet https://github.com/lbr38/linupdate.git > /dev/null;then
+            echo -e "[$GREEN OK $RESET]"
+        else
+            echo -e "[$RED ERREUR $RESET] lors du téléchargement"
+            (( UPDATE_ERROR++ ))
+            clean_exit
+        fi
 
-	# Téléchargement de la nouvelle version :
-	echo -ne " → Installation de la nouvelle version : " 
-	if git clone --quiet https://github.com/lbr38/linupdate.git > /dev/null;then
-		echo -e "[$GREEN OK $RESET]"
-	else
-		echo -e "[$RED ERREUR $RESET] lors du téléchargement"
-		(( UPDATE_ERROR++ ))
-		clean_exit
-	fi
+        cd /tmp/linupdate
+        rsync -a --quiet --delete-after functions/ ${BASE_DIR}/functions/
+        rsync -a --quiet --delete-after mods-available/ ${BASE_DIR}/mods-available/
+        rsync -a --quiet --delete-after service/ ${BASE_DIR}/service/
+        rsync -a --quiet linupdate ${BASE_DIR}/
+        rsync -a --quiet version ${BASE_DIR}/
 
-	cd /tmp/linupdate
-	rsync -a --quiet --delete-after functions/ ${BASE_DIR}/functions/
-	rsync -a --quiet --delete-after mods-available/ ${BASE_DIR}/mods-available/
-	rsync -a --quiet --delete-after service/ ${BASE_DIR}/service/
-	rsync -a --quiet linupdate ${BASE_DIR}/
-	rsync -a --quiet version ${BASE_DIR}/
+        # Après une mise à jour de linupdate, il faut redémarrer l'agent si celui-ci est installé et démarré
+        if [ -f "/etc/systemd/system/linupdate.service" ];then
+            # Si le service est démarré, on le redémarre
+            if systemctl is-active --quiet linupdate.service;then
+                restartAgent
+            fi
+        fi
 
-	# Après une mise à jour de linupdate, il faut redémarrer l'agent si celui-ci est installé et démarré
-	if [ -f "/etc/systemd/system/linupdate.service" ];then
-		# Si le service est démarré, on le redémarre
-		if systemctl is-active --quiet linupdate.service;then
-			restartAgent
-		fi
-	fi
+        # Récupération des paramètres passés au script
+        ARGS=$(cat "/tmp/.linupdate_${PROCID}_main_params.tmp") 
+        echo -e " → Re-démarrage de linupdate avec les mêmes paramètres : $ARGS"
+        sleep 1
 
-	# Récupération des paramètres passés au script
-	ARGS=$(cat "/tmp/.linupdate_${PROCID}_main_params.tmp") 
-	echo -e " → Re-démarrage de linupdate avec les mêmes paramètres : $ARGS"
-	sleep 1
-
-	# Si il n'y a pas d'argument à passer, on reéxécute le script sans paramètre
-	if [ -z "$ARGS" ];then 
-		exec "$LINUPDATE"
-	# Si il y a eu des paramètres, on reéxécute le script avec les mêmes paramètres.
-	# Ne pas mettre $ARGS entre quotes "" sinon les paramètres vont se réexécuter comme 1 seul paramètre et ne seront pas reconnus.
-	else 
-		exec "$LINUPDATE" $ARGS
-	fi
-else
-	# Dans le cas où on a fait une demande de mise à jour seulement (paramètre --update), on affiche quand même un message pour avertir qu'aucune nouvelle version n'est disponible
-	if [ "$ONLY_UPDATE" -eq "1" ];then
-		echo -e "${YELLOW}Aucune nouvelle version n'est disponible${RESET}"
-	fi
-fi
+        # Si il n'y a pas d'argument à passer, on reéxécute le script sans paramètre
+        if [ -z "$ARGS" ];then 
+            exec "$LINUPDATE"
+        # Si il y a eu des paramètres, on reéxécute le script avec les mêmes paramètres.
+        # Ne pas mettre $ARGS entre quotes "" sinon les paramètres vont se réexécuter comme 1 seul paramètre et ne seront pas reconnus.
+        else 
+            exec "$LINUPDATE" $ARGS
+        fi
+    else
+        # Dans le cas où on a fait une demande de mise à jour seulement (paramètre --update), on affiche quand même un message pour avertir qu'aucune nouvelle version n'est disponible
+        if [ "$ONLY_UPDATE" -eq "1" ];then
+            echo -e "${YELLOW}Aucune nouvelle version n'est disponible${RESET}"
+        fi
+    fi
+}
