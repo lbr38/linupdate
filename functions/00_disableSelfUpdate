@@ -1,9 +1,12 @@
 #!/bin/bash
 
-if [ ! -f "$CONF" ];then
-    return
-fi
+function disableSelfUpdate
+{
+    if [ ! -f "$CONF" ];then
+        return
+    fi
 
-sed -i 's/ALLOW_SELF_UPDATE.*/ALLOW_SELF_UPDATE="no"/g' "$CONF" &&
+    sed -i 's/ALLOW_SELF_UPDATE.*/ALLOW_SELF_UPDATE="no"/g' "$CONF" &&
 
-echo -e "Mise à jour automatique de linupdate ${YELLOW}désactivée${RESET}"
+    echo -e "Mise à jour automatique de linupdate ${YELLOW}désactivée${RESET}"
+}

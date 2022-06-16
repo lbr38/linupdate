@@ -1,4 +1,7 @@
 #!/bin/bash
 
-systemctl enable linupdate &&
-echo -e "Agent ${YELLOW}linupdate${RESET} activé au démarrage"
+function enableAgent
+{
+    systemctl enable --quiet linupdate &&
+    echo -e "Agent ${YELLOW}linupdate${RESET} activé au démarrage"
+}

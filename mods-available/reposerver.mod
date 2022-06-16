@@ -13,6 +13,7 @@ function register
     # Au préalable, récupération des informations concernant le serveur repomanager
     # Si la configuration est incomplète alors on quitte
     getModConf
+
     if [ -z "$REPOSERVER_URL" ];then
         echo -e " [$YELLOW ERREUR $RESET] Impossible de s'enregistrer auprès du serveur Repomanager. Vous devez configurer l'url du serveur."
         ERROR_STATUS=1
@@ -26,11 +27,13 @@ function register
     # Si l'enregistrement fonctionne, on récupère un id et un token
     echo -ne " Enregistrement auprès de ${YELLOW}${REPOSERVER_URL}${RESET} : "
     REGISTER_HOSTNAME=$(hostname -f)
+
     if [ -z "$REGISTER_HOSTNAME" ];then
         echo -e "[$YELLOW ERREUR $RESET] Impossible de déterminer le nom d'hôte de cette machine"
         ERROR_STATUS=1
         clean_exit
     fi
+
     # Si on n'a pas précisé d'adresse IP à enregistrer alors on tente de récupérer l'adresse IP publique de cette machine
     if [ -z "$REGISTER_IP" ];then
         REGISTER_IP=$(curl -s -4 ifconfig.co)
@@ -735,10 +738,10 @@ function getProfileConf
 # Récupération de la configuration des repos du profil de l'hôte, auprès du serveur de repos
 function getProfileRepos
 {
-    if [ "$REPOSERVER_MANAGE_CLIENT_REPOS" == "yes" ] && [ "$REPOSERVER_ALLOW_REPOSFILES_UPDATE" == "yes" ];then
+    # Si on est autorisé à mettre à jour les fichiers de conf de repos et si le serveur de repos le gère
+    echo -ne "  → Mise à jour de la configuration des repos : "
 
-        # Si on est autorisé à mettre à jour les fichiers de conf de repos et si le serveur de repos le gère
-        echo -ne "  → Mise à jour de la configuration des repos : "
+    if [ "$REPOSERVER_MANAGE_CLIENT_REPOS" == "yes" ] && [ "$REPOSERVER_ALLOW_REPOSFILES_UPDATE" == "yes" ];then
 
         # Demande de la configuration des repos auprès du serveur de repos
         # Ce dernier renverra la configuration au format JSON
@@ -902,7 +905,7 @@ function post
         fi
 
         # On renvoie les 4 derniers historique d'évènements au serveur reposerver
-        /opt/linupdate/linupdate --mod-configure reposerver --from-agent --send-packages-status
+        /opt/linupdate/linupdate --mod-configure reposerver --from-agent --send-full-history 4
     fi
 
     return 0
@@ -1224,650 +1227,138 @@ function send_available_packages_status
     fi
 }
 
-# Fonction de parsage d'un évènement
-# Appelée par la fonction genFullHistory
-function event_parser
-{
-    if [ "$OS_FAMILY" == "Redhat" ];then
-        
-        checkYumLock
-
-        # On extrait tout le contenu de l'évènement dans un fichier
-        TMP_EVENT_FILE="/tmp/.linupdate_${PROCID}_mod_reposerver_yum_event.tmp"
-        LC_ALL="en_US.UTF-8" yum history info "$YUM_HISTORY_ID" > "$TMP_EVENT_FILE"
-        # Suppression de '**' si présent dans le fichier
-        sed -i 's/**//g' "$TMP_EVENT_FILE"
-        # Extrait la date et l'heure au format : Thu Mar 25 10:40:37 2021
-        EVENT_DATE=$(grep "^Begin time" "$TMP_EVENT_FILE" | sed 's/  //g' | sed 's/Begin time : //g')
-        # Extrait la date de la chaine précédemment récupéréé
-        DATE_START=$(date -d "$EVENT_DATE" +'%Y-%m-%d')
-        # Extrait l'heure de la chaine précédemment récupéréé
-        TIME_START=$(date -d "$EVENT_DATE" +'%H:%M:%S')
-        #DATE_END=$(echo "$EVENT" | grep "^End-Date:" | awk '{print $2}')
-        #TIME_END=$(echo "$EVENT" | grep "^End-Date:" | awk '{print $3}')
-
-        # On reformate le fichier temporaire pour être sûr de ne garder que les paquets traités
-        sed -i -n '/Packages Altered/,$p' "$TMP_EVENT_FILE"
-
-        # On peut également récupérer la liste des paquets installés, mis à jour jour, supprimés...
-        PACKAGES_INSTALLED_LIST=$(cat "$TMP_EVENT_FILE" | egrep "^ +Install " | grep -Ev "Dep-Install|Installed|Installing" | awk '{print $2}')
-        DEPENDENCIES_INSTALLED_LIST=$(cat "$TMP_EVENT_FILE" | egrep "^ +Dep-Install " | grep -Ev "Installed|Installing" | awk '{print $2}')
-        #PACKAGES_UPGRADED_LIST=$(cat "$TMP_EVENT_FILE" | egrep "^ +Updated |^ +Update |^ +Obsoleting" | grep -v "Installing" | awk '{print $2}')
-        PACKAGES_UPGRADED_LIST=$(cat "$TMP_EVENT_FILE" | egrep "^ +Updated |^ +Update |^ +Obsoleting" | grep -v "Installing")
-        PACKAGES_REMOVED_LIST=$(cat "$TMP_EVENT_FILE" | egrep "^ +Erase " | awk '{print $2}')
-        PACKAGES_DOWNGRADED_LIST=$(cat "$TMP_EVENT_FILE" | egrep "^ +Downgrade " | awk '{print $2}')
-        PACKAGES_REINSTALLED_LIST=$(cat "$TMP_EVENT_FILE" | egrep "^ +Reinstall " | awk '{print $2}')
-    fi
-
-    if [ "$OS_FAMILY" == "Debian" ];then
-        # On récupère tout le bloc de l'évènement en cours : à partir de la date de début (START_DATE) et jusqu'à rencontrer un saut de ligne
-        # Si le fichier est compréssé, on doit utiliser zcat pour le lire
-        if echo "$LOG" | egrep -q ".gz";then
-            EVENT=$(zcat "$LOG" | sed -n "/$START_DATE/,/^$/p")
-        # Si le fichier n'est pas compréssé on peut utiliser sed directement
-        else
-            EVENT=$(sed -n "/$START_DATE/,/^$/p" "$LOG")
-        fi
-
-        # A partir du bloc de l'évènement récupéré, on peut récupérer la date et l'heure de début et la date et l'heure de fin
-        DATE_START=$(echo "$EVENT" | grep "^Start-Date:" | awk '{print $2}')
-        TIME_START=$(echo "$EVENT" | grep "^Start-Date:" | awk '{print $3}')
-        DATE_END=$(echo "$EVENT" | grep "^End-Date:" | awk '{print $2}')
-        TIME_END=$(echo "$EVENT" | grep "^End-Date:" | awk '{print $3}')
-        # On peut également récupérer la liste des paquets installés, mis à jour jour, supprimés...
-        PACKAGES_INSTALLED_LIST=$(echo "$EVENT" | grep "^Install:" | sed 's/Install: //g')
-        PACKAGES_UPGRADED_LIST=$(echo "$EVENT" | grep "^Upgrade:" | sed 's/Upgrade: //g')
-        PACKAGES_REMOVED_LIST=$(echo "$EVENT" | grep "^Remove:" | sed 's/Remove: //g')
-        PACKAGES_PURGED_LIST="$(echo "$EVENT" | grep "^Purge:" | sed 's/Purge: //g')"
-        PACKAGES_DOWNGRADED_LIST=$(echo "$EVENT" | grep "^Downgrade:" | sed 's/Downgrade: //g')
-        PACKAGES_REINSTALLED_LIST="$(echo "$EVENT" | grep "^Reinstall:" | sed 's/Reinstall: //g')"
-    fi
-
-    rm "$TMP_EVENT_FILE" -f
-}
-
-# Fonction de parsage de multiples évènements ayant lieu à la même date et heure
-# Debian (apt) uniquement
-function multiple_event_parser
-{
-    # Si le fichier temporaire est vide alors on ne traite pas
-    if [ ! -s "$MULTIPLE_EVENTS_TMP" ];then
-        return
-    fi
-
-    # Sur les multiples dates et heures affichées dans le fichier, on n'en garde qu'une seule
-    DATE_START=$(grep "^Start-Date:" "$MULTIPLE_EVENTS_TMP" | awk '{print $2}' | head -n1)
-    TIME_START=$(grep "^Start-Date:" "$MULTIPLE_EVENTS_TMP" | awk '{print $3}' | head -n1)
-    DATE_END=$(grep "^End-Date:" "$MULTIPLE_EVENTS_TMP" | awk '{print $2}' | tail -n1)
-    TIME_END=$(grep "^End-Date:" "$MULTIPLE_EVENTS_TMP" | awk '{print $3}' | tail -n1)
-
-    # On traite tous les Install qu'il y a eu à ces évènements communs
-    if grep -q "^Install:" "$MULTIPLE_EVENTS_TMP";then
-        for OCCURENCE in $(grep "^Install:" "$MULTIPLE_EVENTS_TMP");do
-            PACKAGES_INSTALLED_LIST+=$(echo "$OCCURENCE" | sed 's/Install: //g')", "
-        done
-        # Suppression de la dernière virgule :
-        PACKAGES_INSTALLED_LIST=$(echo "${PACKAGES_INSTALLED_LIST::-2}")
-    fi
-
-    # On traite tous les Upgrade qu'il y a eu à ces évènements communs
-    if grep -q "^Upgrade:" "$MULTIPLE_EVENTS_TMP";then
-        for OCCURENCE in $(grep "^Upgrade:" "$MULTIPLE_EVENTS_TMP");do
-            PACKAGES_UPGRADED_LIST+=$(echo "$OCCURENCE" | sed 's/Upgrade: //g')", "
-        done
-        # Suppression de la dernière virgule :
-        PACKAGES_UPGRADED_LIST=$(echo "${PACKAGES_UPGRADED_LIST::-2}")
-    fi
-
-    # On traite tous les Remove qu'il y a eu à ces évènements communs
-    if grep -q "^Remove:" "$MULTIPLE_EVENTS_TMP";then
-        for OCCURENCE in $(grep "^Remove:" "$MULTIPLE_EVENTS_TMP");do
-            PACKAGES_REMOVED_LIST+=$(echo "$OCCURENCE" | sed 's/Remove: //g')", "
-        done
-        # Suppression de la dernière virgule :
-        PACKAGES_REMOVED_LIST=$(echo "${PACKAGES_REMOVED_LIST::-2}")
-    fi
-
-    # On traite tous les Purge qu'il y a eu à ces évènements communs
-    if grep -q "^Purge:" "$MULTIPLE_EVENTS_TMP";then
-        for OCCURENCE in $(grep "^Purge:" "$MULTIPLE_EVENTS_TMP");do
-            PACKAGES_PURGED_LIST+=$(echo "$OCCURENCE" | sed 's/Purge: //g')", "
-        done
-        # Suppression de la dernière virgule :
-        PACKAGES_PURGED_LIST=$(echo "${PACKAGES_PURGED_LIST::-2}")
-    fi
-
-    # On traite tous les Downgrade qu'il y a eu à ces évènements communs
-    if grep -q "^Downgrade:" "$MULTIPLE_EVENTS_TMP";then
-        for OCCURENCE in $(grep "^Downgrade:" "$MULTIPLE_EVENTS_TMP");do
-            PACKAGES_DOWNGRADED_LIST+=$(echo "$OCCURENCE" | sed 's/Downgrade: //g')", "
-        done
-        # Suppression de la dernière virgule :
-        PACKAGES_DOWNGRADED_LIST=$(echo "${PACKAGES_DOWNGRADED_LIST::-2}")
-    fi
-
-    # On traite tous les Reinstall qu'il y a eu à ces évènements communs
-    if grep -q "^Reinstall:" "$MULTIPLE_EVENTS_TMP";then
-        for OCCURENCE in $(grep "^Reinstall:" "$MULTIPLE_EVENTS_TMP");do
-            PACKAGES_REINSTALLED_LIST+=$(echo "$OCCURENCE" | sed 's/Reinstall: //g')", "
-        done
-        # Suppression de la dernière virgule :
-        PACKAGES_REINSTALLED_LIST=$(echo "${PACKAGES_REINSTALLED_LIST::-2}")
-    fi
-}
-
 # Envoi au serveur repomanager l'historique des opérations effectuées sur les paquets (installation, mises à jour, suppression...)
 # Se base sur les historiques de yum et d'apt
-function genFullHistory {
-# Contiendra la liste de tous les évènements
-EVENTS=""
-IGNORE_EVENT=""
-
-UPDATE_REQUEST_TYPE="full-history-update"
-UPDATE_REQUEST_STATUS="running"
-update_request_status
-
-# Le paramètre SEND_FULL_HISTORY_LIMIT défini le nb maximum d'évènements à envoyer, cela permet d'éviter d'envoyer inutilement l'historique complet du serveur dans certains cas.
-# Si ce paramètre est laissé vide alors il n'y a aucune limite, on le set à 99999999.
-if [ -z "$SEND_FULL_HISTORY_LIMIT" ];then
-    SEND_FULL_HISTORY_LIMIT="99999999"
-fi
-# On initialise une variable à 0 qui sera incrémentée jusqu'à atteindre la limite SEND_FULL_HISTORY_LIMIT.
-HISTORY_LIMIT_COUNTER="0"
-
-TMP_FILE="/tmp/.linupdate_${PROCID}_mod_reposerver_events_history.json"
-
-# Préparation d'un fichier JSON dans lequel il restera à insérer chaque évènement (1 évènement = une date+heure trouvée dans le fichier de log)
-cat <<EOF > /tmp/.linupdate_${PROCID}_mod_reposerver_events_history.json
+function genFullHistory
 {
-    "id" : "$HOST_ID",
-    "token" : "$TOKEN",
-    "events" : [
-        __INSERT_EVENTS__        
-    ]
-}
-EOF
+    # Contiendra la liste de tous les évènements
+    EVENTS_JSON=""
+    IGNORE_EVENT=""
 
-OLD_IFS=$IFS
+    UPDATE_REQUEST_TYPE="full-history-update"
+    UPDATE_REQUEST_STATUS="running"
+    update_request_status
 
-if [ "$OS_FAMILY" == "Redhat" ];then
-    echo "Construction de l'historique des évènements yum..."
+    # Le paramètre SEND_FULL_HISTORY_LIMIT défini le nb maximum d'évènements à envoyer, cela permet 
+    # d'éviter d'envoyer inutilement l'historique complet du serveur dans certains cas.
+    # Si ce paramètre est laissé vide alors il n'y a aucune limite, on le set par défaut à 99999999.
+    if [ -z "$SEND_FULL_HISTORY_LIMIT" ];then
+        SEND_FULL_HISTORY_LIMIT="99999999"
+        # Dans le cas où on n'a pas précisé de limite alors il faudra traiter les évènements à partir du plus ancien au plus récent
+        HISTORY_START="oldest"
+    else
+        # Dans le cas où on a précisé une limite alors il faudra traiter les évènements à partir du plus récent au plus ancien
+        HISTORY_START="newest"
+    fi
+    # On initialise une variable à 0 qui sera incrémentée jusqu'à atteindre la limite SEND_FULL_HISTORY_LIMIT.
+    HISTORY_LIMIT_COUNTER="0"
 
-    checkYumLock
+    # Fichier JSON final qui sera envoyé au serveur Repomanager
+    JSON_FILE="/tmp/.linupdate_${PROCID}_mod_reposerver_events_history.json"
 
-    # Récupération de tous les ID d'évènements dans la base de données de yum
-    YUM_HISTORY_IDS=$(yum history list all | tail -n +4 | awk '{print $1}' | grep -v "history" | tac)
+    OLD_IFS=$IFS
 
-    # Pour chaque évènement on peut récupérer la date et l'heure de début et la date et l'heure de fin
-    for YUM_HISTORY_ID in $(echo "$YUM_HISTORY_IDS");do
-        # On sort de la boucle si on a atteint la limite d'évènement à envoyer fixée par l'utilisateur
-        if [ "$HISTORY_LIMIT_COUNTER" == "$SEND_FULL_HISTORY_LIMIT" ];then
-            break
+    if [ "$OS_FAMILY" == "Redhat" ];then
+        echo "Construction de l'historique des évènements yum..."
+
+        checkYumLock
+
+        # Récupération de tous les ID d'évènements dans la base de données de yum
+        if [ "$HISTORY_START" == "newest" ];then
+            YUM_HISTORY_IDS=$(yum history list all | tail -n +4 | awk '{print $1}' | grep -v "history")
+        fi
+        if [ "$HISTORY_START" == "oldest" ];then
+            YUM_HISTORY_IDS=$(yum history list all | tail -n +4 | awk '{print $1}' | grep -v "history" | tac)
         fi
 
-        PACKAGES_INSTALLED_LIST=""
-        DEPENDENCIES_INSTALLED_LIST=""
-        PACKAGES_UPGRADED_LIST=""
-        PACKAGES_REMOVED_LIST=""
-        PACKAGES_DOWNGRADED_LIST=""
-        PACKAGES_REINSTALLED_LIST=""
-
-        PACKAGES_INSTALLED=""
-        DEPENDENCIES_INSTALLED=""
-        PACKAGES_UPGRADED=""
-        PACKAGES_REMOVED=""
-        PACKAGES_DOWNGRADED=""
-        PACKAGES_REINSTALLED=""
-
-        event_parser
-
-        # Traitement de la liste des paquets installés à cette date et heure
-        if [ ! -z "$PACKAGES_INSTALLED_LIST" ];then
-            for LINE in $(echo "$PACKAGES_INSTALLED_LIST");do
-                PACKAGE_NAME=$(echo "$LINE" | sed 's/-[0-9].*//g')
-                PACKAGE_VERSION=$(echo "$LINE" | sed "s/$PACKAGE_NAME//g" | sed 's/^-//g')
-                PACKAGES_INSTALLED+="{\"name\":\"${PACKAGE_NAME}\",\"version\":\"${PACKAGE_VERSION}\"},"
-            done
-
-            # Suppression de la dernière virgule :
-            PACKAGES_INSTALLED=$(echo "${PACKAGES_INSTALLED::-1}")
-            # Création de l'array contenant les paquets installés, au format JSON
-            PACKAGES_INSTALLED="\"installed\":[$PACKAGES_INSTALLED],"
-        fi
-
-        # Traitement de la liste des dépendances installées à cette date et heure
-        if [ ! -z "$DEPENDENCIES_INSTALLED_LIST" ];then
-            for LINE in $(echo "$DEPENDENCIES_INSTALLED_LIST");do
-                PACKAGE_NAME=$(echo "$LINE" | sed 's/-[0-9].*//g')
-                PACKAGE_VERSION=$(echo "$LINE" | sed "s/$PACKAGE_NAME//g" | sed 's/^-//g')
-                DEPENDENCIES_INSTALLED+="{\"name\":\"${PACKAGE_NAME}\",\"version\":\"${PACKAGE_VERSION}\"},"
-            done
-
-            # Suppression de la dernière virgule :
-            DEPENDENCIES_INSTALLED=$(echo "${DEPENDENCIES_INSTALLED::-1}")
-            # Création de l'array contenant les paquets installés, au format JSON
-            DEPENDENCIES_INSTALLED="\"dep_installed\":[$DEPENDENCIES_INSTALLED],"
-        fi
-
-        # Traitement de la liste des paquets mis à jour à cette date et heure
-        if [ ! -z "$PACKAGES_UPGRADED_LIST" ];then
-            for LINE in $(echo "$PACKAGES_UPGRADED_LIST");do
-                # Suppression de "@/" si il apparait dans la ligne, car provoque des problèmes dans le parsage
-                # Cela signifie que le paquet ne provient pas d'un repo mais a probablement été installé à la main avec rpm
-                LINE=$(echo "$LINE" | sed 's#@/##g')
-
-                # Dans le cas d'une mise à jour, le numéro de version installé se trouve sur la ligne en dessous du paquet mis à jour, ex :
-                # netdata-1.29.3-1.el7.x86_64 @epel
-                #         1.33.1-1.el7.x86_64 @epel
-                # Du coup si la ligne en cours de traitement commence par un chiffre alors on ne la traite pas directement (il s'agit de la seconde ligne contenant la version)
-                #if echo "$LINE" | grep -q "^[0-9]";then
-                if echo "$LINE" | awk '{print $2}' | grep -q "^[0-9]";then
-                    continue
-                fi
-
-                # Si la ligne contient 'Obsoleting' alors on passe à la suivante
-                if echo "$LINE" | egrep -q "^ +Obsoleting";then
-                    continue
-                fi
-
-                # Si la ligne contient 'Obsoleted' alors on passe à la suivante
-                if echo "$LINE" | egrep -q "^ +Obsoleted";then
-                    continue
-                fi
-
-                #PACKAGE_NAME=$(echo "$LINE" | sed 's/-[0-9].*//g')
-                PACKAGE_NAME=$(echo "$LINE" | awk '{print $2}' | sed 's/-[0-9].*//g')
-                # Pour rappel, le numéro de version installé se trouve sur la ligne qui suit le nom du paquet, sauf si cette 
-                # deuxieme ligne contient 'Obsoleting', dans ce cas là il faut faire un parsage supplémentaire pour retirer le 
-                # terme 'Obsoleting' et le nom du paquet
-                if echo "$PACKAGES_UPGRADED_LIST" | sed  -n "/^${LINE}/{n;p}" | egrep -q "^ +Obsoleting";then
-                    PACKAGE_VERSION=$(echo "$PACKAGES_UPGRADED_LIST" | sed  -n "/^${LINE}/{n;p}" | awk '{print $2}' | sed 's/ //g' | sed "s/${PACKAGE_NAME}-//g")
-                else
-                    PACKAGE_VERSION=$(echo "$PACKAGES_UPGRADED_LIST" | sed  -n "/^${LINE}/{n;p}" | awk '{print $2}')
-                fi
-                PACKAGES_UPGRADED+="{\"name\":\"${PACKAGE_NAME}\",\"version\":\"${PACKAGE_VERSION}\"},"
-            done
-
-            if [ ! -z "$PACKAGES_UPGRADED" ];then
-                # Suppression de la dernière virgule :
-                PACKAGES_UPGRADED=$(echo "${PACKAGES_UPGRADED::-1}")
-                # Création de l'array contenant les paquets mis à jour, au format JSON
-                PACKAGES_UPGRADED="\"upgraded\":[$PACKAGES_UPGRADED],"
-            fi
-        fi
-
-        # Traitement de la liste des paquets supprimés à cette date et heure
-        if [ ! -z "$PACKAGES_REMOVED_LIST" ];then
-            for LINE in $(echo "$PACKAGES_REMOVED_LIST");do
-                PACKAGE_NAME=$(echo "$LINE" | sed 's/-[0-9].*//g')
-                PACKAGE_VERSION=$(echo "$LINE" | sed "s/$PACKAGE_NAME//g" | sed 's/^-//g')
-                PACKAGES_REMOVED+="{\"name\":\"${PACKAGE_NAME}\",\"version\":\"${PACKAGE_VERSION}\"},"
-            done
-
-            # Suppression de la dernière virgule :
-            PACKAGES_REMOVED=$(echo "${PACKAGES_REMOVED::-1}")
-            # Création de l'array contenant les paquets supprimés, au format JSON
-            PACKAGES_REMOVED="\"removed\":[$PACKAGES_REMOVED],"
-        fi
-
-        # Traitement de la liste des paquets rétrogradés à cette date et heure
-        if [ ! -z "$PACKAGES_DOWNGRADED_LIST" ];then
-            for LINE in $(echo "$PACKAGES_DOWNGRADED_LIST");do
-                PACKAGE_NAME=$(echo "$LINE" | sed 's/-[0-9].*//g')
-                PACKAGE_VERSION=$(echo "$LINE" | sed "s/$PACKAGE_NAME//g" | sed 's/^-//g')
-                PACKAGES_DOWNGRADED+="{\"name\":\"${PACKAGE_NAME}\",\"version\":\"${PACKAGE_VERSION}\"},"
-            done
-
-            # Suppression de la dernière virgule :
-            PACKAGES_DOWNGRADED=$(echo "${PACKAGES_DOWNGRADED::-1}")
-            # Création de l'array contenant les paquets rétrogradés, au format JSON
-            PACKAGES_DOWNGRADED="\"downgraded\":[$PACKAGES_DOWNGRADED],"
-        fi
-
-        # Traitement de la liste des paquets réinstallés à cette date et heure
-        if [ ! -z "$PACKAGES_REINSTALLED_LIST" ];then
-            for LINE in $(echo "$PACKAGES_REINSTALLED_LIST");do
-                PACKAGE_NAME=$(echo "$LINE" | sed 's/-[0-9].*//g')
-                PACKAGE_VERSION=$(echo "$LINE" | sed "s/$PACKAGE_NAME//g" | sed 's/^-//g')
-                PACKAGES_REINSTALLED+="{\"name\":\"${PACKAGE_NAME}\",\"version\":\"${PACKAGE_VERSION}\"},"
-            done
-
-            # Suppression de la dernière virgule :
-            PACKAGES_REINSTALLED=$(echo "${PACKAGES_REINSTALLED::-1}")
-            # Création de l'array contenant les paquets rétrogradés, au format JSON
-            PACKAGES_REINSTALLED="\"reinstalled\":[$PACKAGES_REINSTALLED],"
-        fi
-
-        # Construction de l'évènement au format JSON :
-        # D'abord on renseigne la date et l'heure de début / fin
-        JSON="{\"date_start\":\"$DATE_START\",\"date_end\":\"$DATE_END\",\"time_start\":\"$TIME_START\",\"time_end\":\"$TIME_END\","
-
-        # Puis on ajoute les paquets installés si il y en a eu
-        if [ ! -z "$PACKAGES_INSTALLED" ];then
-            JSON+="$PACKAGES_INSTALLED"
-        fi
-
-        # Puis on ajoute les dépendances installées si il y en a eu
-        if [ ! -z "$DEPENDENCIES_INSTALLED" ];then
-            JSON+="$DEPENDENCIES_INSTALLED"
-        fi
-
-        # Puis on ajoute les paquets mis à jour si il y en a eu
-        if [ ! -z "$PACKAGES_UPGRADED" ];then
-            JSON+="$PACKAGES_UPGRADED"
-        fi
-        # Puis on ajoute les paquets supprimés si il y en a eu
-        if [ ! -z "$PACKAGES_REMOVED" ];then
-            JSON+="$PACKAGES_REMOVED"
-        fi
-        # Puis on ajoute les paquets rétrogradés si il y en a eu
-        if [ ! -z "$PACKAGES_DOWNGRADED" ];then
-            JSON+="$PACKAGES_DOWNGRADED"
-        fi
-        # Puis on ajoute les paquets réinstallés si il y en a eu
-        if [ ! -z "$PACKAGES_REINSTALLED" ];then
-            JSON+="$PACKAGES_REINSTALLED"
-        fi
-
-        # Suppression de la dernière virgule après le dernier array ajouté ( ], <= ici)
-        JSON=$(echo "${JSON::-1}")
-        # Fermeture de l'évènement en cours avant de passer au suivant (début de la boucle FOR)
-        JSON+="},"
-        # On ajoute l'évènement en cours à la liste des tous les évènements, avant de passer au suivant
-        EVENTS+="$JSON"
-
-        (( HISTORY_LIMIT_COUNTER++ ))
-    done
-fi
-
-# Cas Debian
-if [ "$OS_FAMILY" == "Debian" ];then
-    echo "Construction de l'historique des évènements apt..."
-
-    # On va traiter tous les fichiers d'historique d'apt, même ceux compréssés
-    for LOG in $(ls -t1 /var/log/apt/history.log* | tac);do
-        IFS=$'\n'
-
-        # On traite chaque évènement trouvé dans le fichier de LOG
-        for START_DATE in $(zgrep "^Start-Date:*" "$LOG");do
+        # Pour chaque évènement on peut récupérer la date et l'heure de début et la date et l'heure de fin
+        for YUM_HISTORY_ID in $(echo "$YUM_HISTORY_IDS");do
             # On sort de la boucle si on a atteint la limite d'évènement à envoyer fixée par l'utilisateur
             if [ "$HISTORY_LIMIT_COUNTER" == "$SEND_FULL_HISTORY_LIMIT" ];then
                 break
             fi
-            # On passe à l'évènement suivant si l'évènement en cours doit être ignoré
-            if [ ! -z "$IGNORE_EVENT" ] && [ "$IGNORE_EVENT" == "$START_DATE" ];then
-                continue
-            fi
 
-            PACKAGES_INSTALLED_LIST=""
-            PACKAGES_UPGRADED_LIST=""
-            PACKAGES_REMOVED_LIST=""
-            PACKAGES_PURGED_LIST=""
-            PACKAGES_DOWNGRADED_LIST=""
-            PACKAGES_REINSTALLED_LIST=""
+            # Parsage de l'évènement
+            yumHistoryParser
 
-            PACKAGES_INSTALLED=""
-            PACKAGES_UPGRADED=""
-            PACKAGES_REMOVED=""
-            PACKAGES_PURGED=""
-            PACKAGES_DOWNGRADED=""
-            PACKAGES_REINSTALLED=""
+            if [ ! -z "$YUM_HISTORY_PARSER_RETURN" ];then
+                # Récupération du retour de la fonction yumHistoryParser
+                EVENTS_JSON+="$YUM_HISTORY_PARSER_RETURN"
 
-            # Avant de commencer à parser, on vérifie qu'il n'y a pas eu plusieurs évènements exactement à la même date et à la même heure
-            COUNT_EVENT=$(zgrep "$START_DATE" "$LOG" | wc -l)
-            # Si il y a plusieurs évènements, on récupère leur contenu complet dans un fichier temporaire
-            if [ "$COUNT_EVENT" -gt "1" ];then
-                # echo "Plusieurs évènements pour : $START_DATE"
-                # continue
-                MULTIPLE_EVENTS_TMP="/tmp/.linupdate_${PROCID}_mod_reposerver_multiple_events_history.tmp"
-
-                # Si le fichier de log est compréssé, on doit utiliser zcat pour le lire
-                if echo "$LOG" | egrep -q ".gz";then
-                    zcat "$LOG" | sed -n "/$START_DATE/,/^$/p" > "$MULTIPLE_EVENTS_TMP"
-                # Si le fichier n'est pas compréssé on peut utiliser sed directement
-                else
-                    sed -n "/$START_DATE/,/^$/p" "$LOG" > "$MULTIPLE_EVENTS_TMP"
-                fi
-
-                # On traite tous les évènements à la même date avec la fonction suivante
-                multiple_event_parser
-
-                # Enfin comme on a traité plusieurs mêmes évènements du fichier de log, on ignore tous les prochaines évènements qui seraient à la même date (pour ne pas qu'ils soient traités deux fois)
-                IGNORE_EVENT="$START_DATE"
-            else
-                event_parser
-            fi
-
-            # Traitement de la liste des paquets installés à cette date et heure
-            if [ ! -z "$PACKAGES_INSTALLED_LIST" ];then
-                for LINE in $(echo "$PACKAGES_INSTALLED_LIST");do
-
-                    # Si plusieurs paquets sur la même ligne
-                    if echo "$LINE" | grep -q "), ";then
-                        LINE=$(echo "$LINE" | sed 's/), /\n/g')
-                        for FORMATTED_LINE in $(echo "$LINE");do
-                            PACKAGE_NAME=$(echo "$FORMATTED_LINE" | awk '{print $1}' | sed 's/,//g' | sed 's/(//g' | sed 's/)//g' | sed 's/ //g' | sed 's/:amd64//g' | sed 's/:i386//g' | sed 's/:armhf//g')
-                            PACKAGE_VERSION=$(echo "$FORMATTED_LINE" | awk '{print $2}' | sed 's/,//g' | sed 's/(//g' | sed 's/)//g' | sed 's/ //g')
-                            PACKAGES_INSTALLED+="{\"name\":\"${PACKAGE_NAME}\",\"version\":\"${PACKAGE_VERSION}\"},"
-                        done
-                    else
-                        PACKAGE_NAME=$(echo "$LINE" | awk '{print $1}' | sed 's/,//g' | sed 's/(//g' | sed 's/)//g' | sed 's/ //g' | sed 's/:amd64//g' | sed 's/:i386//g' | sed 's/:armhf//g')
-                        PACKAGE_VERSION=$(echo "$LINE" | awk '{print $2}' | sed 's/,//g' | sed 's/(//g' | sed 's/)//g' | sed 's/ //g')
-                        PACKAGES_INSTALLED+="{\"name\":\"${PACKAGE_NAME}\",\"version\":\"${PACKAGE_VERSION}\"},"
-                    fi
-                done
-
-                # Suppression de la dernière virgule :
-                PACKAGES_INSTALLED=$(echo "${PACKAGES_INSTALLED::-1}")
-
-                # Création de l'array contenant les paquets installés, au format JSON
-                PACKAGES_INSTALLED="\"installed\":[$PACKAGES_INSTALLED],"
-            fi
-
-            # Traitement de la liste des paquets mis à jour à cette date et heure
-            if [ ! -z "$PACKAGES_UPGRADED_LIST" ];then
-                for LINE in $(echo "$PACKAGES_UPGRADED_LIST");do
-
-                    # Si plusieurs paquets sur la même ligne
-                    if echo "$LINE" | grep -q "), ";then
-                        LINE=$(echo "$LINE" | sed 's/), /\n/g')
-                        for FORMATTED_LINE in $(echo "$LINE");do
-                            PACKAGE_NAME=$(echo "$FORMATTED_LINE" | awk '{print $1}' | sed 's/,//g' | sed 's/(//g' | sed 's/)//g' | sed 's/ //g' | sed 's/:amd64//g' | sed 's/:i386//g' | sed 's/:armhf//g')
-                            PACKAGE_VERSION=$(echo "$FORMATTED_LINE" | awk '{print $3}' | sed 's/,//g' | sed 's/(//g' | sed 's/)//g' | sed 's/ //g')
-                            PACKAGES_UPGRADED+="{\"name\":\"${PACKAGE_NAME}\",\"version\":\"${PACKAGE_VERSION}\"},"
-                        done
-                    else
-                        PACKAGE_NAME=$(echo "$LINE" | awk '{print $1}' | sed 's/,//g' | sed 's/(//g' | sed 's/)//g' | sed 's/ //g' | sed 's/:amd64//g' | sed 's/:i386//g' | sed 's/:armhf//g')
-                        PACKAGE_VERSION=$(echo "$LINE" | awk '{print $3}' | sed 's/,//g' | sed 's/(//g' | sed 's/)//g' | sed 's/ //g')
-                        PACKAGES_UPGRADED+="{\"name\":\"${PACKAGE_NAME}\",\"version\":\"${PACKAGE_VERSION}\"},"
-                    fi
-                done
-
-                # Suppression de la dernière virgule :
-                PACKAGES_UPGRADED=$(echo "${PACKAGES_UPGRADED::-1}")
-
-                # Création de l'array contenant les paquets mis à jour, au format JSON
-                PACKAGES_UPGRADED="\"upgraded\":[$PACKAGES_UPGRADED],"
-            fi
-
-            # Traitement de la liste des paquets supprimés à cette date et heure
-            if [ ! -z "$PACKAGES_REMOVED_LIST" ];then
-                for LINE in $(echo "$PACKAGES_REMOVED_LIST");do
-
-                    # Si plusieurs paquets sur la même ligne
-                    if echo "$LINE" | grep -q "), ";then
-                        LINE=$(echo "$LINE" | sed 's/), /\n/g')
-                        for FORMATTED_LINE in $(echo "$LINE");do
-                            PACKAGE_NAME=$(echo "$FORMATTED_LINE" | awk '{print $1}' | sed 's/,//g' | sed 's/(//g' | sed 's/)//g' | sed 's/ //g' | sed 's/:amd64//g' | sed 's/:i386//g' | sed 's/:armhf//g')
-                            PACKAGE_VERSION=$(echo "$FORMATTED_LINE" | awk '{print $2}' | sed 's/,//g' | sed 's/(//g' | sed 's/)//g' | sed 's/ //g')
-                            PACKAGES_REMOVED+="{\"name\":\"${PACKAGE_NAME}\",\"version\":\"${PACKAGE_VERSION}\"},"
-                        done
-                    else
-                        PACKAGE_NAME=$(echo "$LINE" | awk '{print $1}' | sed 's/,//g' | sed 's/(//g' | sed 's/)//g' | sed 's/ //g' | sed 's/:amd64//g' | sed 's/:i386//g' | sed 's/:armhf//g')
-                        PACKAGE_VERSION=$(echo "$LINE" | awk '{print $2}' | sed 's/,//g' | sed 's/(//g' | sed 's/)//g' | sed 's/ //g')
-                        PACKAGES_REMOVED+="{\"name\":\"${PACKAGE_NAME}\",\"version\":\"${PACKAGE_VERSION}\"},"
-                    fi
-                done
-
-                # Suppression de la dernière virgule :
-                PACKAGES_REMOVED=$(echo "${PACKAGES_REMOVED::-1}")
-
-                # Création de l'array contenant les paquets supprimés, au format JSON
-                PACKAGES_REMOVED="\"removed\":[$PACKAGES_REMOVED],"
-            fi
-
-            # Traitement de la liste des paquets purgés à cette date et heure
-            if [ ! -z "$PACKAGES_PURGED_LIST" ];then
-                for LINE in $(echo "$PACKAGES_PURGED_LIST");do
-
-                    # Si plusieurs paquets sur la même ligne
-                    if echo "$LINE" | grep -q "), ";then
-                        LINE=$(echo "$LINE" | sed 's/), /\n/g')
-                        for FORMATTED_LINE in $(echo "$LINE");do
-                            PACKAGE_NAME=$(echo "$FORMATTED_LINE" | awk '{print $1}' | sed 's/,//g' | sed 's/(//g' | sed 's/)//g' | sed 's/ //g' | sed 's/:amd64//g' | sed 's/:i386//g' | sed 's/:armhf//g')
-                            PACKAGE_VERSION=$(echo "$FORMATTED_LINE" | awk '{print $2}' | sed 's/,//g' | sed 's/(//g' | sed 's/)//g' | sed 's/ //g')
-                            PACKAGES_PURGED+="{\"name\":\"${PACKAGE_NAME}\",\"version\":\"${PACKAGE_VERSION}\"},"
-                        done
-                    else
-                        PACKAGE_NAME=$(echo "$LINE" | awk '{print $1}' | sed 's/,//g' | sed 's/(//g' | sed 's/)//g' | sed 's/ //g' | sed 's/:amd64//g' | sed 's/:i386//g' | sed 's/:armhf//g')
-                        PACKAGE_VERSION=$(echo "$LINE" | awk '{print $2}' | sed 's/,//g' | sed 's/(//g' | sed 's/)//g' | sed 's/ //g')
-                        PACKAGES_PURGED+="{\"name\":\"${PACKAGE_NAME}\",\"version\":\"${PACKAGE_VERSION}\"},"
-                    fi
-                done
-
-                # Suppression de la dernière virgule :
-                PACKAGES_PURGED=$(echo "${PACKAGES_PURGED::-1}")
-
-                # Création de l'array contenant les paquets purgés, au format JSON
-                PACKAGES_PURGED="\"purged\":[$PACKAGES_PURGED],"
-            fi
-
-            # Traitement de la liste des paquets rétrogradés à cette date et heure
-            if [ ! -z "$PACKAGES_DOWNGRADED_LIST" ];then
-                for LINE in $(echo "$PACKAGES_DOWNGRADED_LIST");do
-
-                    # Si plusieurs paquets sur la même ligne
-                    if echo "$LINE" | grep -q "), ";then
-                        LINE=$(echo "$LINE" | sed 's/), /\n/g')
-                        for FORMATTED_LINE in $(echo "$LINE");do
-                            PACKAGE_NAME=$(echo "$FORMATTED_LINE" | awk '{print $1}' | sed 's/,//g' | sed 's/(//g' | sed 's/)//g' | sed 's/ //g' | sed 's/:amd64//g' | sed 's/:i386//g' | sed 's/:armhf//g')
-                            PACKAGE_VERSION=$(echo "$FORMATTED_LINE" | awk '{print $3}' | sed 's/,//g' | sed 's/(//g' | sed 's/)//g' | sed 's/ //g')
-                            PACKAGES_DOWNGRADED+="{\"name\":\"${PACKAGE_NAME}\",\"version\":\"${PACKAGE_VERSION}\"},"
-                        done
-                    else
-                        PACKAGE_NAME=$(echo "$LINE" | awk '{print $1}' | sed 's/,//g' | sed 's/(//g' | sed 's/)//g' | sed 's/ //g' | sed 's/:amd64//g' | sed 's/:i386//g' | sed 's/:armhf//g')
-                        PACKAGE_VERSION=$(echo "$LINE" | awk '{print $3}' | sed 's/,//g' | sed 's/(//g' | sed 's/)//g' | sed 's/ //g')
-                        PACKAGES_DOWNGRADED+="{\"name\":\"${PACKAGE_NAME}\",\"version\":\"${PACKAGE_VERSION}\"},"
-                    fi
-                done
-
-                # Suppression de la dernière virgule :
-                PACKAGES_DOWNGRADED=$(echo "${PACKAGES_DOWNGRADED::-1}")
-
-                # Création de l'array contenant les paquets rétrogradés, au format JSON
-                PACKAGES_DOWNGRADED="\"downgraded\":[$PACKAGES_DOWNGRADED],"
-            fi
-
-            # Traitement de la liste des paquets réinstallés à cette date et heure
-            if [ ! -z "$PACKAGES_REINSTALLED_LIST" ];then
-                for LINE in $(echo "$PACKAGES_REINSTALLED_LIST");do
-
-                    # Si plusieurs paquets sur la même ligne
-                    if echo "$LINE" | grep -q "), ";then
-                        LINE=$(echo "$LINE" | sed 's/), /\n/g')
-                        for FORMATTED_LINE in $(echo "$LINE");do
-                            PACKAGE_NAME=$(echo "$FORMATTED_LINE" | awk '{print $1}' | sed 's/,//g' | sed 's/(//g' | sed 's/)//g' | sed 's/ //g' | sed 's/:amd64//g' | sed 's/:i386//g' | sed 's/:armhf//g')
-                            PACKAGE_VERSION=$(echo "$FORMATTED_LINE" | awk '{print $2}' | sed 's/,//g' | sed 's/(//g' | sed 's/)//g' | sed 's/ //g')
-                            PACKAGES_REINSTALLED+="{\"name\":\"${PACKAGE_NAME}\",\"version\":\"${PACKAGE_VERSION}\"},"
-                        done
-                    else
-                        PACKAGE_NAME=$(echo "$LINE" | awk '{print $1}' | sed 's/,//g' | sed 's/(//g' | sed 's/)//g' | sed 's/ //g' | sed 's/:amd64//g' | sed 's/:i386//g' | sed 's/:armhf//g')
-                        PACKAGE_VERSION=$(echo "$LINE" | awk '{print $2}' | sed 's/,//g' | sed 's/(//g' | sed 's/)//g' | sed 's/ //g')
-                        PACKAGES_REINSTALLED+="{\"name\":\"${PACKAGE_NAME}\",\"version\":\"${PACKAGE_VERSION}\"},"
-                    fi
-                done
-
-                # Suppression de la dernière virgule :
-                PACKAGES_REINSTALLED=$(echo "${PACKAGES_REINSTALLED::-1}")
-
-                # Création de l'array contenant les paquets réinstallés, au format JSON
-                PACKAGES_REINSTALLED="\"reinstalled\":[$PACKAGES_REINSTALLED],"
-            fi
-
-            # Construction de l'évènement au format JSON :
-            # D'abord on renseigne la date et l'heure de début / fin
-            JSON="{\"date_start\":\"$DATE_START\",\"date_end\":\"$DATE_END\",\"time_start\":\"$TIME_START\",\"time_end\":\"$TIME_END\","
-
-            # Puis on ajoute les paquets installés si il y en a eu
-            if [ ! -z "$PACKAGES_INSTALLED" ];then
-                JSON+="$PACKAGES_INSTALLED"
-            fi
-            # Puis on ajoute les paquets mis à jour si il y en a eu
-            if [ ! -z "$PACKAGES_UPGRADED" ];then
-                JSON+="$PACKAGES_UPGRADED"
-            fi
-            # Puis on ajoute les paquets supprimés si il y en a eu
-            if [ ! -z "$PACKAGES_REMOVED" ];then
-                JSON+="$PACKAGES_REMOVED"
-            fi
-            # Puis on ajoute les paquets purgés si il y en a eu
-            if [ ! -z "$PACKAGES_PURGED" ];then
-                JSON+="$PACKAGES_PURGED"
-            fi
-            # Puis on ajoute les paquets rétrogradés si il y en a eu
-            if [ ! -z "$PACKAGES_DOWNGRADED" ];then
-                JSON+="$PACKAGES_DOWNGRADED"
-            fi
-            # Puis on ajoute les paquets réinstallés si il y en a eu
-            if [ ! -z "$PACKAGES_REINSTALLED" ];then
-                JSON+="$PACKAGES_REINSTALLED"
-            fi
-
-            # Suppression de la dernière virgule après le dernier array ajouté ( ], <= ici)
-            JSON=$(echo "${JSON::-1}")
-            # Fermeture de l'évènement en cours avant de passer au suivant (début de la boucle FOR)
-            JSON+="},"
-            # On ajoute l'évènement en cours à la liste des tous les évènements, avant de passer au suivant
-            EVENTS+="$JSON"
+                # Ajout d'une virgule pour séparer chaque évènement
+                EVENTS_JSON+=","
+            fi    
 
             (( HISTORY_LIMIT_COUNTER++ ))
         done
-    done
-fi
+    fi
 
-# Suppression de la dernière virgule après le dernier array de date ajouté (},<= ici)
-EVENTS=$(echo "${EVENTS::-1}")
+    # Cas Debian
+    if [ "$OS_FAMILY" == "Debian" ];then
+        echo "Construction de l'historique des évènements apt..."
 
-# Insertion de tous les évènements dans le fichier JSON prévu au début
-sed -i "s/__INSERT_EVENTS__/$EVENTS/g" "$TMP_FILE"
+        if [ "$HISTORY_START" == "newest" ];then
+            APT_HISTORY_FILES=$(ls -t1 /var/log/apt/history.log*)
+        fi
+        if [ "$HISTORY_START" == "oldest" ];then
+            APT_HISTORY_FILES=$(ls -t1 /var/log/apt/history.log* | tac)
+        fi
 
-# Mise en forme finale du JSON afin qu'il soit plus lisible si besoin de debug
-jq . "$TMP_FILE" > "${TMP_FILE}.final"
+        # On va traiter tous les fichiers d'historique d'apt, même ceux compréssés
+        for APT_LOG_FILE in $APT_HISTORY_FILES;do
+            IFS=$'\n'
 
-IFS=$OLD_IFS
+            # On traite chaque évènement trouvé dans le fichier de log
+            for START_DATE in $(zgrep "^Start-Date:*" "$APT_LOG_FILE");do
+                # On sort de la boucle si on a atteint la limite d'évènement à envoyer fixée par l'utilisateur
+                if [ "$HISTORY_LIMIT_COUNTER" == "$SEND_FULL_HISTORY_LIMIT" ];then
+                    break
+                fi
 
-# Envoi des données :
-echo -ne "→ Envoi de l'historique à ${YELLOW}${REPOSERVER_URL}${RESET} : "
-CURL=$(curl -s -q -H "Content-Type: application/json" -X PUT -d @${TMP_FILE}.final "${REPOSERVER_URL}/api/hosts" 2> /dev/null)
+                # Parsage de l'évènement
+                aptHistoryParser
 
-# Récupération et affichage des messages
-curl_result_parse
+                if [ ! -z "$APT_HISTORY_PARSER_RETURN" ];then
+                    # Récupération du retour de la fonction yumHistoryParser
+                    EVENTS_JSON+="$APT_HISTORY_PARSER_RETURN"
 
-if [ "$CURL_ERROR" -eq "0" ];then
-    UPDATE_REQUEST_STATUS="done"
-else 
-    UPDATE_REQUEST_STATUS="error"
-fi
+                    # Ajout d'une virgule pour séparer chaque évènement
+                    EVENTS_JSON+=","
+                fi    
 
-update_request_status
+                (( HISTORY_LIMIT_COUNTER++ ))
+            done
+        done
+    fi
 
-rm "$TMP_FILE" -f
-rm "${TMP_FILE}.final" -f
+    # Suppression de la dernière virgule après le dernier array de date ajouté (},<= ici)
+    EVENTS_JSON=$(echo "${EVENTS_JSON::-1}")
 
+    # Construction du JSON final
+    echo "{\"id\" : \"$HOST_ID\",\"token\" : \"$TOKEN\",\"events\" : [$EVENTS_JSON]}" | jq . > "$JSON_FILE"
 
-if [ "$UPDATE_REQUEST_STATUS" == "error" ];then
-    return 1
-fi
+    IFS=$OLD_IFS
 
-return 0
+    # Envoi des données :
+    echo -ne "→ Envoi de l'historique à ${YELLOW}${REPOSERVER_URL}${RESET} : "
+    CURL=$(curl -s -q -H "Content-Type: application/json" -X PUT -d @${JSON_FILE} "${REPOSERVER_URL}/api/hosts" 2> /dev/null)
+
+    # Récupération et affichage des messages
+    curl_result_parse
+
+    if [ "$CURL_ERROR" -eq "0" ];then
+        UPDATE_REQUEST_STATUS="done"
+    else 
+        UPDATE_REQUEST_STATUS="error"
+    fi
+
+    update_request_status
+
+    rm "$JSON_FILE" -f
+
+    if [ "$UPDATE_REQUEST_STATUS" == "error" ];then
+        return 1
+    fi
+
+    return 0
 }

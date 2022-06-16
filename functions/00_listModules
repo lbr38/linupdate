@@ -1,28 +1,31 @@
 #!/bin/bash
 # Voir la liste des modules
 
-# Récupération de tous les modules à jour depuis github
-getModules
+function listModules
+{
+    # Récupération de tous les modules à jour depuis github
+    getModules
 
-ENABLED_MODULES=()
+    ENABLED_MODULES=()
 
-# Affiche les modules activés
-echo -e "\n Modules activés :"
-for MODULE in $(ls -A1 "${MODULES_ENABLED_DIR}/"*.mod);do
-	MODULE=$(basename $MODULE)
-	MODULE=${MODULE%.mod}
-	echo -e " $GREEN $MODULE $RESET"
+    # Affiche les modules activés
+    echo -e "\n Modules activés :"
+    for MODULE in $(ls -A1 "${MODULES_ENABLED_DIR}/"*.mod);do
+        MODULE=$(basename $MODULE)
+        MODULE=${MODULE%.mod}
+        echo -e " $GREEN $MODULE $RESET"
 
-	ENABLED_MODULES+=("$MODULE")
-done
+        ENABLED_MODULES+=("$MODULE")
+    done
 
-# Affiche les modules disponibles (qui ne sont pas dans ENABLED_MODULES)
-echo -e "\n Modules disponibles :"
-for MODULE in $(ls -A1 "${MODULES_DIR}/"*.mod);do
-	MODULE=$(basename $MODULE)
-	MODULE=${MODULE%.mod}
-	if [[ ! ${ENABLED_MODULES[*]} =~ "$MODULE" ]]; then
-		MODULE=$(basename $MODULE | sed 's/.mod//g')
-		echo -e " $YELLOW $MODULE $RESET"
-	fi
-done
+    # Affiche les modules disponibles (qui ne sont pas dans ENABLED_MODULES)
+    echo -e "\n Modules disponibles :"
+    for MODULE in $(ls -A1 "${MODULES_DIR}/"*.mod);do
+        MODULE=$(basename $MODULE)
+        MODULE=${MODULE%.mod}
+        if [[ ! ${ENABLED_MODULES[*]} =~ "$MODULE" ]]; then
+            MODULE=$(basename $MODULE | sed 's/.mod//g')
+            echo -e " $YELLOW $MODULE $RESET"
+        fi
+    done
+}
