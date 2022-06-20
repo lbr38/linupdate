@@ -12,7 +12,7 @@ function yumHistoryParser
     fi
 
     # On extrait tout le contenu de l'évènement dans un fichier
-    TMP_EVENT_FILE="/tmp/.linupdate_yum-history-parser.tmp"
+    TMP_EVENT_FILE="/tmp/.linupdate_${PROCID}_yum-history-parser.tmp"
 
     LC_ALL="en_US.UTF-8" yum history info "$YUM_HISTORY_ID" > "$TMP_EVENT_FILE"
 
