@@ -1,11 +1,14 @@
 #!/bin/bash
 trap 'kill 0' EXIT
 
+# Laisse un délai de 60sec pour laisser le temps au système de démarrer complètememnt et éviter le crash du service
+sleep 60
+
 AGENTS_ENABLED_DIR="/opt/linupdate/agents-enabled"
 
 # On vérifie qu'au moins 1 agent est activé
 if [ "$(ls -A /opt/linupdate/agents-enabled/)" ];then
-    # Inclusions de tous les 'modules agent'    
+    # Inclusion de tous les 'modules agent'
     for AGENT in $(ls -A1 ${AGENTS_ENABLED_DIR}/);do
         source "${AGENTS_ENABLED_DIR}/${AGENT}"
     done

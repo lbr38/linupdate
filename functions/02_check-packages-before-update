@@ -136,8 +136,8 @@ function checkPackagesBeforeUpdate
             PACKAGES_EXCLUDE=""
             IFS=','
 
-            # On continue à alimenter la liste en ajoutant les paquets à exclure dans tous les cas (que ce soit maj mineure ou majeure) (paramètre EXCLUDE= dans yum-update.conf)
-            # On injecte dans PACKAGES_EXCLUDE, la liste des paquets critiques renseignés dans le fichier yum-update.conf
+            # On continue à alimenter la liste en ajoutant les paquets à exclure dans tous les cas (que ce soit maj mineure ou majeure) (paramètre EXCLUDE= dans linupdate.conf)
+            # On injecte dans PACKAGES_EXCLUDE, la liste des paquets critiques renseignés dans le fichier linupdate.conf
             read -ra PACKAGES_EXCLUDE <<< "$CONF_SOFT_EXCLUDE"
 
             # On parcourt PACKAGES_EXCLUDE, et pour chaque PACKAGE on l'ajoute à la suite de la liste déjà existante
@@ -163,24 +163,29 @@ function checkPackagesBeforeUpdate
     # On redémarre le service uniquement si le paquet a été mis à jour (et qu'il s'agit d'une maj mineure. Si maj majeure le paquet est exclu de la maj par sécurité)
     if [ ! -z "$CONF_SOFT_NEED_RESTART" ];then
         # Initialisation des variables et du séparateur (ici le séparateur est une virgule dans EXCLUDE_MAJOR)
-        SERVICE_NEED_RESTART=""
+        # SERVICE_NEED_RESTART=""
         IFS=','
 
-        # On injecte dans PACKAGES, la liste des paquets renseignés dans le fichier yum-update.conf (NEED_RESTART=)
-        read -ra SERVICE_NEED_RESTART <<< "$CONF_SOFT_NEED_RESTART"
+        # On injecte dans SERVICE_NEED_RESTART, la liste des paquets renseignés dans le fichier linupdate.conf (NEED_RESTART=)
+        # read -ra SERVICE_NEED_RESTART <<< "$CONF_SOFT_NEED_RESTART"
 
-        # On parcourt SERVICE_NEED_RESTART, et pour chaque SERVICE on vérifie si un paquet du même nom va être mis à jour ou non 
-        for SERVICE in "${SERVICE_NEED_RESTART[@]}"; do
-            if egrep -q "^${SERVICE} " $CHECK_UPDATE_TMP;then # Si le SERVICE se trouve parmi les paquets à mettre à jour on active le redémarrage du service SAUF si ce paquet est un paquet critique et qu'il s'agit d'une mise à jour majeure. Dans ce cas ce paquet est exclu de la maj donc inutile de le redémarrer. Cependant si il s'agit d'une mise à jour mineure il n'est pas exclu et donc un redémarrage est nécessaire.
+        # On parcourt CONF_SOFT_NEED_RESTART, et pour chaque SERVICE on vérifie si un paquet du même nom va être mis à jour ou non 
+        for SERVICE in "${CONF_SOFT_NEED_RESTART[@]}"; do
+            # Si le SERVICE se trouve parmi les paquets à mettre à jour on active le redémarrage du service SAUF si ce 
+            # paquet est un paquet critique et qu'il s'agit d'une mise à jour majeure. Dans ce cas ce paquet est exclu de la maj donc 
+            # inutile de le redémarrer. Cependant si il s'agit d'une mise à jour mineure il n'est pas exclu et donc un redémarrage est nécessaire.
+            if egrep -q "^${SERVICE} " $CHECK_UPDATE_TMP;then
                 if echo "$UPDATE_EXCLUDE" | grep -q "$SERVICE";then
                     echo -e "Le paquet du service '$SERVICE' a été exclu de la mise à jour. Il est donc ignoré et son service ne sera pas redémarré en fin de traitement."
                 else
-                    #echo -e "Le service '$SERVICE' sera redémarré en fin de traitement."
-                    UPDATE_SERVICE_RESTART_NEEDED="$UPDATE_SERVICE_RESTART_NEEDED $SERVICE"
+                    # On vérifie que le service à redémarrer existe avant de l'ajouter à la liste des services à redémarrer
+                    if ! systemctl list-unit-files "${SERVICE}.service" | grep -q "0 unit files";then
+                        SERVICE_TO_BE_RESTARTED+=" $SERVICE"
+                    fi
                 fi
             fi
         done
-        UPDATE_SERVICE_RESTART_NEEDED="${UPDATE_SERVICE_RESTART_NEEDED/ /}"
+        SERVICE_TO_BE_RESTARTED="${SERVICE_TO_BE_RESTARTED/ /}"
     fi
 
     echo ""
@@ -188,8 +193,8 @@ function checkPackagesBeforeUpdate
     if [ ! -z "$UPDATE_EXCLUDE" ];then
         echo -e "Les paquets suivants seront exclus : ${YELLOW}${UPDATE_EXCLUDE}${RESET}"
     fi
-    if [ ! -z "$UPDATE_SERVICE_RESTART_NEEDED" ];then
-        echo -e "Services qui seront redémarrés : ${YELLOW}${UPDATE_SERVICE_RESTART_NEEDED}${RESET}"
+    if [ ! -z "$SERVICE_TO_BE_RESTARTED" ];then
+        echo -e "Les services suivants seront redémarrés : ${YELLOW}${SERVICE_TO_BE_RESTARTED}${RESET}"
     fi
 
     echo -e "\n$SEP\n"

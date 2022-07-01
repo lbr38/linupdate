@@ -12,17 +12,28 @@ function configure
     fi
 
     # Vérifications avant de commencer
-    if [ -z "$OS_FAMILY" ];then   echo -e "[$YELLOW ERREUR $RESET] OS non reconnu";clean_exit;fi
-    if [ -z "$PKG_MANAGER" ];then echo -e "[$YELLOW ERREUR $RESET] Gestionnaire de paquets non reconnu";clean_exit;fi
+    if [ -z "$OS_FAMILY" ];then
+        echo -e "[$YELLOW ERREUR $RESET] OS non reconnu"
+        clean_exit
+    fi
+    if [ -z "$PKG_MANAGER" ];then
+        echo -e "[$YELLOW ERREUR $RESET] Gestionnaire de paquets non reconnu"
+        clean_exit
+    fi
 
     # Configuration générale
     echo -e "\n ${YELLOW}Configuration générale\n${RESET}"
 
     echo -ne " Quel est le profil de ce serveur ou de cette machine (exemple : front, back, db, PC,...) : ";read -p "" PROFILE
-    if [ -z "$PROFILE" ];then PROFILE="Host"; fi
+    if [ -z "$PROFILE" ];then
+        PROFILE="Host"
+    fi
 
     echo -ne " Indiquez l'environnement de ce serveur (par defaut : prod) : ";read -p "" SERVER_ENV
-    if [ -z "$SERVER_ENV" ];then SERVER_ENV="prod";fi # Si laissé vide, on met une valeur par défaut (prod)
+    # Si laissé vide, on met une valeur par défaut (prod)
+    if [ -z "$SERVER_ENV" ];then
+        SERVER_ENV="prod"
+    fi
 
     echo -ne " Recevoir les rapports de mise à jour et d'erreurs par mail (yes/no) : ";read -p "" CONFIRM
     if [ "$CONFIRM" == "yes" ];then 

@@ -397,7 +397,19 @@ function mod_configure
             ;;
             # Récupération de la configuration complète du serveur Repomanager distant
             --get-server-conf)
+                getModConf
                 getServerConf
+                clean_exit
+            ;;
+            --get-profile-conf)
+                getModConf
+                getProfileConf
+                clean_exit
+            ;;
+            --get-profile-repos)
+                getModConf
+                getProfileRepos
+                clean_exit
             ;;
             --register)
                 # Si une adresse IP est précisée alors on enregistrera cette adresse IP

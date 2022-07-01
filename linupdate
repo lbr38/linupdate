@@ -13,10 +13,10 @@ DATE_DMY=$(date +%d-%m-%Y)                          # Date du jour au format 'JJ
 DATE_YMD=$(date +%Y-%m-%d)                          # Date du jour au format 'JJ-MM-AAAA'
 DATE_FULL=$(date +%d-%m-%Y_%Hh%M)                   # Date du jour au format 'JJ-MM-AAAA_hh-mm'
 TIME=$(date +%Hh%M)                                 # Heure au format 00h00
-TIME_FULL=$(date +%H:%M:%S)
+TIME_FULL=$(date +%Hh%Mm%Ss)                        # Heure au format 00h00m00s
 LINUPDATE="${BASE_DIR}/linupdate"                   # Programme principal
 FUNCTIONS="${BASE_DIR}/functions"                   # Répertoire des fonctions du programme
-LOGS_DIR="${BASE_DIR}/logs"                         # Répertoire des logs
+LOGS_DIR="/var/log/linupdate"                       # Répertoire des logs
 ETC_DIR="/etc/linupdate"                            # Répertoire de configuration du programme
 CONF="${ETC_DIR}/linupdate.conf"                    # Fichier de configuration principal de linupdate
 MODULES_DIR="${BASE_DIR}/mods-available"            # Répertoire des modules disponibles
@@ -46,7 +46,7 @@ HISTORIQUE="${BASE_DIR}/linupdate.historique"                              # Emp
 if [ -f "${BASE_DIR}/linupdate" ];then
     MD5SUM="$(/usr/bin/md5sum ${BASE_DIR}/linupdate | awk '{print $1}')"   # md5sum de ce script
 fi
-REPORT="${DATE_YMD}_${TIME}_linupdate_${HOSTNAME}.log"                     # Nom du fichier de log/rapport
+REPORT="${DATE_YMD}_${TIME_FULL}_linupdate_${HOSTNAME}.log"                # Nom du fichier de log/rapport
 LOG="${LOGS_DIR}/${REPORT}"                                                # Emplacement du fichier de log
 LOG_REPORT_MAIL="/tmp/${REPORT}"                                           # Le même fichier mais qui sera légèrement reformaté pour être envoyé par mail puis supprimé
 DIST_UPGRADE="0"
@@ -55,7 +55,7 @@ UPDATE_ERROR="0"
 SOMETHING_TO_UPDATE="yes"
 IGNORE_EXCLUDE="0"
 UPDATE_EXCLUDE=""
-UPDATE_SERVICE_RESTART_NEEDED=""
+SERVICE_TO_BE_RESTARTED=""
 READ_PACKAGES_TO_EXCLUDE=""
 READ_PACKAGES_TO_EXCLUDE_MAJOR=""
 CRONTAB_PATH=""
@@ -101,124 +101,12 @@ if [ "$(id -u)" -ne "0" ];then
 fi
 
 # Détection du système
-# Le fichier /etc/os-release est présent sur les OS récents et permet de récupérer toutes les infos nécéssaires
-if [ -f "/etc/os-release" ];then
-    if grep -q "^ID_LIKE=" /etc/os-release;then
-        OS_FAMILY=$(grep "^ID_LIKE=" /etc/os-release | cut -d'=' -f2 | sed 's/"//g')
-    fi
-    if grep -q "^ID=" /etc/os-release;then
-        OS_FAMILY=$(grep "^ID=" /etc/os-release | cut -d'=' -f2 | sed 's/"//g')
-    fi
-    
-    if [ -z "$OS_FAMILY" ];then
-        echo -e "[${RED} ERREUR ${RESET}] Famille d'OS non reconnue"
-        exit
-    fi
-
-    # Si OS_FAMILY contient l'un des termes suivants alors c'est la famille redhat
-    if echo "$OS_FAMILY" | egrep -q -i 'rhel|centos|fedora';then
-        OS_FAMILY="Redhat"
-    fi
-
-    # Si OS_FAMILY contient l'un des termes suivants alors c'est la famille debian
-    if echo "$OS_FAMILY" | egrep -q -i 'debian|ubuntu|kubuntu|xubuntu|armbian|mint';then
-        OS_FAMILY="Debian"
-    fi
-
-    # Enfin si OS_FAMILY n'est ni égale à Redhat ni à Debian alors on est sur un OS non pris en charge
-    if ! echo "$OS_FAMILY" | egrep -q -i 'Redhat|Debian';then
-        echo -e "[${RED} ERREUR ${RESET}] Famille d'OS non pris en charge ($OS_FAMILY)"
-        exit
-    fi
-
-    # Toujours à partir de /etc/os-release, on récupère le nom de l'OS et sa version
-    OS_NAME=$(grep "^ID=" /etc/os-release | cut -d'=' -f2 | sed 's/"//g')
-    if [ -z "$OS_NAME" ];then
-        echo -e "[${RED} ERREUR ${RESET}] Nom d'OS inconnu"
-        exit
-    fi
-
-    OS_VERSION=$(grep "^VERSION_ID=" /etc/os-release | cut -d'=' -f2 | sed 's/"//g')
-    if [ -z "$OS_VERSION" ];then
-        echo -e "[${RED} ERREUR ${RESET}] Version d'OS inconnue"
-        exit
-    fi
-fi
-
-# Cas où /etc/os-release n'existe pas
-if [ ! -f "/etc/os-release" ];then
-    # Si apt est présent, on est sur un os de la famille Debian
-    if [ -f "/usr/bin/apt" ];then
-        OS_FAMILY="Debian"
-    fi
-    # Si yum ou dnf est présent, on est sur un os de la famille Redhat
-    if [ -f "/usr/bin/yum" ] || [ -f "/usr/bin/dnf" ];then
-        OS_FAMILY="Redhat"
-    fi
-
-    # A ce stade si OS_FAMILY est vide alors on est sur un OS non pris en charge
-    if [ -z "$OS_FAMILY" ];then
-        echo -e "[${RED} ERREUR ${RESET}] Famille d'OS inconnue, système non pris en charge"
-        exit
-    fi
-
-    # /usr/bin/lsb_release est un programme uniquement présent sur les OS de la famille Debian
-    if [ -f "/usr/bin/lsb_release" ];then
-        OS_NAME=$(lsb_release -a 2> /dev/null | grep 'Distributor ID:' | awk '{print $NF}')
-        OS_VERSION=$(lsb_release -a 2> /dev/null | grep 'Release:' | awk '{print $NF}')
-    fi
-
-    # Dernier recours pour les OS de la famille Redhat
-    # Si /etc/centos-release existe, c'est un centos
-    if [ -f "/etc/centos-release" ];then
-        OS_NAME="CentOS"
-        OS_ID="centos"
-        OS_VERSION=$(rpm --eval '%{centos_ver}')
-    # Si /etc/fedora-release existe, c'est un fedora
-    elif [ -f "/etc/fedora-release" ];then
-        OS_NAME="Fedora"
-        OS_ID="fedora"
-        OS_VERSION=$(cat /etc/os-release | grep "^VERSION_ID" | cut -d'=' -f2 | sed 's/"//g')
-    else
-        # Dernier recours on vérifie la présence d'un fichier os-release sinon on quitte
-        if [ ! -f "/etc/os-release" ];then
-            echo -e "[${RED} ERREUR ${RESET}] Impossible de déterminer la version du système"
-            exit
-        fi
-
-        OS_NAME=$(cat /etc/os-release | grep "^NAME=" | cut -d'=' -f2 | sed 's/"//g')
-        OS_ID=$(cat /etc/os-release | grep "^ID=" | cut -d'=' -f2 | sed 's/"//g')
-        OS_VERSION=$(cat /etc/os-release | grep "^VERSION_ID=" | cut -d'=' -f2 | sed 's/"//g')
-    fi
-
-    # On quitte le script si on n'a rien trouvé à ce stade
-    if [ -z "$OS_NAME" ];then
-        echo -e "[${RED} ERREUR ${RESET}] Nom d'OS inconnu"
-        exit
-    fi 
-    if [ -z "$OS_VERSION" ];then
-        echo -e "[${RED} ERREUR ${RESET}] Version d'OS inconnue"
-        exit
-    fi
-fi
-
-if [ "$OS_FAMILY" == "Debian" ];then
-    PKG_MANAGER="/usr/bin/apt"
-    PKG_TYPE="deb"
-fi
-if [ "$OS_FAMILY" == "Redhat" ];then
-    if [ -f "/usr/bin/yum" ];then
-        PKG_MANAGER="/usr/bin/yum"
-    fi
-    if [ -f "/usr/bin/dnf" ];then
-        PKG_MANAGER="/usr/bin/dnf"
-    fi
-    # Si les deux sont présents (fedora) alors on utilisera yum de préférence
-    if [ -f "/usr/bin/yum" ] && [ -f "/usr/bin/dnf" ];then
-        PKG_MANAGER="/usr/bin/yum"
-    fi
-
-    PKG_TYPE="rpm"
+if [ -f "$FUNCTIONS/00_check-system" ];then
+    source "$FUNCTIONS/00_check-system"
+    checkSystem
+else
+    echo -e "[$YELLOW ERREUR $RESET] Impossible de détecter le système"
+    exit
 fi
 
 # Création des répertoires de base
@@ -302,7 +190,7 @@ selfInstall() {
     ln -s ${BASE_DIR}/linupdate /usr/bin/linupdate
     chmod 700 ${BASE_DIR}/linupdate
 
-    cd $BASE_DIR
+    cd "$BASE_DIR"
 
     # Exécution du nouveau script à jour
     exec "${BASE_DIR}/linupdate"
@@ -310,7 +198,7 @@ selfInstall() {
 
 # Chargement des fonctions du répertoire functions
 if [ -d "$FUNCTIONS" ];then
-
+    # On source tous les fichiers trouvés dans le répertoires des fonctions
     for FUNCTION_FILE in $(ls -A1 "$FUNCTIONS");do
         source $FUNCTIONS/$FUNCTION_FILE
     done
@@ -543,9 +431,9 @@ echo -e "\n\n
 checkDependencies
 
 # Lecture du fichier de conf
-getConf         # pour déterminer le type de serveur sur lequel nous sommes
-selfUpdate        # Mise à jour du fichier de conf et vérification si une nouvelle version du script est disponible sur github
-getConf         # On re-recup la conf du fichier de conf .conf si celle-ci a été changée par selfUpdate()
+getConf      # pour déterminer le type de serveur sur lequel nous sommes
+selfUpdate   # Mise à jour du fichier de conf et vérification si une nouvelle version du script est disponible sur github
+getConf      # On re-recup la conf du fichier de conf .conf si celle-ci a été changée par selfUpdate()
 
 # Chargement des modules
 loadModules
@@ -590,6 +478,9 @@ fi
 
 # Exécution de modules complémentaires post-mise à jour
 execPostModules
+
+# Redémarrage des services post-mise à jour
+restartService
 
 echo -e "\nOpération terminée\n" 
 
