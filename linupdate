@@ -319,7 +319,7 @@ while [ $# -ge 1 ];do
             IGNORE_EXCLUDE=1
         ;;
         --check-updates|-cu)
-            getConf &&
+            getConf
             checkPackagesBeforeUpdate
             clean_exit
         ;;

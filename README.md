@@ -9,12 +9,12 @@ Il permet une utilisation avancée de apt et yum lors de la mise à jour de paqu
 
 <h1>Installation</h1>
 
-<pre>
+```
 cd /tmp
 git clone https://github.com/lbr38/linupdate.git
 cd /tmp/linupdate
 ./linupdate
-</pre>
+```
 
 <h1>Configuration</h1>
 
@@ -22,14 +22,14 @@ La configuration principale est mise en place lors de la première installation 
 
 Emplacement des fichiers de configuration :
 
-<pre>
+```
 /etc/linupdate/linupdate.conf # Configuration principale
 /etc/linupdate/modules/*.conf # Fichiers de configuration des modules
-</pre>
+```
 
 <h1>Paramètres</h1>
 
-<pre>
+```
 Général
 --help|-h                                            afficher l'aide
 --version|-v|-V                                      afficher la version
@@ -64,7 +64,7 @@ Agent
 --agent-stop|--stop-agent                            stopper l'agent linupdate
 --agent-restart|--restart-agent                      redémarrer l'agent linupdate
 --agent-enable|--enable-agent                        activer l'agent linupdate au démarrage
-</pre>
+```
 
 <h1>Modules</h1>
 
@@ -100,13 +100,13 @@ A chaque exécution de linupdate, la configuration du profil est récupérée au
 
 Activer le module reposerver :
 
-<pre>
+```
 linupdate --mod-enable reposerver
-</pre>
+```
 
 Configurer le serveur Repomanager cible
 
-<pre>
+```
 linupdate --mod-configure reposerver --url https://SERVEUR_REPOMANAGER --fail-level 3 --allow-conf-update yes --allow-repos-update yes --allow-overwrite no
 --fail-level 1|2|3            # Défini la criticité d'erreur du module (entre 1 et 3).
                               # 1 : linupdate s'arrête à la moindre erreur (module désactivé, le serveur ne gère pas le même OS, erreur mineure, critique)
@@ -115,25 +115,25 @@ linupdate --mod-configure reposerver --url https://SERVEUR_REPOMANAGER --fail-le
 --allow-conf-update yes|no    # Autorise ou non le serveur Repomanager à définir les paquets à exclure sur l'hôte
 --allow-repos-update yes|no   # Autorise ou non le serveur Repomanager à définir les fichiers de repos (.repo ou .list) à installer sur l'hôte
 --allow-overwrite yes|no      # Autorise ou non le serveur Repomanager à modifier les deux paramètres précédents (yes ou no)
-</pre>
+```
 
 Enregistrer l'hôte auprès du serveur Repomanager et recevoir un token d'identification :
 
-<pre>
+```
 linupdate --mod-configure reposerver --register
-</pre>
+```
 
 A partir d'ici l'hôte devient visible depuis l'interface web Repomanager, dans l'onglet Gestion des hôtes.
 
 Envoyer des informations au serveur Repomanager :
 
-<pre>
+```
 linupdate --mod-configure reposerver --send-general-status              # Envoyer les informations générales concernant l'hôte (ip, profil, environnement) 
 linupdate --mod-configure reposerver --send-installed-packages-status   # Envoyer la liste des paquets installés sur l'hôte et leur version
 linupdate --mod-configure reposerver --send-available-packages-status   # Envoyer la liste des mises à jour disponibles sur l'hôte et leur version
 linupdate --mod-configure reposerver --send-full-history                # Envoyer l'historique complet des actions exécutées sur l'hôte (paquets installés, mis à jour, désinstallés)
 linupdate --mod-configure reposerver --send-full-status                 # Exécute les 4 actions précédentes à la suite
-</pre>
+```
 
 Il est possible d'activer le module d'agent reposerver. Ce module permettra à l'agent linupdate :
 - d'envoyer regulièrement les informations à jour concernant l'hôte au serveur Repomanager
@@ -142,13 +142,13 @@ Il est possible d'activer le module d'agent reposerver. Ce module permettra à l
 
 Activer le module d'agent reposerver :
 
-<pre>
+```
 linupdate --mod-configure reposerver --enable-agent
 linupdate --restart-agent
-</pre>
+```
 
 Vérifier que l'agent linupdate est actif :
 
-<pre>
-service linupdate status
-</pre>
+```
+systemctl status linupdate
+```

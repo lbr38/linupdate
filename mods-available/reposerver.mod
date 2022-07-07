@@ -203,7 +203,9 @@ function mod_help
     echo -e "  --allow-conf-update yes|no    → Autorise ou non le serveur Repomanager à définir les paquets à exclure sur l'hôte"
     echo -e "  --allow-repos-update yes|no   → Autorise ou non le serveur Repomanager à définir les fichiers de repos (.repo ou .list) à configurer sur l'hôte"
     echo -e "  --allow-overwrite yes|no      → Autorise ou non le serveur Repomanager à modifier les deux paramètres précédents (yes ou no)"
-    echo -e "  --get-server-conf             → "
+    echo -e "  --get-server-conf             → Récupère la configuration du serveur Repomanager distant."
+    echo -e "  --get-profile-conf            → Récupère la configuration générale du profil auprès du serveur Repomanager distant."
+    echo -e "  --get-profile-repos           → Récupère la configuration des repos du profil auprès du serveur Repomanager distant."
     echo -e "  --register                    → Enregistrer cet hôte auprès du serveur Repomanager"
     echo -e "  --unregister                  → Dé-enregistrer cet hôte auprès du serveur Repomanager"
     echo -e "  --send-general-status         → Envoyer les informations générales concernant cet hôte au serveur Repomanager (OS, version, kernel..)s"
@@ -396,17 +398,17 @@ function mod_configure
                 fi
             ;;
             # Récupération de la configuration complète du serveur Repomanager distant
-            --get-server-conf)
+            --get-server-conf|--server-get-conf)
                 getModConf
                 getServerConf
                 clean_exit
             ;;
-            --get-profile-conf)
+            --get-profile-conf|--profile-get-conf)
                 getModConf
                 getProfileConf
                 clean_exit
             ;;
-            --get-profile-repos)
+            --get-profile-repos|--profile-get-repos)
                 getModConf
                 getProfileRepos
                 clean_exit
@@ -869,7 +871,7 @@ function pre
     RESULT="$?"
     if [ "$FAILLEVEL" -eq "1" ] && [ "$RESULT" -gt "0" ];then (( MOD_ERROR++ )); clean_exit;fi
     if [ "$FAILLEVEL" -eq "2" ] && [ "$RESULT" -ge "2" ];then (( MOD_ERROR++ )); clean_exit;fi
-    if [ "$FAILLEVEL" -eq "3" ] && [ "$RESULT" -gt "0" ];then return 1;fi                         # Si FAILLEVEL = 3 et qu'il y a une erreur au chargement de la conf du module alors on quitte le module sans pour autant quitter repomanager (clean_exit)
+    if [ "$FAILLEVEL" -eq "3" ] && [ "$RESULT" -gt "0" ];then return 1;fi                          # Si FAILLEVEL = 3 et qu'il y a une erreur au chargement de la conf du module alors on quitte le module sans pour autant quitter repomanager (clean_exit)
 
     # On vérifie que la configuration du serveur de repo est compatible avec notre OS
     preCheck
