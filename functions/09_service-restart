@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Redémarrage des services post-mise à jour
 
 function restartService
@@ -8,10 +8,10 @@ function restartService
         IFS=" ";
 
         for SERVICE in $SERVICE_TO_BE_RESTARTED; do
-            echo -ne "→ Redémarrage du service ${YELLOW}${SERVICE}${RESET} : "
+            echo -ne "→ Restarting ${YELLOW}${SERVICE}${RESET} service: "
             systemctl restart "$SERVICE" --quiet
             if [ "$?" != "0" ];then
-                echo -e "[$YELLOW ERREUR $RESET] lors du redémarrage du service"
+                echo -e "[$YELLOW ERROR $RESET] while restarting"
             else
                 echo -e "[$GREEN OK $RESET]"
             fi

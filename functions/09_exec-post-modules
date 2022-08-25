@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Exécution de modules complémentaires post-mise à jour
 
@@ -6,7 +6,7 @@ function execPostModules
 {
     if [ -d "$MODULES_ENABLED_DIR" ];then
         if [ "$(ls -A $MODULES_ENABLED_DIR)" ];then
-            echo -e " Execution des modules post-mise à jour"
+            echo -e " Executing post-update mods"
 
             for MODULE in $(ls -A1 ${MODULES_ENABLED_DIR});do
                 # On récupère le nom exact du module (sans le .mod)

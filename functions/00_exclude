@@ -1,10 +1,10 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 function exclude
 {
     # Si les paquets à exclure n'ont pas été précisé en paramètre, on les demande
     if [ -z "$READ_PACKAGES_TO_EXCLUDE" ];then
-        echo -ne "Entrez les paquets à exclure séparés par une virgule : "; read -p "" READ_PACKAGES_TO_EXCLUDE
+        echo -ne "Specify packages to exclude (separated by a comma): "; read -p "" READ_PACKAGES_TO_EXCLUDE
     fi
 
     # Suppression des éventuels espaces vides

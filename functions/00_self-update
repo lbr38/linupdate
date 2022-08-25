@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Vérifie si une nouvelle version de ce script est disponible sur github et l'installe
 function selfUpdate
@@ -10,7 +10,7 @@ function selfUpdate
 
     VERSION_DISPO=$(curl -s "https://raw.githubusercontent.com/lbr38/linupdate/master/version")
     if [ -z "$VERSION_DISPO" ];then
-        echo -e "Vérification des mises à jour : [$RED ERREUR $RESET] lors de la récupération du numéro de version disponible\n"
+        echo -e "Vérification des mises à jour : [$RED ERROR $RESET] lors de la récupération du numéro de version disponible\n"
 
     elif [ "$VERSION" != "$VERSION_DISPO" ];then
         echo -e "${YELLOW}Une nouvelle version est disponible : ${VERSION_DISPO}${RESET}"
@@ -22,7 +22,7 @@ function selfUpdate
         if git clone --quiet https://github.com/lbr38/linupdate.git > /dev/null;then
             echo -e "[$GREEN OK $RESET]"
         else
-            echo -e "[$RED ERREUR $RESET] lors du téléchargement"
+            echo -e "[$RED ERROR $RESET] lors du téléchargement"
             (( UPDATE_ERROR++ ))
             clean_exit
         fi

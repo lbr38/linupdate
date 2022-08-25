@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Récupérer les modules à jour depuis github
 
 function getModules

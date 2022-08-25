@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 function deployAgent
 {
@@ -6,7 +6,7 @@ function deployAgent
     AGENT_FILE="/opt/linupdate/service/linupdate-agent"
 
     if [ ! -d "/etc/systemd/system/" ];then
-        echo -e "Le répertoire /etc/systemd/system/ n'existe pas"
+        echo -e "/etc/systemd/system/ directory does not exist"
         return
     fi
 
@@ -26,14 +26,14 @@ function deployAgent
 
     chmod 500 "$AGENT_FILE"
 
-    echo -e "${YELLOW}Agent déployé${RESET}"
+    echo -e "${YELLOW}Agent deployed${RESET}"
 
-    echo -ne "\nActiver l'agent ${YELLOW}linupdate${RESET} au démarrage du système ? (yes/no) : ";read -p "" CONFIRM
+    echo -ne "\nActivate ${YELLOW}linupdate${RESET} agent on boot? (yes/no): ";read -p "" CONFIRM
     if [ "$CONFIRM" == "yes" ];then 
         enableAgent
     fi
 
-    echo -ne "\nDémarrer l'agent ${YELLOW}linupdate${RESET} maintenant ? (yes/no) : ";read -p "" CONFIRM
+    echo -ne "\Start ${YELLOW}linupdate${RESET} agent now? (yes/no): ";read -p "" CONFIRM
     if [ "$CONFIRM" == "yes" ];then 
         startAgent
     fi

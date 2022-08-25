@@ -1,9 +1,9 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Vérification que l'espace disque restant est suffisant pour effectuer la mise à jour (au moins 1Go d'espace)
 
 function spaceLeft
 {
-    echo -ne "\nEspace restant sur le serveur : "
+    echo -ne "\nSpace left: "
 
     SPACE_LEFT=$(df | egrep "/$" | awk '{print $4}')
     if [ "$SPACE_LEFT" -lt 1000000 ];then

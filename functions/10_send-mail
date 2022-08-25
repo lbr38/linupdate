@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 function sendMail
 {
@@ -6,22 +6,22 @@ function sendMail
         # Avant toute chose, on supprime les codes couleurs ANSI dans le fichier de log, ils sont utiles pour afficher de la couleur dans le terminal mais ils polluent le rapport mail qui devient illisible :
         sed 's/\x1b\[[0-9;]*m//g' "$LOG" > "$LOG_REPORT_MAIL"
 
-        echo -ne "→ Envoi du rapport de mise à jour par mail : "
+        echo -ne "→ Sending update mail report: "
 
         if [ "$MOD_ERROR" -gt "0" ];then
-            echo "Erreur lors de l'exécution d'un module" | mutt -s "[ ERREUR ] Mise à jour échouée - $HOSTNAME - $DATE_DMY à $TIME - linupdate" -a "$LOG_REPORT_MAIL" -- $MAIL_RECIPIENT
+            echo "Error while executing module" | mutt -s "[ ERROR ] Update has failed - $HOSTNAME - $DATE_DMY at $TIME - linupdate" -a "$LOG_REPORT_MAIL" -- $MAIL_RECIPIENT
         fi
 
         if [ ! -z "$UPDATE_EXCLUDE" ];then
-            echo "Des paquets critiques ont été détectés. Ils ont été exclus de la mise à jour. Voir le rapport de mises à jour en pièce jointe." | mutt -s "[WARNING] Mise à jour effectuée mais paquet(s) critique(s) ignoré(s) - $HOSTNAME - $DATE_DMY à $TIME - linupdate" -a "$LOG_REPORT_MAIL" -- $MAIL_RECIPIENT
+            echo "Critical packages have been detected. They have been excluded from update. Check attached update report." | mutt -s "[ WARNING ] Update completed but critical packages update have been ignored - $HOSTNAME - $DATE_DMY at $TIME - linupdate" -a "$LOG_REPORT_MAIL" -- $MAIL_RECIPIENT
         elif [ ! -z "$UPDATE_EXCLUDE" ] && [ "$UPDATE_ERROR" -gt "0" ];then
-            echo "Des paquets critiques ont été détectés. Ils ont été exclus de la mise à jour (échouée). Voir le rapport de mises à jour en pièce jointe." | mutt -s "[ERREUR & WARNING] Mise à jour en erreur et paquet(s) critique(s) ignoré(s) - $HOSTNAME - $DATE_DMY à $TIME - linupdate" -a "$LOG_REPORT_MAIL" -- $MAIL_RECIPIENT
+            echo "Critical packages have been detected. They have been excluded from failed update. Check attached update report." | mutt -s "[ ERROR & WARNING ] Update failed and critical packages excluded - $HOSTNAME - $DATE_DMY at $TIME - linupdate" -a "$LOG_REPORT_MAIL" -- $MAIL_RECIPIENT
         elif [ "$UPDATE_ERROR" -gt "0" ];then
             # Si il y eu des erreurs pendant la mise à jour, alors on l'indique dans le titre du rapport
-            echo "Rapport de mises à jour en pièce jointe" | mutt -s "[ ERREUR ] Mise à jour échouée - $HOSTNAME - $DATE_DMY à $TIME - linupdate" -a "$LOG_REPORT_MAIL" -- $MAIL_RECIPIENT
+            echo "Update report is attached" | mutt -s "[ ERROR ] Update failed - $HOSTNAME - $DATE_DMY at $TIME - linupdate" -a "$LOG_REPORT_MAIL" -- $MAIL_RECIPIENT
         else
             # Sinon titre normal
-            echo "Rapport de mises à jour en pièce jointe" | mutt -s "[ OK ] Mise à jour - $HOSTNAME - $DATE_DMY à $TIME - linupdate" -a "$LOG_REPORT_MAIL" -- $MAIL_RECIPIENT
+            echo "Update report is attached" | mutt -s "[ OK ] Update completed - $HOSTNAME - $DATE_DMY at $TIME - linupdate" -a "$LOG_REPORT_MAIL" -- $MAIL_RECIPIENT
         fi
 
         echo -e "[$GREEN OK $RESET]"

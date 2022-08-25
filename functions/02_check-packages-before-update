@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Cette fonction est exécutée juste avant la maj. Elle vérifie si des paquets "critiques" (renseignés dans le fichier de conf) vont être mis à jour ou non et les exclu si c'est le cas.
 
@@ -36,7 +36,7 @@ function checkPackagesBeforeUpdate
 
     # Si le paramètre --ignore-exclude a été passé, on ignore toutes les exclusions de paquets renseignées dans le fichier de conf
     if [ "$IGNORE_EXCLUDE" -eq "1" ];then
-        echo -e "Le paramètre ${YELLOW}--ignore-exclude${RESET} est activé, aucune exclusion de paquets ne sera prise en compte."
+        echo -e "${YELLOW}--ignore-exclude${RESET} param is enabled, no exclusion will be taken into account."
         
         if [ "$OS_FAMILY" == "Debian" ];then
             # On récupère les éventuels paquets passés en état "hold" (ignoré) lors d'une précédente maj
@@ -104,7 +104,7 @@ function checkPackagesBeforeUpdate
                         fi
 
                         if [ -z "$PQT_NOM" ] || [ -z "$PQT_VER" ] || [ -z "$PQT_VER_ACT" ];then    # Si une des trois variables générée précédemment est vide, on affiche une erreur car on n'a pas tous les éléments nécessaires pour faire notre comparaison 
-                            echo -e "[$RED ERREUR $RESET] lors de la vérification pour le paquet ${YELLOW}${OCCURENCE}${RESET}. Il sera exclu de la mise à jour."
+                            echo -e "[$RED ERROR $RESET] while checking ${YELLOW}${OCCURENCE}${RESET} package. It will be excluded from update."
                             UPDATE_EXCLUDE="$UPDATE_EXCLUDE $OCCURENCE"
                         fi &&
                         # On parse les numéros de version pour voir s'il s'agit d'une mise à jour majeure ou mineure
@@ -115,18 +115,18 @@ function checkPackagesBeforeUpdate
                         PARSE_PQT_VER="$(echo "$PQT_VER" | awk -F. '{print $1}')" &&
                         PARSE_PQT_VER_ACT="$(echo "$PQT_VER_ACT" | awk -F. '{print $1}')" &&
                         if [ "$PARSE_PQT_VER" != "$PARSE_PQT_VER_ACT" ];then 
-                            echo -e "  [$YELLOW WARNING $RESET] Il y a une mise à jour majeure pour ce paquet" &&
-                            echo -e "   → Version actuelle   : ${YELLOW}${PQT_VER_ACT}${RESET}" &&
-                            echo -e "   → Version disponible : ${YELLOW}${PQT_VER}${RESET}" &&
+                            echo -e "  [$YELLOW WARNING $RESET] A major release version is available for this package" &&
+                            echo -e "   → Current version   : ${YELLOW}${PQT_VER_ACT}${RESET}" &&
+                            echo -e "   → Available version : ${YELLOW}${PQT_VER}${RESET}" &&
                             UPDATE_EXCLUDE="$UPDATE_EXCLUDE $OCCURENCE"
                         else
-                            echo -e "  Une mise à jour est disponible mais pas de version majeure pour ce paquet (Version actuelle : ${PQT_VER_ACT} / Nouvelle version : $PQT_VER)."
+                            echo -e "  An update is available for this package but no major release version (Current version: ${PQT_VER_ACT} / Avail. version: $PQT_VER)."
                         fi
                     done
                         IFS=$old_IFS # Rétablissement du séparateur de champ précédent (qui était défini comme une virgule (,) pour la boucle for précédente)
                 else
                     echo -e "${YELLOW} ⚠ ${PACKAGE} :$RESET" &&
-                    echo -e "  Pas de mise à jour disponible pour ce paquet."
+                    echo -e "  No available update for this package."
                 fi
             done
         fi
@@ -191,16 +191,16 @@ function checkPackagesBeforeUpdate
     echo ""
 
     if [ ! -z "$UPDATE_EXCLUDE" ];then
-        echo -e "Les paquets suivants seront exclus : ${YELLOW}${UPDATE_EXCLUDE}${RESET}"
+        echo -e "Following packages will be excluded from update: ${YELLOW}${UPDATE_EXCLUDE}${RESET}"
     fi
     if [ ! -z "$SERVICE_TO_BE_RESTARTED" ];then
-        echo -e "Les services suivants seront redémarrés : ${YELLOW}${SERVICE_TO_BE_RESTARTED}${RESET}"
+        echo -e "Following services will be restarted after update: ${YELLOW}${SERVICE_TO_BE_RESTARTED}${RESET}"
     fi
 
     echo -e "\n$SEP\n"
 
     if [ ! -s "$CHECK_UPDATE_TMP" ];then
-        echo -e "${YELLOW}Aucun paquet disponible pour mise à jour${RESET}\n"
+        echo -e "${YELLOW}No available package for update${RESET}\n"
 
         # On indique donc de ne pas exécuter les mises à jour (inutile)
         SOMETHING_TO_UPDATE="no"
@@ -211,11 +211,11 @@ function checkPackagesBeforeUpdate
     # Affichage de la liste des paquets à mettre à jour
     if [ "$OS_FAMILY" == "Debian" ];then
         COLUMS_SIZE="%-40s %-20s %-45s %-45s\n"
-        printf "$COLUMS_SIZE" " Paquet(s)" "" "   Version actuelle" "   Version disponible"
+        printf "$COLUMS_SIZE" " Package" "" "   Current version" "   Available version"
     fi
     if [ "$OS_FAMILY" == "Redhat" ];then
         COLUMS_SIZE="%-40s %-20s %-45s %-45s %-30s\n"
-        printf "$COLUMS_SIZE" " Paquet(s)" "" "   Version actuelle" "   Version disponible" "   Repo"
+        printf "$COLUMS_SIZE" " Package" "" "   Current version" "   Available version" "   Repo"
     fi
 
     while read PACKAGE;do
@@ -277,8 +277,8 @@ function checkPackagesBeforeUpdate
     echo -e "\n${SEP}\n"
 
     if [ "$ASSUME_YES" == "0" ];then
-        echo -ne "${YELLOW}→ Confirmer l'installation (oui/non) : $RESET"; read -p "" CONFIRM &&
-        if [ "$CONFIRM" != "oui" ];then
+        echo -ne "${YELLOW}→ Confirm installation (yes/no): $RESET"; read -p "" CONFIRM &&
+        if [ "$CONFIRM" != "yes" ];then
             clean_exit
         fi
     fi

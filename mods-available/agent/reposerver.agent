@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 REPOSERVER_CONF="/etc/linupdate/modules/reposerver.conf"
 INOTIFY_RUNNING="no"
@@ -18,13 +18,13 @@ COUNTER="0"
 function general_checks {
     # Vérification de l'activation du module reposerver
     if [ ! -f "/opt/linupdate/mods-enabled/reposerver.mod" ];then
-        echo -e "[ ERREUR ] Le module reposerver n'est pas activé"
+        echo -e "[ ERROR ] Le module reposerver n'est pas activé"
         exit 1
     fi
 
     # Vérification de la présence d'un fichier de configuration pour le module reposerver
     if [ ! -f "$REPOSERVER_CONF" ];then
-        echo -e "[ ERREUR ] Aucun fichier de configuration n'a été trouvé : '$REPOSERVER_CONF'"
+        echo -e "[ ERROR ] Aucun fichier de configuration n'a été trouvé : '$REPOSERVER_CONF'"
         exit 1
     fi
 
@@ -36,7 +36,7 @@ function general_checks {
         LOGFILE="/var/log/apt/history.log"
 
     else
-        echo -e "[ ERREUR ] Aucun fichier de log pour dpkg ou yum n'a été trouvé sur cet hôte"
+        echo -e "[ ERROR ] Aucun fichier de log pour dpkg ou yum n'a été trouvé sur cet hôte"
         exit 1
     fi
 
@@ -49,7 +49,7 @@ function general_checks {
 
         REPOSERVER_IP=$(grep "^IP=" "$REPOSERVER_CONF" | sed 's/IP=//g' | sed 's/"//g')
         if [ -z "$REPOSERVER_IP" ];then
-            echo -e "[ ERREUR ] Impossible de déterminer l'adresse IP du serveur Repomanager"
+            echo -e "[ ERROR ] Impossible de déterminer l'adresse IP du serveur Repomanager"
             exit 1
         fi
     fi

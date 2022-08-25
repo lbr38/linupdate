@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # set -u
 export LC_ALL="fr_FR.UTF-8"
 export TERM="xterm-256color"
@@ -42,7 +42,7 @@ CONF_SOFT_EXCLUDE_MAJOR=""
 CONF_SOFT_EXCLUDE=""
 CONF_SOFT_NEED_RESTART=""
 # CONF_SOFT_KEEP_CRON=""
-HISTORIQUE="${BASE_DIR}/linupdate.historique"                              # Emplacement du fichier d'historique des mises à jour
+HISTORIQUE="${BASE_DIR}/linupdate.history"                                 # Emplacement du fichier d'historique des mises à jour
 if [ -f "${BASE_DIR}/linupdate" ];then
     MD5SUM="$(/usr/bin/md5sum ${BASE_DIR}/linupdate | awk '{print $1}')"   # md5sum de ce script
 fi
@@ -96,18 +96,18 @@ fi
 
 # Détection de l'utilisateur
 if [ "$(id -u)" -ne "0" ];then
-    echo -e "\n${YELLOW}Doit être exécuté avec sudo ${RESET}\n"
+    echo -e "\n${YELLOW}Must be executed with sudo ${RESET}\n"
     exit
 fi
 
 # Détection du système
-if [ -f "$FUNCTIONS/00_check-system" ];then
-    source "$FUNCTIONS/00_check-system"
-    checkSystem
-else
-    echo -e "[$YELLOW ERREUR $RESET] Impossible de détecter le système"
-    exit
-fi
+# if [ -f "$FUNCTIONS/00_check-system" ];then
+#     source "$FUNCTIONS/00_check-system"
+#     checkSystem
+# else
+#     echo -e "[$YELLOW ERROR $RESET] Cannot determine OS"
+#     exit
+# fi
 
 # Création des répertoires de base
 # Note : ne pas créer le répertorie fonctions ici puisque c'est lui qui détermine si le programme est installé ou non. Le répertoire est créé par selfInstall().
@@ -123,41 +123,40 @@ mkdir -p "$SERVICE_DIR"
 
 help() {
     echo -e "Paramètres disponibles :\n"
-    echo -e " Général :"
-    echo -e "  --version|-v                                 → Afficher la version du script et le mettre à jour si nouvelle version il y a,"
-    echo -e "  --vv|-vv                                     → Active le mode verbeux"
-    echo -e "  --check-updates|-cu                          → Vérifier et afficher les exclusions de paquets et les paquets qui seront mis à jour & quitter le script (ne mets pas à jour les paquets),"
-    echo -e "  --ignore-exclude|-ie                         → Ignore les exclusions et installe les paquets 'critiques' renseignés dans le fichier de conf linupdate.conf,"
-    echo -e "  --update|-u                                  → Mettre à jour manuellement linupdate vers la dernière version"
-    echo -e "  --enable-self-update|--enable-auto-update    → Activer la mise à jour automatique de linupdate"
-    echo -e "  --disable-self-update|--disable-auto-update  → Désactiver la mise à jour automatique de linupdate"
-    echo -e "  --install|--reinstall|-i                     → Installe ou réinstalle linupdate (entraine la suppression complète de l'installation actuelle)"
+    echo -e " Main:"
+    echo -e "  --vv|-vv                                     → Enable verbose mode"
+    echo -e "  --version|-v                                 → Print current version"
+    echo -e "  --update|-u                                  → Update linupdate to the last available release on github"
+    echo -e "  --enable-auto-update                         → Enable linupdate automatic update"
+    echo -e "  --disable-auto-update                        → Disable linupdate automatic update"
+    echo -e "  --install|--reinstall|-i                     → Install or reinstall linupdate (/!\ will delete actual configuration)"
+    echo -e "  --profile|--type|--print-profile PROFILE     → Configure host profile (leave empty to print actual)"
+    echo -e "  --environnement|--env ENV                    → Configure host environment (leave empty to print actual)"
     echo -e ""
-    echo -e " Profil :"
-    echo -e "  --profile|--type|--print-profile PROFILE     → Modifier le profil de configuration de l'hôte ou l'afficher (si rien n'est précisé)"
-    echo -e "  --environnement|--env                        → Modifier l'environnement de l'hôte ou l'afficher (si rien n'est précisé)"
+    echo -e " Package update configuration:"
+    echo -e "  --exclude-major|-em PACKAGE                  → Configure packages to exclude on major release update, separated by a comma. Specify 'none' to clean."
+    echo -e "  --exclude|-e PACKAGE                         → Configure packages to exclude, separated by a comma. Specify 'none' to clean."
     echo -e ""
-    echo -e " Exécution (mise à jour des paquets)"
-    echo -e "  --assume-yes|--force                         → Activer 'assume yes' (répondre 'yes' à chaque confirmation)"
-    echo -e "  --dist-upgrade|-du                           → Activer le paramètre dist-upgrade (Debian uniquement)"
-    echo -e "  --keep-oldconf|-ko                           → Lors d'une mise à jour impactant des fichiers de configurations, conserve l'ancien fichier de configuration plutôt que l'écraser (Debian uniquement)"
-    echo -e "  --exclude|-e PACKAGE                         → Liste des paquets à exclure, séparés par une virgule. Indiquer 'none' pour vider la liste."
-    echo -e "  --exclude-major|-em PACKAGE                  → Liste des paquets à exclure en cas de mise à jour majeure, séparés par une virgule. Indiquer 'none' pour vider la liste."
-    echo -e "  --ignore-exclude|-ie                         → Ignorer temporairement les exclusions de paquets configurées (met à jour tous les paquets disponibles)"
+    echo -e " Update execution (mise à jour des paquets)"
+    echo -e "  --check-updates|-cu                          → Check packages to be updated and quit"
+    echo -e "  --assume-yes|--force                         → Enable 'assume yes' (answer 'yes' to every confirm prompt)"
+    echo -e "  --dist-upgrade|-du                           → Enable 'dist-upgrade' for apt (Debian only)"
+    echo -e "  --keep-oldconf|-ko                           → Keep actual configuration file when attempting to be overwrited by apt during package update (Debian only)"
+    echo -e "  --ignore-exclude|-ie                         → Ignore all packages minor or major release update exclusions"
     echo -e ""
     echo -e " Modules"
-    echo -e "  --list-modules|--list-mod|-m                 → Lister les modules disponibles"
-    echo -e "  --mod-enable|-mod-enable|-me MODULE          → Activer le module spécifié"
-    echo -e "  --mod-disable|-mod-disable|-md MODULE        → Désactiver le module spécifié"
-    echo -e "  --mod-configure|-mc|--mod-exec MODULE        → Configurer le module spécifié (en combinaison avec les commandes spécifiques du module, voir la documentation du module)"
-    echo -e "  --mod-configure MODULE --help                → Afficher l'aide et les commandes du module"
+    echo -e "  --list-modules|--list-mod|-m                 → List available modules"
+    echo -e "  --mod-enable|-mod-enable|-me MODULE          → Enable specified module"
+    echo -e "  --mod-disable|-mod-disable|-md MODULE        → Disable specified module"
+    echo -e "  --mod-configure|-mc|--mod-exec MODULE        → Configure specified module (using module commands, see module help or documentation)"
+    echo -e "  --mod-configure MODULE --help                → Print module help"
     echo -e ""
     echo -e " Agent"
-    echo -e "  --agent-deploy|--deploy-agent                → Déployer l'agent linupdate"
-    echo -e "  --agent-start|--start-agent                  → Démarrer l'agent linupdate"
-    echo -e "  --agent-stop|--stop-agent                    → Stopper l'agent linupdate"
-    echo -e "  --agent-restart|--restart-agent              → Redémarrer l'agent linupdate"
-    echo -e "  --agent-enable|--enable-agent                → Activer l'agent linupdate au démarrage"
+    echo -e "  --agent-deploy|--deploy-agent                → Deploy linupdate agent"
+    echo -e "  --agent-start|--start-agent                  → Start linupdate agent"
+    echo -e "  --agent-stop|--stop-agent                    → Stop linupdate agent"
+    echo -e "  --agent-restart|--restart-agent              → Restart linupdate agent"
+    echo -e "  --agent-enable|--enable-agent                → Enable linupdate agent start on boot"
     echo -e ""
 }
 
@@ -212,6 +211,8 @@ if [ ! -d "$BASE_DIR" ] || [ ! -d "$BASE_DIR/functions" ];then
     checkDependencies
 fi
 
+checkSystem
+
 ## 2. Si aucun fichier de conf n'est présent dans /etc/linupdate/linupdate.conf, alors on procède à son installation
 if [ ! -f "$CONF" ];then
     mkdir -p "$ETC_DIR"
@@ -248,7 +249,7 @@ while [ $# -ge 1 ];do
             clean_exit
         ;;
         --version|-v|-V)
-            echo "Version : ${YELLOW}$VERSION${RESET}"
+            echo "Version: ${YELLOW}$VERSION${RESET}"
             clean_exit
         ;;
         -vv|--vv)
@@ -261,12 +262,12 @@ while [ $# -ge 1 ];do
             # Si rien n'a été précisé en 2nd paramètre alors on affiche simplement le profil actuel
             if [ -z "$2" ];then
                 PROFILE=$(grep "^PROFILE=" $CONF | sed 's/PROFILE=//g' | sed 's/"//g')
-                echo -e "Profil actuel : ${YELLOW}$PROFILE${RESET}"
+                echo -e "Current profile: ${YELLOW}$PROFILE${RESET}"
             else
             # Si un nom de profil a été précisé alors on modifie le profil actuel
                 if grep -q "PROFILE=" $CONF;then
                     sed -i "s/PROFILE=.*/PROFILE=\"$2\"/g" $CONF &&
-                    echo -e "Profil modifié : ${YELLOW}$2${RESET}"
+                    echo -e "Profil has been changed: ${YELLOW}$2${RESET}"
                 fi
             fi
             clean_exit
@@ -275,12 +276,12 @@ while [ $# -ge 1 ];do
             # Si rien n'a été précisé en 2nd paramètre alors on affiche simplement l'env actuel
             if [ -z "$2" ];then
                 ENV=$(grep "^ENV=" $CONF | sed 's/ENV=//g' | sed 's/"//g')
-                echo -e "Environnement actuel : ${YELLOW}$ENV${RESET}"
+                echo -e "Current environment: ${YELLOW}$ENV${RESET}"
             else
             # Si un nom d'env a été précisé alors on modifie l'env actuel
                 if grep -q "ENV=" $CONF;then
                     sed -i "s/ENV=.*/ENV=\"$2\"/g" $CONF &&
-                    echo -e "Environnement modifié : ${YELLOW}$2${RESET}"
+                    echo -e "Environment has been changed: ${YELLOW}$2${RESET}"
                 fi
             fi
             clean_exit
@@ -293,22 +294,11 @@ while [ $# -ge 1 ];do
         ;;
         --install|--reinstall|-i)
             if [ -d "/opt/linupdate" ];then
-                echo -n " Cette action entrainera la suppression complète de linupdate et de ses modules. Confirmer (yes/no) : "; read -p "" CONFIRM
+                echo -n " This action will delete the entire actual linupdate installation and its modules. Confirm (yes/no): "; read -p "" CONFIRM
                 if [ "$CONFIRM" != "yes" ];then clean_exit;fi
                 rm ${BASE_DIR} -rf
             fi
             selfInstall
-            clean_exit
-        ;;
-        --quick-install)
-            # Si un paramètre suit --quick-install, alors il s'agit du type de serveur qu'on souhaite installer, on le met dans $PROFILE
-            if [ ! -z $2 ];then
-                PROFILE="$2"
-            fi
-            if [ ! -z $3 ];then
-                SERVER_ENV="$3"
-            fi
-            quickConfig
             clean_exit
         ;;
         --list-modules|--list-mod|-m)
@@ -347,31 +337,44 @@ while [ $# -ge 1 ];do
         --mod-enable|-mod-enable|-me)
             MODULE=$2
             shift
-            if [ ! -f "${MODULES_DIR}/${MODULE}.mod" ];then echo "Erreur : module $MODULE inconnu"; clean_exit; fi
-            # Activation du module
+            if [ ! -f "${MODULES_DIR}/${MODULE}.mod" ];then
+                echo "Error: unknown module ${YELLOW}${MODULE}${RESET}"
+                clean_exit
+            fi
+
+            # Enable module
             source "${MODULES_DIR}/${MODULE}.mod"
             mod_enable &&
-            echo -e "Module ${YELLOW}${MODULE}${RESET} activé"
+            echo -e "Module ${YELLOW}${MODULE}${RESET} enabled"
             clean_exit
         ;;
         --mod-disable|-mod-disable|-md)
             MODULE=$2
             shift
-            if [ ! -f "${MODULES_DIR}/${MODULE}.mod" ];then echo "Erreur : module $MODULE inconnu"; clean_exit; fi
+            if [ ! -f "${MODULES_DIR}/${MODULE}.mod" ];then
+                echo "Error: unknown module ${YELLOW}${MODULE}${RESET}"
+                clean_exit
+            fi
+
+            # Disable module
             source "${MODULES_DIR}/${MODULE}.mod"
             mod_disable &&
-            echo -e "Module ${YELLOW}${MODULE}${RESET} désactivé"
+            echo -e "Module ${YELLOW}${MODULE}${RESET} disabled"
             clean_exit
         ;;
         --mod-configure|-mc|--mod-exec)
             getConf
             MODULE=$2
             shift
-            if [ ! -f "${MODULES_DIR}/${MODULE}.mod" ];then echo "Erreur : module $MODULE inconnu"; clean_exit; fi
-            # Activation du module
+            if [ ! -f "${MODULES_DIR}/${MODULE}.mod" ];then
+                echo "Error: unknown module ${YELLOW}${MODULE}${RESET}"
+                clean_exit
+            fi
+
+            # Configure module
             source "${MODULES_DIR}/${MODULE}.mod"
             mod_configure $@ &&
-            echo -e "Module ${YELLOW}${MODULE}${RESET} configuré"
+            echo -e "Module ${YELLOW}${MODULE}${RESET} configured"
             clean_exit
         ;;
         --agent-deploy|--deploy-agent)
@@ -398,16 +401,16 @@ while [ $# -ge 1 ];do
             disableAgent
             clean_exit
         ;;
-        --enable-self-update|--enable-auto-update)
+        --enable-auto-update)
             enableSelfUpdate
             clean_exit
         ;;
-        --disable-self-update|--disable-auto-update)
+        --disable-auto-update)
             disableSelfUpdate
             clean_exit
         ;;
         *)
-            echo "Paramètre inconnu: $1"
+            echo "Unknown parameter: $1"
             help
             clean_exit
         ;;
@@ -441,20 +444,20 @@ loadModules
 # Exécution des modules pre mise à jour
 execPreModules
 
-echo -e " Nom d'hôte :      ${YELLOW}${HOSTNAME}${RESET}"
-echo -e " OS :              ${YELLOW}${OS_NAME} $OS_VERSION ${RESET}"
-echo -e " Kernel :          ${YELLOW}$KERNEL ${ARCH}${RESET}"
+echo -e " Hostname:        ${YELLOW}${HOSTNAME}${RESET}"
+echo -e " OS:              ${YELLOW}${OS_NAME} $OS_VERSION ${RESET}"
+echo -e " Kernel:          ${YELLOW}$KERNEL ${ARCH}${RESET}"
 if [ ! -z "$VIRT_TYPE" ];then
-    echo -e " Virtualisation :  ${YELLOW}${VIRT_TYPE}${RESET}"
+    echo -e " Virtualisation:  ${YELLOW}${VIRT_TYPE}${RESET}"
 fi
-echo -e " Profil :          ${YELLOW}${PROFILE}${RESET}"
-echo -e " Environnement :   ${YELLOW}${SERVER_ENV}${RESET}"
-echo -e " Exécution le :    ${YELLOW}${DATE_DMY} à ${TIME}${RESET}"
-echo -ne " Exécuté par :    ${YELLOW} "; whoami; echo -ne "${RESET}"
+echo -e " Profile:          ${YELLOW}${PROFILE}${RESET}"
+echo -e " Environment:      ${YELLOW}${SERVER_ENV}${RESET}"
+echo -e " Executed on:      ${YELLOW}${DATE_DMY} à ${TIME}${RESET}"
+echo -ne " Executed by:     ${YELLOW} "; whoami; echo -ne "${RESET}"
 if [ -t 0 ];then
-    echo -e " Exécution :       ${YELLOW}manuelle${RESET}"
+    echo -e " Execution:       ${YELLOW}manual${RESET}"
 else
-    echo -e " Exécution :       ${YELLOW}automatique (cron)${RESET}"
+    echo -e " Execution:       ${YELLOW}automatic (no tty)${RESET}"
 fi
 
 # Vérification des paquets à exclure avant de lancer la mise à jour
@@ -482,7 +485,7 @@ execPostModules
 # Redémarrage des services post-mise à jour
 restartService
 
-echo -e "\nOpération terminée\n" 
+echo -e "\Operation completed\n" 
 
 # Envoi du rapport final par mail
 sendMail

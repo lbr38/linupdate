@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 function enableSelfUpdate
 {
@@ -8,5 +8,5 @@ function enableSelfUpdate
 
     sed -i 's/ALLOW_SELF_UPDATE.*/ALLOW_SELF_UPDATE="yes"/g' "$CONF" &&
 
-    echo -e "Mise à jour automatique de linupdate ${YELLOW}activée${RESET}"
+    echo -e "Linupdate automatic update ${YELLOW}enabled${RESET}"
 }

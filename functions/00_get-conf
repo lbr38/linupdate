@@ -1,11 +1,11 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Récupération de la conf renseignée dans linupdate.conf
 
 function getConf
 {
 	# Si le fichier de configuration n'existe pas alors on quitte
     if [ ! -f "$CONF" ];then
-        echo -e "[${YELLOW} ERREUR ${RESET}] Aucun fichier de conf n'est présent sur ce serveur. Utiliser le paramètre --install pour finaliser l'installation de ce script.\n"
+        echo -e "[${YELLOW} ERROR ${RESET}] No config file was found on this server. Use --install param to finalize linupdate installation.\n"
         (( UPDATE_ERROR++ ))
         # On supprime le fichier de log, inutile
         rm "$LOG" -f
@@ -22,11 +22,13 @@ function getConf
     CONF_SOFT_NEED_RESTART=$(egrep "^NEED_RESTART=" "$CONF" | cut -d'=' -f 2 | sed 's/"//g')    # Paquets critiques ou non à redémarrer
 
     if [ -z "$PROFILE" ];then
-        echo -e "[${RED} ERREUR ${RESET}] Le paramètre PROFILE n'est pas renseigné dans le fichier de conf\n";(( UPDATE_ERROR++ ))
+        echo -e "[${RED} ERROR ${RESET}] No profile is defined\n"
+        (( UPDATE_ERROR++ ))
         clean_exit
     fi
     if [ -z "$SERVER_ENV" ];then
-        echo -e "[${RED} ERREUR ${RESET}] Le paramètre ENV n'est pas renseigné dans le fichier de conf\n";(( UPDATE_ERROR++ ))
+        echo -e "[${RED} ERROR ${RESET}] No env is defined\n"
+        (( UPDATE_ERROR++ ))
         clean_exit
     fi
 }
