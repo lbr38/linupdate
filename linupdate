@@ -122,7 +122,7 @@ mkdir -p "$SERVICE_DIR"
 ## ↓ FONCTIONS ↓ ##
 
 help() {
-    echo -e "Paramètres disponibles :\n"
+    echo -e "Available parameters:\n"
     echo -e " Main:"
     echo -e "  --vv|-vv                                     → Enable verbose mode"
     echo -e "  --version|-v                                 → Print current version"
@@ -133,11 +133,11 @@ help() {
     echo -e "  --profile|--type|--print-profile PROFILE     → Configure host profile (leave empty to print actual)"
     echo -e "  --environnement|--env ENV                    → Configure host environment (leave empty to print actual)"
     echo -e ""
-    echo -e " Package update configuration:"
+    echo -e " Package update configuration"
     echo -e "  --exclude-major|-em PACKAGE                  → Configure packages to exclude on major release update, separated by a comma. Specify 'none' to clean."
     echo -e "  --exclude|-e PACKAGE                         → Configure packages to exclude, separated by a comma. Specify 'none' to clean."
     echo -e ""
-    echo -e " Update execution (mise à jour des paquets)"
+    echo -e " Update execution"
     echo -e "  --check-updates|-cu                          → Check packages to be updated and quit"
     echo -e "  --assume-yes|--force                         → Enable 'assume yes' (answer 'yes' to every confirm prompt)"
     echo -e "  --dist-upgrade|-du                           → Enable 'dist-upgrade' for apt (Debian only)"
@@ -444,20 +444,20 @@ loadModules
 # Exécution des modules pre mise à jour
 execPreModules
 
-echo -e " Hostname:        ${YELLOW}${HOSTNAME}${RESET}"
-echo -e " OS:              ${YELLOW}${OS_NAME} $OS_VERSION ${RESET}"
-echo -e " Kernel:          ${YELLOW}$KERNEL ${ARCH}${RESET}"
+echo -e " Hostname:         ${YELLOW}${HOSTNAME}${RESET}"
+echo -e " OS:               ${YELLOW}${OS_NAME} $OS_VERSION ${RESET}"
+echo -e " Kernel:           ${YELLOW}$KERNEL ${ARCH}${RESET}"
 if [ ! -z "$VIRT_TYPE" ];then
-    echo -e " Virtualisation:  ${YELLOW}${VIRT_TYPE}${RESET}"
+    echo -e " Virtualization:   ${YELLOW}${VIRT_TYPE}${RESET}"
 fi
 echo -e " Profile:          ${YELLOW}${PROFILE}${RESET}"
 echo -e " Environment:      ${YELLOW}${SERVER_ENV}${RESET}"
-echo -e " Executed on:      ${YELLOW}${DATE_DMY} à ${TIME}${RESET}"
+echo -e " Executed on:      ${YELLOW}${DATE_DMY} at ${TIME}${RESET}"
 echo -ne " Executed by:     ${YELLOW} "; whoami; echo -ne "${RESET}"
 if [ -t 0 ];then
-    echo -e " Execution:       ${YELLOW}manual${RESET}"
+    echo -e " Execution:        ${YELLOW}manual${RESET}"
 else
-    echo -e " Execution:       ${YELLOW}automatic (no tty)${RESET}"
+    echo -e " Execution:        ${YELLOW}automatic (no tty)${RESET}"
 fi
 
 # Vérification des paquets à exclure avant de lancer la mise à jour

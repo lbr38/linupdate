@@ -3,10 +3,10 @@
 
 function configure
 {
-    echo -e "This software is intended to interactively or automatically update your Linux system."
-    echo -e "Additional modules can be enabled to bring additional features."
+    echo -e "\n This software is intended to interactively or automatically update your Linux system."
+    echo -e " Additional modules can be enabled to bring additional features."
 
-    echo -ne "\n${YELLOW} Start installation now? (yes/no) : $RESET"; read -p "" CONFIRM &&
+    echo -ne "\n${YELLOW} Start installation now? (yes/no): $RESET"; read -p "" CONFIRM &&
     if [ "$CONFIRM" != "yes" ];then
         clean_exit
     fi
@@ -29,7 +29,7 @@ function configure
         PROFILE="Host"
     fi
 
-    echo -ne " Specify host environment (default: prod) : ";read -p "" SERVER_ENV
+    echo -ne " Specify host environment (default: prod): ";read -p "" SERVER_ENV
     # Si laissé vide, on met une valeur par défaut (prod)
     if [ -z "$SERVER_ENV" ];then
         SERVER_ENV="prod"
@@ -43,12 +43,12 @@ function configure
         MAIL_ENABLED="no"
     fi
 
-    echo -ne " Automatically check and install new available release of this program (yes/no) : ";read -p "" ALLOW_SELF_UPDATE
+    echo -ne " Automatically check and install new available release of this program (yes/no): ";read -p "" ALLOW_SELF_UPDATE
 
     # Configuration des exclusions
-    echo -ne " Specify what package to exclude on major version update (separated by a comma) (leave empty if none) : ";read -p "" CONF_SOFT_EXCLUDE_MAJOR
-    echo -ne " Specify what package to exclude no matter the version (separated by a comma) (leave empty if none) : ";read -p "" CONF_SOFT_EXCLUDE
-    echo -ne " Specify what service to restart after package update (leave empty if none) : ";read -p "" CONF_SOFT_NEED_RESTART
+    echo -ne " Specify what package to exclude on major version update (separated by a comma) (leave empty if none): ";read -p "" CONF_SOFT_EXCLUDE_MAJOR
+    echo -ne " Specify what package to exclude no matter the version (separated by a comma) (leave empty if none): ";read -p "" CONF_SOFT_EXCLUDE
+    echo -ne " Specify what service to restart after package update (leave empty if none): ";read -p "" CONF_SOFT_NEED_RESTART
 
     # Génération du fichier de configuration
     echo -ne "\nGenerating configuration file: "
@@ -66,7 +66,7 @@ function configure
     # echo "KEEP_CRON=\"no\"" >> $CONF
     echo -e "[$GREEN OK $RESET]\n"
 
-    echo -ne "Execute linupdate now? (yes/no) : ";read -p "" CONFIRM
+    echo -ne "Execute linupdate now? (yes/no): ";read -p "" CONFIRM
     if [ "$CONFIRM" != "yes" ];then
         clean_exit
     fi

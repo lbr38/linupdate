@@ -14,7 +14,7 @@ function checkDependencies
         CHECK_DEP=$(dpkg -l | grep " apt-transport-https " | grep "ii")
         if [ -z "$CHECK_DEP" ];then
             apt-get -o Acquire::Check-Valid-Until=false -qq --allow-releaseinfo-change update &&
-            echo -ne "Installing apt-transport-https\t" &&
+            echo -ne " Installing apt-transport-https\t" &&
             apt-get -qq install apt-transport-https -y > /dev/null &&
             echo -e "[$GREEN OK $RESET]"
         fi
@@ -22,7 +22,7 @@ function checkDependencies
         CHECK_DEP=$(dpkg -l | grep " aptitude " | grep "ii")
         if [ -z "$CHECK_DEP" ];then
             apt-get -o Acquire::Check-Valid-Until=false -qq --allow-releaseinfo-change update &&
-            echo -ne "Installing aptitude\t" &&
+            echo -ne " Installing aptitude\t" &&
             apt-get -qq install aptitude -y > /dev/null &&
             echo -e "[$GREEN OK $RESET]"
         fi
@@ -30,35 +30,35 @@ function checkDependencies
         CHECK_DEP=$(dpkg -l | grep " mutt " | grep "ii")
         if [ -z "$CHECK_DEP" ];then
             apt-get -o Acquire::Check-Valid-Until=false -qq --allow-releaseinfo-change update &&
-            echo -ne "Installing mutt\t" &&
+            echo -ne " Installing mutt\t" &&
             apt-get -qq install mutt -y > /dev/null &&
             echo -e "[$GREEN OK $RESET]"
         fi
         # locales
         CHECK_DEP=$(dpkg -l | grep " locales " | grep "ii")
         if [ -z "$CHECK_DEP" ];then
-            echo -ne "Installing locales\t" &&
+            echo -ne " Installing locales\t" &&
             apt-get -qq install locales -y > /dev/null &&
             echo -e "[$GREEN OK $RESET]"
         fi
         # ngrep
         CHECK_DEP=$(dpkg -l | grep " ngrep " | grep "ii")
         if [ -z "$CHECK_DEP" ];then
-            echo -ne "Installing ngrep\t" &&
+            echo -ne " Installing ngrep\t" &&
             apt-get -qq install ngrep -y > /dev/null &&
             echo -e "[$GREEN OK $RESET]"
         fi
         # jq
         CHECK_DEP=$(dpkg -l | grep " jq " | grep "ii")
         if [ -z "$CHECK_DEP" ];then
-            echo -ne "Installing jq\t" &&
+            echo -ne " Installing jq\t" &&
             apt-get -qq install jq -y > /dev/null &&
             echo -e "[$GREEN OK $RESET]"
         fi
         # inotify
         CHECK_DEP=$(dpkg -l | grep " inotify-tools " | grep "ii")
         if [ -z "$CHECK_DEP" ];then
-            echo -ne "Installing inotify-tools\t" &&
+            echo -ne " Installing inotify-tools\t" &&
             apt-get -qq install inotify-tools -y > /dev/null &&
             echo -e "[$GREEN OK $RESET]"
         fi
@@ -66,7 +66,7 @@ function checkDependencies
         CHECK_DEP=$(dpkg -l | grep " virt-what " | grep "ii")
         if [ -z "$CHECK_DEP" ];then
             apt-get -o Acquire::Check-Valid-Until=false -qq --allow-releaseinfo-change update &&
-            echo -ne "Installing virt-what\t" &&
+            echo -ne " Installing virt-what\t" &&
             apt-get -qq install virt-what -y > /dev/null &&
             echo -e "[$GREEN OK $RESET]"
         fi
@@ -85,42 +85,42 @@ function checkDependencies
         # mutt
         CHECK_DEP=$(rpm -qa mutt)
         if [ -z "$CHECK_DEP" ];then
-            echo -ne "Installing mutt\t" &&
+            echo -ne " Installing mutt\t" &&
             yum install mutt -y > /dev/null &&
             echo -e "[$GREEN OK $RESET]"
         fi
         # yum-utils
         CHECK_DEP=$(rpm -qa yum-utils)
         if [ -z "$CHECK_DEP" ];then
-            echo -ne "Installing yum-utils\t" &&
+            echo -ne " Installing yum-utils\t" &&
             yum install yum-utils -y > /dev/null &&
             echo -e "[$GREEN OK $RESET]"
         fi
         # jq
         CHECK_DEP=$(rpm -qa jq)
         if [ -z "$CHECK_DEP" ];then
-            echo -ne "Installing jq\t" &&
+            echo -ne " Installing jq\t" &&
             yum install jq -y > /dev/null &&
             echo -e "[$GREEN OK $RESET]"
         fi
         # inotify
         CHECK_DEP=$(rpm -qa inotify-tools)
         if [ -z "$CHECK_DEP" ];then
-            echo -ne "Installing inotify-tools\t" &&
+            echo -ne " Installing inotify-tools\t" &&
             yum install inotify-tools -y > /dev/null &&
             echo -e "[$GREEN OK $RESET]"
         fi
         # ngrep
         CHECK_DEP=$(rpm -qa ngrep)
         if [ -z "$CHECK_DEP" ];then
-            echo -ne "Installing ngrep\t" &&
+            echo -ne " Installing ngrep\t" &&
             yum install ngrep -y > /dev/null &&
             echo -e "[$GREEN OK $RESET]"
         fi
         # virt-what
         CHECK_DEP=$(rpm -qa virt-what)
         if [ -z "$CHECK_DEP" ];then
-            echo -ne "Installing virt-what\t" &&
+            echo -ne " Installing virt-what\t" &&
             yum install virt-what -y > /dev/null &&
             echo -e "[$GREEN OK $RESET]"
         fi
