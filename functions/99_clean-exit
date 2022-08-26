@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Nettoyage et fin du script
 # Mettre ici tous les fichiers ou répertoires à nettoyer avant l'arrêt du script

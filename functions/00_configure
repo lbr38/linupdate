@@ -1,58 +1,58 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Si il s'agit de la première configuration du script
 
 function configure
 {
-    echo -e "Ce programme est destiné à mettre à jour votre système de manière interactive ou automatique."
-    echo -e "Un certain nombre de modules complémentaires peuvent être ajoutés afin d'apporter des fonctionnalités supplémentaires"
+    echo -e "This software is intended to interactively or automatically update your Linux system."
+    echo -e "Additional modules can be enabled to bring additional features."
 
-    echo -ne "\n${YELLOW} Souhaitez-vous commencer l'installation ? (yes/no) : $RESET"; read -p "" CONFIRM &&
+    echo -ne "\n${YELLOW} Start installation now? (yes/no) : $RESET"; read -p "" CONFIRM &&
     if [ "$CONFIRM" != "yes" ];then
         clean_exit
     fi
 
     # Vérifications avant de commencer
     if [ -z "$OS_FAMILY" ];then
-        echo -e "[$YELLOW ERREUR $RESET] OS non reconnu"
+        echo -e "[$YELLOW ERROR $RESET] Unknown OS"
         clean_exit
     fi
     if [ -z "$PKG_MANAGER" ];then
-        echo -e "[$YELLOW ERREUR $RESET] Gestionnaire de paquets non reconnu"
+        echo -e "[$YELLOW ERROR $RESET] Unknown package manager"
         clean_exit
     fi
 
     # Configuration générale
-    echo -e "\n ${YELLOW}Configuration générale\n${RESET}"
+    echo -e "\n ${YELLOW}Main configuration\n${RESET}"
 
-    echo -ne " Quel est le profil de ce serveur ou de cette machine (exemple : front, back, db, PC,...) : ";read -p "" PROFILE
+    echo -ne " Specify a host's configuration profile (e.g: app, db, PC,...) or leave empty: ";read -p "" PROFILE
     if [ -z "$PROFILE" ];then
         PROFILE="Host"
     fi
 
-    echo -ne " Indiquez l'environnement de ce serveur (par defaut : prod) : ";read -p "" SERVER_ENV
+    echo -ne " Specify host environment (default: prod) : ";read -p "" SERVER_ENV
     # Si laissé vide, on met une valeur par défaut (prod)
     if [ -z "$SERVER_ENV" ];then
         SERVER_ENV="prod"
     fi
 
-    echo -ne " Recevoir les rapports de mise à jour et d'erreurs par mail (yes/no) : ";read -p "" CONFIRM
+    echo -ne " Receive update reports by mail (yes/no) : ";read -p "" CONFIRM
     if [ "$CONFIRM" == "yes" ];then 
         MAIL_ENABLED="yes"
-        echo -ne " Sur quelle adresse mail envoyer les rapports ? : ";read -p "" MAIL_RECIPIENT
+        echo -ne " Specify mail recipient(s) where to end those reports (separated by a comma): ";read -p "" MAIL_RECIPIENT
     else
         MAIL_ENABLED="no"
     fi
 
-    echo -ne " Vérifier et installer automatiquement les mises à jour de ce script à chaque exécution (yes/no) : ";read -p "" ALLOW_SELF_UPDATE
+    echo -ne " Automatically check and install new available release of this program (yes/no) : ";read -p "" ALLOW_SELF_UPDATE
 
     # Configuration des exclusions
-    echo -ne " Indiquez les paquets à exclure en cas de mise à jour majeure (laisser vide si N/A) : ";read -p "" CONF_SOFT_EXCLUDE_MAJOR
-    echo -ne " Indiquez les paquets à exclure dans tous les cas (laisser vide si N/A) : ";read -p "" CONF_SOFT_EXCLUDE
-    echo -ne " Indiquez les paquets nécessitant un redémarrage de service si mis à jour (laisser vide si N/A) : ";read -p "" CONF_SOFT_NEED_RESTART
+    echo -ne " Specify what package to exclude on major version update (separated by a comma) (leave empty if none) : ";read -p "" CONF_SOFT_EXCLUDE_MAJOR
+    echo -ne " Specify what package to exclude no matter the version (separated by a comma) (leave empty if none) : ";read -p "" CONF_SOFT_EXCLUDE
+    echo -ne " Specify what service to restart after package update (leave empty if none) : ";read -p "" CONF_SOFT_NEED_RESTART
 
     # Génération du fichier de configuration
-    echo -ne "\nGénération du fichier de conf : "
-    echo -e "# Fichier de conf de linupdate pour $HOSTNAME" > $CONF
+    echo -ne "\nGenerating configuration file: "
+    echo -e "# Configuration file for linupdate on $HOSTNAME" > $CONF
     echo "[CONFIGURATION]" >> $CONF
     echo "PROFILE=\"$PROFILE\"" >> $CONF
     echo "ENV=\"$SERVER_ENV\"" >> $CONF
@@ -66,7 +66,7 @@ function configure
     # echo "KEEP_CRON=\"no\"" >> $CONF
     echo -e "[$GREEN OK $RESET]\n"
 
-    echo -ne "Exécuter linupdate ? (yes/no) : ";read -p "" CONFIRM
+    echo -ne "Execute linupdate now? (yes/no) : ";read -p "" CONFIRM
     if [ "$CONFIRM" != "yes" ];then
         clean_exit
     fi

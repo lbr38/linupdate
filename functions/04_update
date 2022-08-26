@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 function update
 {
@@ -10,8 +10,9 @@ function update
 
     # Fonction lançant les mises à jour yum
     {
-        echo -e "\nMises à jour en cours..."
-        echo -ne "Nettoyage du cache au préalable : "
+        echo -e "\nUpdate is running..."
+
+        echo -ne "Cleaning cache: "
         if [ "$OS_FAMILY" == "Redhat" ];then
             checkYumLock
             yum clean all -q
@@ -21,7 +22,7 @@ function update
         fi
         echo -e "[$GREEN OK $RESET]"
 
-        echo -e "\nInstallation des mises à jour :"
+        # echo -e "\nInstallation des mises à jour :"
 
         # Si c'est du Debian, on charge la liste des paquets
         if [ "$OS_FAMILY" == "Debian" ];then
@@ -34,11 +35,12 @@ function update
 				yum --exclude=${UPDATE_EXCLUDE} update -y
 			fi
             if [ "$OS_FAMILY" == "Debian" ];then
-                echo -e "\nExclusion des paquets critiques : $YELLOW"
+                echo -e "\nExcluding critical packages: $YELLOW"
                 IFS=' ' # Dans $UPDATE_EXCLUDE le séparateur est un espace
                 for PACKAGE in ${UPDATE_EXCLUDE[@]};do # Attention ne pas placer de double quote sur cette variable
                     apt-mark hold "$PACKAGE"
                 done
+
                 echo -e "$RESET"
                 # Puis on met à jour, plusieurs cas possible avec Debian : mise à jour normale ou dist-upgrade ; écrasement des fichiers de conf ou conservation 
                 if   [ "$DIST_UPGRADE" -eq "1" ] && [ "$KEEP_OLDCONF" -eq "0" ];then apt-get dist-upgrade -y
@@ -58,10 +60,10 @@ function update
                 fi
             fi
         fi &&
-        echo -e "\nMises à jour terminées"
+        echo -e "\n${GREEN}Update completed${RESET}"
         
     } || { # Si une commande échoue
-        echo -e "\nMises à jour échouées"
+        echo -e "\n${YELLOW}Update has failed${RESET}"
         (( UPDATE_ERROR++ ))    # On incrémente $UPDATE_ERROR
     }
 }

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 function disableSelfUpdate
 {
@@ -8,5 +8,5 @@ function disableSelfUpdate
 
     sed -i 's/ALLOW_SELF_UPDATE.*/ALLOW_SELF_UPDATE="no"/g' "$CONF" &&
 
-    echo -e "Mise à jour automatique de linupdate ${YELLOW}désactivée${RESET}"
+    echo -e "Linupdate automatic update ${YELLOW}disabled${RESET}"
 }

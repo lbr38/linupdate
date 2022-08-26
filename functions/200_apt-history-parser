@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 function apt_multiple_event_parser
 {
@@ -75,7 +75,7 @@ function aptHistoryParser
 
     # Il faut fournir l'Id de l'évènement (sa date de début) à parser
     if [ -z "$START_DATE" ];then
-        echo -e "[$YELLOW ERREUR $RESET] Aucun Id d'évènement apt n'a été spécifié";
+        echo -e "[$YELLOW ERROR $RESET] No apt event Id has been specified";
         return
     fi
 

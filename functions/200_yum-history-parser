@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 function yumHistoryParser
 {
@@ -7,7 +7,7 @@ function yumHistoryParser
 
     # Il faut fournir l'Id de la transaction yum à parser
     if [ -z "$YUM_HISTORY_ID" ];then
-        echo -e "[$YELLOW ERREUR $RESET] Aucun Id de transaction yum n'a été spécifié";
+        echo -e "[$YELLOW ERROR $RESET] No yum transaction Id has been specified";
         return
     fi
 

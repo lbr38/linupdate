@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Module reposerver
 # Module permettant de se ratacher à un serveur de repo exécutant repomanager 
 
@@ -15,7 +15,7 @@ function register
     getModConf
 
     if [ -z "$REPOSERVER_URL" ];then
-        echo -e " [$YELLOW ERREUR $RESET] Impossible de s'enregistrer auprès du serveur Repomanager. Vous devez configurer l'url du serveur."
+        echo -e " [$YELLOW ERROR $RESET] Cannot register to reposerver. You must configure target reposerver URL."
         ERROR_STATUS=1
         clean_exit
     fi
@@ -25,11 +25,11 @@ function register
 
     # Tentative d'enregistrement
     # Si l'enregistrement fonctionne, on récupère un id et un token
-    echo -ne " Enregistrement auprès de ${YELLOW}${REPOSERVER_URL}${RESET} : "
+    echo -ne " Registering to ${YELLOW}${REPOSERVER_URL}${RESET}: "
     REGISTER_HOSTNAME=$(hostname -f)
 
     if [ -z "$REGISTER_HOSTNAME" ];then
-        echo -e "[$YELLOW ERREUR $RESET] Impossible de déterminer le nom d'hôte de cette machine"
+        echo -e "[$YELLOW ERROR $RESET] Cannot determine this host's hostname."
         ERROR_STATUS=1
         clean_exit
     fi
@@ -38,7 +38,7 @@ function register
     if [ -z "$REGISTER_IP" ];then
         REGISTER_IP=$(curl -s -4 ifconfig.co)
         if [ -z "$REGISTER_IP" ];then
-            echo -e "[$YELLOW ERREUR $RESET] Impossible de déterminer l'adresse IP de cette machine"
+            echo -e "[$YELLOW ERROR $RESET] Cannot determine this host's IP address."
             ERROR_STATUS=1
             clean_exit
         fi
@@ -60,14 +60,14 @@ function register
 
     # Si l'enregistrement a été effectué, on vérifie qu'on a bien pu récupérer un id
     if [ -z "$REGISTER_ID" ] || [ "$REGISTER_ID" == "null" ];then
-        echo -e "[$YELLOW ERREUR $RESET] Impossible de récupérer un id d'authentification suite à l'enregistrement."
+        echo -e "[$YELLOW ERROR $RESET] Unable to retrieve an authentication Id from registering."
         ERROR_STATUS=1
         clean_exit
     fi
 
     # Si l'enregistrement a été effectué, on vérifie qu'on a bien pu récupérer un token
     if [ -z "$REGISTER_TOKEN" ] || [ "$REGISTER_TOKEN" == "null" ];then
-        echo -e "[$YELLOW ERREUR $RESET] Impossible de récupérer un token suite à l'enregistrement."
+        echo -e "[$YELLOW ERROR $RESET]Unable to retrieve an authentication token from registering."
         ERROR_STATUS=1
         clean_exit
     fi
@@ -86,21 +86,21 @@ function unregister
     # Si la configuration est incomplète alors on quitte
     getModConf
     if [ -z "$REPOSERVER_URL" ];then
-        echo -e " [$YELLOW ERREUR $RESET] Impossible de supprimer l'enregistrement auprès du serveur Repomanager. Vous devez configurer l'url du serveur."
+        echo -e " [$YELLOW ERROR $RESET] Cannot delete registering from reposerver. You must configure target reposerver URL."
         ERROR_STATUS=1
         clean_exit
     fi
 
     # Si pas d'ID configuré alors on quitte
     if [ -z "$HOST_ID" ];then
-        echo -e " [$YELLOW ERREUR $RESET] Aucun ID d'authentification n'est configuré sur cet hôte."
+        echo -e " [$YELLOW ERROR $RESET] This host has no authentication Id."
         ERROR_STATUS=1
         clean_exit
     fi
 
     # Si pas de token configuré alors on quitte
     if [ -z "$TOKEN" ];then
-        echo -e " [$YELLOW ERREUR $RESET] Aucun token d'authentification n'est configuré sur cet hôte."
+        echo -e " [$YELLOW ERROR $RESET] This host has no authentication token."
         ERROR_STATUS=1
         clean_exit
     fi
@@ -109,7 +109,7 @@ function unregister
     testConnection
 
     # Tentative de suppression de l'enregistrement
-    echo -ne " Suppression de l'enregistrement auprès de ${YELLOW}${REPOSERVER_URL}${RESET} : "
+    echo -ne " Unregistering from ${YELLOW}${REPOSERVER_URL}${RESET}: "
     CURL=$(curl -s -q -H "Content-Type: application/json" -X DELETE -d "{\"id\":\"$HOST_ID\", \"token\":\"$TOKEN\"}" "${REPOSERVER_URL}/api/hosts" 2> /dev/null)
  
     # Parsage de la réponse et affichage des messages si il y en a
@@ -130,7 +130,7 @@ function testConnection
     # On teste l'accès à l'url avec un curl pour vérifier que le serveur est joignable
     # if ! curl -s -q -H "Content-Type: application/json" -X GET "${REPOSERVER_URL}/api/hosts/get.php" 2> /dev/null;then
     if ! curl -s -q -H "Content-Type: application/json" -X GET -d "{\"status\":\"\"}" "${REPOSERVER_URL}/api/hosts" 2> /dev/null;then
-        echo -e " [$YELLOW ERREUR $RESET] Impossible de joindre le serveur Repomanager à l'adresse $REPOSERVER_URL"
+        echo -e " [$YELLOW ERROR $RESET] Cannot reach reposerver from $REPOSERVER_URL"
         ERROR_STATUS=1
         clean_exit
     fi
@@ -150,7 +150,7 @@ function curl_result_parse
 
     # Si le code retour est vide il y a probablement eu une erreur côté serveur.
     if [ -z "$UPDATE_RETURN" ];then
-        echo -e "[$YELLOW ERREUR $RESET] Le serveur n'a renvoyé aucun code retour, erreur inconnue."
+        echo -e "[$YELLOW ERROR $RESET] Reposerver has sent no return code, unknown error."
         ERROR_STATUS=1
         CURL_ERROR=1
         return
@@ -169,7 +169,7 @@ function curl_result_parse
 
         # $UPDATE_MESSAGE_ERROR est un array pouvant contenir plusieurs messages d'erreurs
         for MESSAGE in "${UPDATE_MESSAGE_ERROR[@]}"; do
-            echo -e "[$YELLOW ERREUR $RESET] $MESSAGE"
+            echo -e "[$YELLOW ERROR $RESET] $MESSAGE"
         done
         ERROR_STATUS=1
         CURL_ERROR=2
@@ -193,33 +193,33 @@ function curl_result_parse
 # Aide
 function mod_help
 {
-    echo -e "Paramètres du module ${YELLOW}reposerver${RESET} :\n\n"
-    echo -e " Général :"
-    echo -e "  --url http(s)://...           → Configurer l'URL du serveur Repomanager distant"
-    echo -e "  --fail-level 1|2|3            → Défini la criticité d'erreur du module (entre 1 et 3)"
-    echo -e "                                  1 : linupdate s'arrête à la moindre erreur (module désactivé, le serveur ne gère pas le même type de paquet que cet hôte, erreur mineure ou critique)"
-    echo -e "                                  2 : linupdate s'arrête seulement en cas d'erreur critique (continue en cas d'erreur mineure)"
-    echo -e "                                  3 : continue l'exécution de linupdate même en cas d'erreur critique (eg: impossible de récupérer le profil de configuration auprès de Repomanager)"
-    echo -e "  --allow-conf-update yes|no    → Autorise ou non le serveur Repomanager à définir les paquets à exclure sur l'hôte"
-    echo -e "  --allow-repos-update yes|no   → Autorise ou non le serveur Repomanager à définir les fichiers de repos (.repo ou .list) à configurer sur l'hôte"
-    echo -e "  --allow-overwrite yes|no      → Autorise ou non le serveur Repomanager à modifier les deux paramètres précédents (yes ou no)"
-    echo -e "  --get-server-conf             → Récupère la configuration du serveur Repomanager distant."
-    echo -e "  --get-profile-conf            → Récupère la configuration générale du profil auprès du serveur Repomanager distant."
-    echo -e "  --get-profile-repos           → Récupère la configuration des repos du profil auprès du serveur Repomanager distant."
-    echo -e "  --register                    → Enregistrer cet hôte auprès du serveur Repomanager"
-    echo -e "  --unregister                  → Dé-enregistrer cet hôte auprès du serveur Repomanager"
-    echo -e "  --send-general-status         → Envoyer les informations générales concernant cet hôte au serveur Repomanager (OS, version, kernel..)s"
-    echo -e "  --send-full-history           → Envoyer les informations concernant l'historique des paquets (installation, mise à jour, désinstallation...) sur cet hôte"
-    echo -e "  --send-packages-status        → Envoyer les informations concernant les paquets (installés, disponibles) sur cet hôte et leur historique"
-    echo -e "  --send-full-status            → Exécute les 3 paramètres précédents"
+    echo -e "${YELLOW}reposerver${RESET} module params:\n\n"
+    echo -e " Main:"
+    echo -e "  --url http(s)://...           → Configure target reposerver URL"
+    echo -e "  --fail-level 1|2|3            → Configure module criticality (between 1 and 3)"
+    echo -e "                                  1: linupdate stops no matter the module error (disabled module, reposerver does not handle the same package type, minor or critical error...)"
+    echo -e "                                  2: linupdate stops on module critical error (continue on minor error)"
+    echo -e "                                  3: linupdate continue even in case of module critical error"
+    echo -e "  --register                    → Register this host to reposerver"
+    echo -e "  --unregister                  → Unregister this host from reposerver"
+    echo -e "  --allow-conf-update yes|no    → Allow reposerver to configure packages exclusions on this host."
+    echo -e "  --allow-repos-update yes|no   → Allow reposerver to configure repos sources (.repo or .list files) on this host"
+    echo -e "  --allow-overwrite yes|no      → Allo reposerver to overwrite the two previous parameters configuration"
+    echo -e "  --get-server-conf             → Get reposerver global configuration."
+    echo -e "  --get-profile-conf            → Get profile global configuration from reposerver."
+    echo -e "  --get-profile-repos           → Get repos sources configuration from reposerver."
+    echo -e "  --send-general-status         → Send host global informations to reposerver (OS, version, kernel..)"
+    echo -e "  --send-full-history           → Send host packages events history to reposerver (installation, update, uninstallation...)"
+    echo -e "  --send-packages-status        → Send host packages informations (installed, available...) to resposerver"
+    echo -e "  --send-full-status            → Execute the tree previous parameters"
     echo -e ""
-    echo -e " Module d'agent :"
-    echo -e "  --enable-agent                → Activer le module d'agent reposerver afin qu'il soit exécuté par le service systemd principal de linupdate"
-    echo -e "                                  Cet agent enverra régulièrement les informations concernant cet hôte (générales, paquets) au serveur Repomanager"
-    echo -e "  --disable-agent               → Désactiver le module d'agent reposerver"
-    echo -e "  --agent-watch-enable          → Activer la surveillance de requêtes en provenance du serveur Repomanager"
-    echo -e "  --agent-watch-disable         → Désactiver la surveillance de requêtes en provenance du serveur Repomanager"
-    echo -e "  --agent-watch-int             → Préciser l'interface réseau sur laquelle surveiller les requêtes en provenance du serveur Repomanager"
+    echo -e " Agent:"
+    echo -e "  --enable-agent                → Enable reposerver module agent"
+    echo -e "                                  This agent will regularly send informations about this host to reposerver (global info., packages info...)"
+    echo -e "  --disable-agent               → Disable reposerver module agent"
+    echo -e "  --agent-watch-enable          → Enable reposerver requests watching"
+    echo -e "  --agent-watch-disable         → Disable reposerver requests watching"
+    echo -e "  --agent-watch-int             → Specify the network interface on which to watch requests comming from reposerver"
     echo -e ""
 }
 
@@ -247,7 +247,7 @@ function mod_install
     
     # Activation du module
     mod_enable &&
-    echo -e "Installation du module ${YELLOW}reposerver${RESET} : [$GREEN OK $RESET]"
+    echo -e "Installing ${YELLOW}reposerver${RESET} module: [$GREEN OK $RESET]"
     
     # Configuration du module
     mod_configure
@@ -258,7 +258,7 @@ function enableReposerverAgent
 {
     cd ${AGENTS_ENABLED_DIR}/ &&
     ln -sfn "../mods-available/agent/reposerver.agent" &&
-    echo -e "Agent ${YELLOW}reposerver${RESET} activé"
+    echo -e "${YELLOW}reposerver${RESET} agent enabled"
     return 0
 }
 
@@ -266,7 +266,7 @@ function enableReposerverAgent
 function disableReposerverAgent
 {
     rm "${AGENTS_ENABLED_DIR}/reposerver.agent" -f &&
-    echo -e "Agent ${YELLOW}reposerver${RESET} désactivé"
+    echo -e "${YELLOW}reposerver${RESET} agent disabled"
     return 0
 }
 
@@ -473,7 +473,7 @@ function mod_load
 
     # Si le fichier de configuration du module est introuvable alors on ne charge pas le module
     if [ ! -f "$MOD_CONF" ] || [ ! -s "$MOD_CONF" ];then
-        echo -e "    [$YELLOW WARNING $RESET] Le fichier de configuration du module est introuvable. Ce module ne peut pas être chargé."
+        echo -e "    [$YELLOW WARNING $RESET] Module config file is missing. Module cannot be loaded."
         return 1
     fi
 
@@ -548,12 +548,12 @@ function mod_load
 
     # Si l'URL du serveur de repo n'est pas renseignée alors on ne charge pas le module
     if [ -z $(grep "^URL=" $MOD_CONF | cut -d'=' -f2 | sed 's/"//g') ];then
-        echo -e "     [$YELLOW WARNING $RESET] L'URL du serveur ${YELLOW}reposerver${RESET} n'est pas renseignée. Ce module ne peut pas être chargé."
+        echo -e "     [$YELLOW WARNING $RESET] ${YELLOW}reposerver${RESET} URL is not defined. Module cannot be loaded."
         return 1
     fi
 
     LOADED_MODULES+=("reposerver")
-    echo -e "  - Module reposerver : ${YELLOW}Activé${RESET}"
+    echo -e "  - reposerver module: ${YELLOW}Enabled${RESET}"
 
     return 0
 }
@@ -580,16 +580,16 @@ function getModConf
     # Si on n'a pas pu récupérer le FAILLEVEL dans le fichier de conf alors on le set à 1 par défaut
     # De même si le FAILLEVEL récupéré n'est pas un chiffre alors on le set à 1
     if [ -z "$FAILLEVEL" ];then
-        echo -e "[$YELLOW WARNING $RESET] Paramètre FAILLEVEL non configuré pour ce module → configuré à 1 (arrêt en cas d'erreur mineure ou critique)"
+        echo -e "[$YELLOW WARNING $RESET] FAILLEVEL parameter is not defined for this module → default to 1 (stops on critical or minor error)"
         FAILLEVEL="1"
     fi
     if ! [[ "$FAILLEVEL" =~ ^[0-9]+$ ]];then
-        echo -e "[$YELLOW WARNING $RESET] Paramètre FAILLEVEL non configuré pour ce module → configuré à 1 (arrêt en cas d'erreur mineure ou critique)"
+        echo -e "[$YELLOW WARNING $RESET] FAILLEVEL parameter is not properly defined for this module (must be a numeric value) → default to 1 (stops on critical or minor error)"
         FAILLEVEL="1"
     fi
 
     if [ -z "$REPOSERVER_URL" ];then
-        echo -e " - Module reposerver : [${YELLOW} ERREUR ${RESET}] URL du serveur de repo inconnue ou vide"
+        echo -e " - reposerver module: [$YELLOW ERROR $RESET] reposerver URL is not defined"
         return 2
     fi
 
@@ -680,7 +680,7 @@ function preCheck
 {
     # Vérification que le serveur Repomanager gère le même type de paquet que cet hôte
     if ! echo "$REPOSERVER_PACKAGE_TYPE" | grep -q "$PKG_TYPE";then
-        echo -e "  [${YELLOW} ERREUR ${RESET}] Le serveur de repo distant ne gère pas le même type de paquet : $REPOSERVER_PACKAGE_TYPE que cet hôte ($PKG_TYPE)."
+        echo -e "  [${YELLOW} ERROR ${RESET}] reposerver do not handle the same package type as this host. Reposerver: $REPOSERVER_PACKAGE_TYPE / Host: $PKG_TYPE"
         return 2
     fi
 }
@@ -689,14 +689,14 @@ function preCheck
 function getProfileConf
 {
     # Si le serveur reposerver ne gère pas les profils ou que le client refuse d'être mis à jour par son serveur de repo, on quitte la fonction
-    echo -ne "  → Mise à jour de la configuration du profil $PROFILE : "
+    echo -ne "  → $PROFILE configuration update: "
 
     if [ "$REPOSERVER_MANAGE_CLIENT_CONF" == "no" ] || [ "$REPOSERVER_ALLOW_CONFUPDATE" == "no" ];then
         if [ "$REPOSERVER_MANAGE_CLIENT_CONF" == "no" ];then
-            echo -e "${YELLOW}Désactivé (non pris en charge par le serveur Repomanager)${RESET}"
+            echo -e "${YELLOW}Disabled (not handled by reposerver)${RESET}"
         fi
         if [ "$REPOSERVER_ALLOW_CONFUPDATE" == "no" ];then
-            echo -e "${YELLOW}Désactivé${RESET}"
+            echo -e "${YELLOW}Disabled${RESET}"
         fi
 
         return 1
@@ -753,7 +753,7 @@ function getProfileConf
 function getProfileRepos
 {
     # Si on est autorisé à mettre à jour les fichiers de conf de repos et si le serveur de repos le gère
-    echo -ne "  → Mise à jour de la configuration des repos : "
+    echo -ne "  → Repos sources update: "
 
     if [ "$REPOSERVER_MANAGE_CLIENT_REPOS" == "yes" ] && [ "$REPOSERVER_ALLOW_REPOSFILES_UPDATE" == "yes" ];then
 
@@ -771,7 +771,7 @@ function getProfileRepos
         # On s'assure que le paramètre 'configuraiton' fait bien partie de la réponse JSON renvoyée par le serveur
         # Ce paramètre peut être vide toutefois si la configuration du profil côté serveur n'a aucun repo de configuré
         if ! echo "$CURL" | grep -q "configuration";then
-            echo -e "[$YELLOW ERREUR $RESET] La configuration des repos du profil $PROFILE n'a pas été transmise par le serveur."
+            echo -e "[$YELLOW ERROR $RESET] $PROFILE profile repos sources configuration have not been sended by reposerver."
             return 2
         fi
 
@@ -833,12 +833,12 @@ function getProfileRepos
 
     else
         if [ "$REPOSERVER_MANAGE_CLIENT_REPOS" != "yes" ];then
-            echo -e "${YELLOW}Désactivé (non pris en charge par le serveur Repomanager)${RESET}"
+            echo -e "${YELLOW}Disabled (not handled by reposerver)${RESET}"
             return 1
         fi
 
         if [ "$REPOSERVER_ALLOW_REPOSFILES_UPDATE" != "yes" ];then
-            echo -e "${YELLOW}Désactivé${RESET}"
+            echo -e "${YELLOW}Disabled${RESET}"
             return 1
         fi
     fi
@@ -858,7 +858,7 @@ function pre
     # Erreur mineure :  return 1
     # Erreur critique : return 2
 
-    echo -e "  → Exécution du module ${YELLOW}reposerver${RESET}"
+    echo -e "  → Executing ${YELLOW}reposerver${RESET} module"
 
     # On récupère la configuration du module, en l'occurence la configuration du serveur de repo
     getModConf
@@ -945,12 +945,12 @@ function send_status
 
     # Si on n'a pas d'ID ou de token alors on ne peut pas effectuer cette opération
     if [ -z "$HOST_ID" ];then
-        echo -e "[$YELLOW ERREUR $RESET] L'ID de cette machine est manquant"
+        echo -e "[$YELLOW ERROR $RESET] Host Id not defined"
         ERROR_STATUS=1
         clean_exit
     fi
     if [ -z "$TOKEN" ];then
-        echo -e "[$YELLOW ERREUR $RESET] Le token de cette machine est manquant"
+        echo -e "[$YELLOW ERROR $RESET] Host token not defined"
         ERROR_STATUS=1
         clean_exit
     fi
@@ -998,7 +998,7 @@ function update_request_status
     fi
 
     if [ "$VERBOSE" -gt "0" ];then
-        echo -ne " Acquittement auprès du serveur Repomanager : "
+        echo -ne " Acknowledging reposerver request: "
     fi
 
     CURL_PARAMS="\"id\":\"$HOST_ID\", \"token\":\"$TOKEN\", \"set_update_request_type\":\"$UPDATE_REQUEST_TYPE\", \"set_update_request_status\":\"$UPDATE_REQUEST_STATUS\""
@@ -1041,7 +1041,7 @@ function send_general_status
     # Fin de construction des paramètres curl puis envoi.
 
     # Envoi des données :
-    echo -e "→ Envoi du status à ${YELLOW}${REPOSERVER_URL}${RESET} : "
+    echo -e "→ Sending status to ${YELLOW}${REPOSERVER_URL}${RESET}: "
     CURL=$(curl -s -q -H "Content-Type: application/json" -X PUT -d "{$CURL_PARAMS}" "${REPOSERVER_URL}/api/hosts" 2> /dev/null)
     UPDATE_RETURN=$(jq -r '.return' <<< "$CURL")
 
@@ -1099,7 +1099,7 @@ function send_installed_packages_status
     UPDATE_MESSAGE_ERROR=""
 
     # Paramètres concernant les paquets installés sur le système (tous les paquets)
-    echo "Construction de la liste des paquets installés sur le système..."
+    echo "Building installed packages list..."
 
     INSTALLED_PACKAGES_TMP="/tmp/.linupdate_${PROCID}_mod_reposerver_installed_pkgs.tmp"
 
@@ -1148,7 +1148,7 @@ function send_installed_packages_status
     CURL_PARAMS="$CURL_PARAMS, \"installed_packages\":\"$INSTALLED_PACKAGES\""
 
     # Envoi des données :
-    echo -ne "→ Envoi des informations à ${YELLOW}${REPOSERVER_URL}${RESET} : "
+    echo -ne "→ Sending data to ${YELLOW}${REPOSERVER_URL}${RESET}: "
     CURL=$(curl -s -q -H "Content-Type: application/json" -X PUT -d "{$CURL_PARAMS}" "${REPOSERVER_URL}/api/hosts" 2> /dev/null)
     
     # Récupération et affichage des messages
@@ -1174,7 +1174,7 @@ function send_available_packages_status
 
     # Paramètres concernant les paquets (paquets disponibles...)
 
-    echo "Construction de la liste des paquets disponibles..."
+    echo "Building available packages list..."
 
     # Récupération des paquets disponibles
     AVAILABLE_PACKAGES_TMP="/tmp/.linupdate_${PROCID}_mod_reposerver_available_pkgs.tmp"
@@ -1225,7 +1225,7 @@ function send_available_packages_status
     CURL_PARAMS="$CURL_PARAMS, \"available_packages\":\"$AVAILABLE_PACKAGES\""
 
     # Envoi des données :
-    echo -ne "→ Envoi du status à ${YELLOW}${REPOSERVER_URL}${RESET} : "
+    echo -ne "→ Sending status to ${YELLOW}${REPOSERVER_URL}${RESET}: "
     CURL=$(curl -s -q -H "Content-Type: application/json" -X PUT -d "{$CURL_PARAMS}" "${REPOSERVER_URL}/api/hosts" 2> /dev/null)
     
     # Récupération et affichage des messages
@@ -1273,7 +1273,7 @@ function genFullHistory
     OLD_IFS=$IFS
 
     if [ "$OS_FAMILY" == "Redhat" ];then
-        echo "Construction de l'historique des évènements yum..."
+        echo "Building yum events history..."
 
         checkYumLock
 
@@ -1309,7 +1309,7 @@ function genFullHistory
 
     # Cas Debian
     if [ "$OS_FAMILY" == "Debian" ];then
-        echo "Construction de l'historique des évènements apt..."
+        echo "Building apt events history..."
 
         if [ "$HISTORY_START" == "newest" ];then
             APT_HISTORY_FILES=$(ls -t1 /var/log/apt/history.log*)
@@ -1354,7 +1354,7 @@ function genFullHistory
     IFS=$OLD_IFS
 
     # Envoi des données :
-    echo -ne "→ Envoi de l'historique à ${YELLOW}${REPOSERVER_URL}${RESET} : "
+    echo -ne "→ Sending history to ${YELLOW}${REPOSERVER_URL}${RESET}: "
     CURL=$(curl -s -q -H "Content-Type: application/json" -X PUT -d @${JSON_FILE} "${REPOSERVER_URL}/api/hosts" 2> /dev/null)
 
     # Récupération et affichage des messages
