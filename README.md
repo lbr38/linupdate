@@ -3,7 +3,7 @@
 
 <b>linupdate</b> is a package updater tool for Debian and Redhat based OS.
 
-Using apt and yum, it provides basic and avanced update features, especially being managed by a Repomanager reposerver:
+Using apt and yum, it provides basic and avanced update features especially when being managed by a <a href="https://github.com/lbr38/repomanager">Repomanager</a> reposerver:
 - update packages
 - exclude packages from update
 - execute pre or post update actions (e.g: restart services)
@@ -65,17 +65,17 @@ Agent
 
 <h2>Linupdate & Repomanager</h2>
 
-The linupdate <b>reposerver</b> module provides a connection between linupdate and a Repomanager server. 'Managing hosts' must be enabled on Repomanager's side.
+The linupdate <b>reposerver</b> module provides a connection between linupdate and a Repomanager server. The 'Manage hosts' parameter must be enabled on Repomanager's side.
 
 <b>Managing hosts</b>
 
-Host executing linupdate can send its system and packages information to the Repomanager server, especially:
+An host executing linupdate can send its system and packages informations to the Repomanager server, especially:
 - General information (Hostname, IP, Kernel, OS...)
 - Available packages for update
 - Installed packages
 - Packages events history (installation, updates, uninstallation...)
 
-An agent allows to regulary send those informations to the reposerver.
+If enabled, an agent can regulary send those informations to the reposerver.
 
 
 The <b>Manage hosts</b> tab on Repomanager regroup all hosts that have sended their informations:
@@ -85,10 +85,10 @@ The <b>Manage hosts</b> tab on Repomanager regroup all hosts that have sended th
 
 <b>Managing configuration profiles</b>
 
-The <b>Manage profiles</b> tab on Repomanager allows to create configuration profiles for hosts executing linupdate and registered to Repomanager.
-Profile can define packages to exclude, services to restart after an update and repos sources configuration for hosts using that profile. It's a convenient way to manage multiple hosts with the same configuration.
+The <b>Manage profiles</b> tab on Repomanager provides a way to create configuration profiles for hosts executing linupdate and registered to Repomanager.
+A profile can define packages to exclude from an update, services to restart after an update and repos sources configuration for hosts using that profile. It's a convenient way to manage multiple hosts with the same configuration and limit the risks on critical packages updates.
 
-On each <b>linupdate</b> execution, it will get its profile configuration (including repos conf and packages exclusions) from its reposerver (linupdate reposerver module must be enabled and configured).
+Every time <b>linupdate</b> is executed, it gets its profile configuration (including repos conf and packages exclusions) from its reposerver.
 
 
 <b>Configuration</b>
