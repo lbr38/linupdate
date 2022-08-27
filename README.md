@@ -1,153 +1,133 @@
 
 <h1>LINUPDATE</h1>
 
-linupdate est un utilitaire de mise à jour de paquets pour les distributions Linux des familles Debian ou Redhat.
+<b>linupdate</b> is a package updater tool for Debian and Redhat based OS.
 
-Il permet une utilisation avancée de apt et yum lors de la mise à jour de paquets sur un système, notamment l'exclusion de paquets en fonction de leur version, l'exécution d'actions pre ou post-mise à jour (eg: redémarrage de services post-mise à jour, ...) et prends en charge l'exécution de modules complémentaire pour améliorer l'expérience de mise à jour.
+Using apt and yum, it provides basic and avanced update features, especially being managed by a Repomanager reposerver:
+- update packages
+- exclude packages from update
+- execute pre or post update actions (e.g: restart services)
+- receive mail update reports
+- register to a <b>Repomanager</b> reposerver and get configuration from that server
+
+linupdate is a modular tool. New modules could be added in the future to improve the update experience.
 
 ![alt text](https://github.com/lbr38/repomanager-docs/blob/main/screenshots/linupdate/linupdate-1.png?raw=true)
 
 <h1>Installation</h1>
 
 ```
-cd /tmp
-git clone https://github.com/lbr38/linupdate.git
+git clone https://github.com/lbr38/linupdate.git /tmp/linupdate
 cd /tmp/linupdate
 ./linupdate
 ```
 
-<h1>Configuration</h1>
+<h1>Parameters</h1>
 
-La configuration principale est mise en place lors de la première installation de linupdate. 
+<pre>
+Main:
+--vv|-vv                                     → Enable verbose mode
+--version|-v                                 → Print current version
+--update|-u                                  → Update linupdate to the last available release on github
+--enable-auto-update                         → Enable linupdate automatic update
+--disable-auto-update                        → Disable linupdate automatic update
+--install|--reinstall|-i                     → Install or reinstall linupdate (/!\ will delete actual configuration)
+--profile|--type|--print-profile PROFILE     → Configure host profile (leave empty to print actual)
+--environnement|--env ENV                    → Configure host environment (leave empty to print actual)
 
-Emplacement des fichiers de configuration :
+Package update configuration
+--exclude-major|-em PACKAGE                  → Configure packages to exclude on major release update, separated by a comma. Specify 'none' to clean.
+--exclude|-e PACKAGE                         → Configure packages to exclude, separated by a comma. Specify 'none' to clean.
 
-```
-/etc/linupdate/linupdate.conf # Configuration principale
-/etc/linupdate/modules/*.conf # Fichiers de configuration des modules
-```
-
-<h1>Paramètres</h1>
-
-```
-Général
---help|-h                                            afficher l'aide
---version|-v|-V                                      afficher la version
--vv|--vv                                             active le mode verbeux
---update|-u                                          mettre à jour manuellement linupdate vers la dernière version
---enable-self-update|--enable-auto-update            activer la mise à jour automatique de linupdate
---disable-self-update|--disable-auto-update          désactiver la mise à jour automatique de linupdate
---install|--reinstall|-i                             installe ou réinstalle linupdate (entraine la suppression complète de l'installation actuelle)
-
-Profil
---profile|--type|--print-profile PROFILE             modifier le profil de configuration de l'hôte ou l'afficher (si rien n'est précisé)
---environnement|--env                                modifier l'environnement de l'hôte ou l'afficher (si rien n'est précisé)
-
-Exécution de linupdate (mise à jour des paquets)
---assume-yes|--force                                 activer 'assume yes' (répondre 'yes' à chaque confirmation)
---dist-upgrade|-du                                   activer le paramètre dist-upgrade (Debian uniquement)
---keep-oldconf|-ko                                   lors d'une mise à jour impactant des fichiers de configurations, conserve l'ancien fichier de configuration plutôt que l'écraser (Debian uniquement)
---exclude|-e PACKAGE                                 liste des paquets à exclure, séparés par une virgule. Indiquer "none" pour vider la liste.
---exclude-major|-em PACKAGE                          liste des paquets à exclure en cas de mise à jour majeure, séparés par une virgule. Indiquer "none" pour vider la liste.
---ignore-exclude|-ie                                 ignorer temporairement les exclusions de paquets configurées (met à jour tous les paquets disponibles)
+Update execution
+--check-updates|-cu                          → Check packages to be updated and quit
+--assume-yes|--force                         → Enable 'assume yes' (answer 'yes' to every confirm prompt)
+--dist-upgrade|-du                           → Enable 'dist-upgrade' for apt (Debian only)
+--keep-oldconf|-ko                           → Keep actual configuration file when attempting to be overwrited by apt during package update (Debian only)
+--ignore-exclude|-ie                         → Ignore all packages minor or major release update exclusions
 
 Modules
---list-modules|--list-mod|-m                         lister les modules disponibles
---mod-enable|-mod-enable|-me MODULE                  activer le module spécifié
---mod-disable|-mod-disable|-md MODULE                désactiver le module spécifié
---mod-configure|-mc|--mod-exec MODULE                configurer le module spécifié (en combinaison avec les commandes spécifiques du module, voir la documentation du module)
---mod-configure MODULE --help                        afficher l'aide et les commandes du module
+--list-modules|--list-mod|-m                 → List available modules
+--mod-enable|-mod-enable|-me MODULE          → Enable specified module
+--mod-disable|-mod-disable|-md MODULE        → Disable specified module
+--mod-configure|-mc|--mod-exec MODULE        → Configure specified module (using module commands, see module help or documentation)
+--mod-configure MODULE --help                → Print module help
 
 Agent
---agent-deploy|--deploy-agent                        déployer l'agent linupdate
---agent-start|--start-agent                          démarrer l'agent linupdate
---agent-stop|--stop-agent                            stopper l'agent linupdate
---agent-restart|--restart-agent                      redémarrer l'agent linupdate
---agent-enable|--enable-agent                        activer l'agent linupdate au démarrage
-```
+--agent-deploy|--deploy-agent                → Deploy linupdate agent
+--agent-start|--start-agent                  → Start linupdate agent
+--agent-stop|--stop-agent                    → Stop linupdate agent
+--agent-restart|--restart-agent              → Restart linupdate agent
+--agent-enable|--enable-agent                → Enable linupdate agent start on boot
+</pre>
 
 <h1>Modules</h1>
 
-<h2>Linupdate et Repomanager</h2>
+<h2>Linupdate & Repomanager</h2>
 
-Le module reposerver est le module permettant à linupdate d'intéragir avec un serveur de repos Repomanager au travers de l'api intégrée à celui-ci. Il faut au préalable avoir activé la Gestion des hôtes dans l'interface Repomanager.
+The linupdate <b>reposerver</b> module provides a connection between linupdate and a Repomanager server. 'Managing hosts' must be enabled on Repomanager's side.
 
-<b>Gestion des hôtes</b>
+<b>Managing hosts</b>
 
-L'hôte exécutant linupdate peut envoyer au serveur Repomanager des informations sur l'état de ses paquets systèmes, notamment :
-- les mises à jour de paquets en attente d'installation
-- les paquets installés et leur version
-- l'historique complet des évènements générés par apt ou yum (les installations de paquets, les mises à jour, les désinstallations...)
+Host executing linupdate can send its system and packages information to the Repomanager server, especially:
+- General information (Hostname, IP, Kernel, OS...)
+- Available packages for update
+- Installed packages
+- Packages events history (installation, updates, uninstallation...)
 
-Un agent permet également de remonter régulièrement ces informations au serveur repomanager.
+An agent allows to regulary send those informations to the reposerver.
 
-L'onglet Gestion des hôtes de Repomanager permet alors de visualiser l'historique des évènements passés sur les hôtes qui ont transmis leurs informations :
+
+The <b>Manage hosts</b> tab on Repomanager regroup all hosts that have sended their informations:
 
 ![alt text](https://github.com/lbr38/repomanager-docs/blob/main/screenshots/linupdate/linupdate-repomanager-4.png?raw=true)
 
-Le serveur Repomanager peut demander aux hôtes de mettre à jour leur paquets et/ou de renvoyer les informations les concernant si besoin.
 
+<b>Managing configuration profiles</b>
 
-<b>Gestion des profils</b>
+The <b>Manage profiles</b> tab on Repomanager allows to create configuration profiles for hosts executing linupdate and registered to Repomanager.
+Profile can define packages to exclude, services to restart after an update and repos sources configuration for hosts using that profile. It's a convenient way to manage multiple hosts with the same configuration.
 
-L'onglet Gestion des profils permet de créer des profils de configuration pour les hôtes exécutant linupdate et notamment de définir des paquets à exclure ou des services à redémarrer. Un profil de configuration peut être appliqué à 1 ou plusieurs hôtes, permettant par exemple de gérer une même configuration sur un parc d'hôtes/serveurs identiques.
+On each <b>linupdate</b> execution, it will get its profile configuration (including repos conf and packages exclusions) from its reposerver (linupdate reposerver module must be enabled and configured).
 
-(insérer capture)
-
-A chaque exécution de linupdate, la configuration du profil est récupérée auprès du serveur Repomanager et est appliquée.
 
 <b>Configuration</b>
 
-Activer le module reposerver :
+Enable reposerver module:
 
 ```
 linupdate --mod-enable reposerver
 ```
 
-Configurer le serveur Repomanager cible
+Configure target reposerver URL and params:
 
 ```
-linupdate --mod-configure reposerver --url https://SERVEUR_REPOMANAGER --fail-level 3 --allow-conf-update yes --allow-repos-update yes --allow-overwrite no
---fail-level 1|2|3            # Défini la criticité d'erreur du module (entre 1 et 3).
-                              # 1 : linupdate s'arrête à la moindre erreur (module désactivé, le serveur ne gère pas le même OS, erreur mineure, critique)
-                              # 2 : linupdate s'arrête seulement en cas d'erreur critique (continue en cas d'erreur mineure)
-                              # 3 : continue l'exécution de linupdate même en cas d'erreur critique (eg: impossible de récupérer le profil de configuration auprès de Repomanager)
---allow-conf-update yes|no    # Autorise ou non le serveur Repomanager à définir les paquets à exclure sur l'hôte
---allow-repos-update yes|no   # Autorise ou non le serveur Repomanager à définir les fichiers de repos (.repo ou .list) à installer sur l'hôte
---allow-overwrite yes|no      # Autorise ou non le serveur Repomanager à modifier les deux paramètres précédents (yes ou no)
+linupdate --mod-configure reposerver --url https://REPOMANAGER_URL --fail-level 3 --allow-conf-update yes --allow-repos-update yes --allow-overwrite no
 ```
 
-Enregistrer l'hôte auprès du serveur Repomanager et recevoir un token d'identification :
+Register this host to Repomanager to retrieve an authentication Id+token.
 
 ```
 linupdate --mod-configure reposerver --register
 ```
 
-A partir d'ici l'hôte devient visible depuis l'interface web Repomanager, dans l'onglet Gestion des hôtes.
+From here, the host become visible from Repomanager web interface, in <b>Manage hosts</b> tab.
 
-Envoyer des informations au serveur Repomanager :
+Send informations to the server:
 
 ```
-linupdate --mod-configure reposerver --send-general-status              # Envoyer les informations générales concernant l'hôte (ip, profil, environnement) 
-linupdate --mod-configure reposerver --send-installed-packages-status   # Envoyer la liste des paquets installés sur l'hôte et leur version
-linupdate --mod-configure reposerver --send-available-packages-status   # Envoyer la liste des mises à jour disponibles sur l'hôte et leur version
-linupdate --mod-configure reposerver --send-full-history                # Envoyer l'historique complet des actions exécutées sur l'hôte (paquets installés, mis à jour, désinstallés)
-linupdate --mod-configure reposerver --send-full-status                 # Exécute les 4 actions précédentes à la suite
+linupdate --mod-configure reposerver --send-general-status    # send global informations 
+linupdate --mod-configure reposerver --send-full-status       # send packages inventory and events history
 ```
 
-Il est possible d'activer le module d'agent reposerver. Ce module permettra à l'agent linupdate :
-- d'envoyer regulièrement les informations à jour concernant l'hôte au serveur Repomanager
-- de détecter en direct des opérations de apt ou yum (installation, mise à jour, désintallation de paquets) et d'envoyer le détail au serveur Repomanager
-- de recevoir des ordres de la part du serveur Repomanager (mettre à jour les paquets de l'hôte, renvoyer des informations...)
-
-Activer le module d'agent reposerver :
+Enable reposerver agent:
 
 ```
 linupdate --mod-configure reposerver --enable-agent
 linupdate --restart-agent
 ```
 
-Vérifier que l'agent linupdate est actif :
+Check that linupdate agent is running:
 
 ```
 systemctl status linupdate

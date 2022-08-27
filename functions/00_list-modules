@@ -10,22 +10,28 @@ function listModules
 
     # Affiche les modules activés
     echo -e "\n Enabled modules:"
-    for MODULE in $(ls -A1 "${MODULES_ENABLED_DIR}/"*.mod);do
-        MODULE=$(basename $MODULE)
-        MODULE=${MODULE%.mod}
-        echo -e " $GREEN $MODULE $RESET"
+    if [ "$(ls -A $MODULES_ENABLED_DIR)" ];then
+        for MODULE in $(ls -A1 "${MODULES_ENABLED_DIR}/"*.mod);do
+            MODULE=$(basename $MODULE)
+            MODULE=${MODULE%.mod}
+            echo -e " $GREEN $MODULE $RESET"
 
-        ENABLED_MODULES+=("$MODULE")
-    done
+            ENABLED_MODULES+=("$MODULE")
+        done
+    else
+        echo " No module enabled"
+    fi
 
     # Affiche les modules disponibles (qui ne sont pas dans ENABLED_MODULES)
     echo -e "\n Available modules:"
-    for MODULE in $(ls -A1 "${MODULES_DIR}/"*.mod);do
-        MODULE=$(basename $MODULE)
-        MODULE=${MODULE%.mod}
-        if [[ ! ${ENABLED_MODULES[*]} =~ "$MODULE" ]]; then
-            MODULE=$(basename $MODULE | sed 's/.mod//g')
-            echo -e " $YELLOW $MODULE $RESET"
-        fi
-    done
+    if [ "$(ls -A $MODULES_DIR)" ];then
+        for MODULE in $(ls -A1 "${MODULES_DIR}/"*.mod);do
+            MODULE=$(basename $MODULE)
+            MODULE=${MODULE%.mod}
+            if [[ ! ${ENABLED_MODULES[*]} =~ "$MODULE" ]]; then
+                MODULE=$(basename $MODULE | sed 's/.mod//g')
+                echo -e " $YELLOW $MODULE $RESET"
+            fi
+        done
+    fi
 }
