@@ -67,15 +67,14 @@ function register
 
     # Si l'enregistrement a été effectué, on vérifie qu'on a bien pu récupérer un token
     if [ -z "$REGISTER_TOKEN" ] || [ "$REGISTER_TOKEN" == "null" ];then
-        echo -e "[$YELLOW ERROR $RESET]Unable to retrieve an authentication token from registering."
+        echo -e "[$YELLOW ERROR $RESET] Unable to retrieve an authentication token from registering."
         ERROR_STATUS=1
         clean_exit
     fi
 
     # Enfin si tout s'est bien passé jusque là, on ajoute l'id et le token dans le fichier de conf et on affiche un message
     sed -i "s/^ID.*/ID=\"$REGISTER_ID\"/g" $MOD_CONF
-    sed -i "s/^TOKEN.*/TOKEN=\"$REGISTER_TOKEN\"/g" $MOD_CONF
-    echo -e "[$GREEN OK $RESET]"  
+    sed -i "s/^TOKEN.*/TOKEN=\"$REGISTER_TOKEN\"/g" $MOD_CONF 
     clean_exit
 }
 
@@ -85,6 +84,7 @@ function unregister
     # Au préalable, récupération des informations concernant le serveur repomanager
     # Si la configuration est incomplète alors on quitte
     getModConf
+
     if [ -z "$REPOSERVER_URL" ];then
         echo -e " [$YELLOW ERROR $RESET] Cannot delete registering from reposerver. You must configure target reposerver URL."
         ERROR_STATUS=1
@@ -120,7 +120,6 @@ function unregister
         clean_exit
     fi
 
-    echo -e "[$GREEN OK $RESET]"
     clean_exit
 }
 
@@ -1025,8 +1024,26 @@ function send_general_status
     CURL_PARAMS="\"id\":\"$HOST_ID\", \"token\":\"$TOKEN\""
 
     # Paramètres généraux (os, version, profil...)
-    if [ ! -z "$OS_NAME" ] && [ ! -z "$OS_VERSION" ];then
-        CURL_PARAMS+=", \"os\":\"$OS_NAME\", \"os_version\":\"$OS_VERSION\", \"os_family\":\"$OS_FAMILY\", \"type\":\"$VIRT_TYPE\", \"kernel\":\"$KERNEL\", \"arch\":\"$ARCH\""
+    if [ ! -z "$HOSTNAME" ];then
+        CURL_PARAMS+=", \"hostname\":\"$HOSTNAME\""
+    fi
+    if [ ! -z "$OS_NAME" ];then
+        CURL_PARAMS+=", \"os\":\"$OS_NAME\""
+    fi
+    if [ ! -z "$OS_VERSION" ];then
+        CURL_PARAMS+=", \"os_version\":\"$OS_VERSION\""
+    fi
+    if [ ! -z "$OS_FAMILY" ];then
+        CURL_PARAMS+=", \"os_family\":\"$OS_FAMILY\""
+    fi
+    if [ ! -z "$VIRT_TYPE" ];then
+        CURL_PARAMS+=", \"type\":\"$VIRT_TYPE\""
+    fi
+    if [ ! -z "$KERNEL" ];then
+        CURL_PARAMS+=", \"kernel\":\"$KERNEL\""
+    fi
+    if [ ! -z "$ARCH" ];then
+        CURL_PARAMS+=", \"arch\":\"$ARCH\""
     fi
     if [ ! -z "$PROFILE" ];then
         CURL_PARAMS+=", \"profile\":\"$PROFILE\""
