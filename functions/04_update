@@ -60,7 +60,7 @@ function update
                 fi
             fi
         fi &&
-        echo -e "\n${GREEN}Update completed${RESET}"
+        echo -e "\n${GREEN}Update completed${RESET}\n"
         
     } || { # Si une commande échoue
         echo -e "\n${YELLOW}Update has failed${RESET}"

@@ -485,7 +485,7 @@ execPostModules
 # Redémarrage des services post-mise à jour
 restartService
 
-echo -e "\Operation completed\n" 
+echo -e "\nOperation completed\n" 
 
 # Envoi du rapport final par mail
 sendMail

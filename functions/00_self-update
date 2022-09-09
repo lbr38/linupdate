@@ -8,21 +8,21 @@ function selfUpdate
         return
     fi
 
-    VERSION_DISPO=$(curl -s "https://raw.githubusercontent.com/lbr38/linupdate/master/version")
-    if [ -z "$VERSION_DISPO" ];then
-        echo -e "Vérification des mises à jour : [$RED ERROR $RESET] lors de la récupération du numéro de version disponible\n"
+    AVAILABLE_VERSION=$(curl -s "https://raw.githubusercontent.com/lbr38/linupdate/master/version")
+    if [ -z "$AVAILABLE_VERSION" ];then
+        echo -e "Checking new available release update: [$RED ERROR $RESET] while retrieving new available release version.\n"
 
-    elif [ "$VERSION" != "$VERSION_DISPO" ];then
-        echo -e "${YELLOW}Une nouvelle version est disponible : ${VERSION_DISPO}${RESET}"
+    elif [ "$VERSION" != "$AVAILABLE_VERSION" ];then
+        echo -e "${YELLOW}A new release version is available: ${AVAILABLE_VERSION}${RESET}"
         rm /tmp/linupdate -rf
         cd /tmp
 
         # Téléchargement de la nouvelle version :
-        echo -ne " → Installation de la nouvelle version : " 
+        echo -ne " → Installating new release: " 
         if git clone --quiet https://github.com/lbr38/linupdate.git > /dev/null;then
             echo -e "[$GREEN OK $RESET]"
         else
-            echo -e "[$RED ERROR $RESET] lors du téléchargement"
+            echo -e "[$RED ERROR $RESET] while downloading new release."
             (( UPDATE_ERROR++ ))
             clean_exit
         fi
@@ -44,7 +44,7 @@ function selfUpdate
 
         # Récupération des paramètres passés au script
         ARGS=$(cat "/tmp/.linupdate_${PROCID}_main_params.tmp") 
-        echo -e " → Re-démarrage de linupdate avec les mêmes paramètres : $ARGS"
+        echo -e " → Relaunching linupdate with the same parameters: $ARGS"
         sleep 1
 
         # Si il n'y a pas d'argument à passer, on reéxécute le script sans paramètre
@@ -58,7 +58,7 @@ function selfUpdate
     else
         # Dans le cas où on a fait une demande de mise à jour seulement (paramètre --update), on affiche quand même un message pour avertir qu'aucune nouvelle version n'est disponible
         if [ "$ONLY_UPDATE" -eq "1" ];then
-            echo -e "${YELLOW}Aucune nouvelle version n'est disponible${RESET}"
+            echo -e "${YELLOW}No new available release.${RESET}"
         fi
     fi
 }

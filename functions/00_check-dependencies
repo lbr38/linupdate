@@ -70,14 +70,6 @@ function checkDependencies
             apt-get -qq install virt-what -y > /dev/null &&
             echo -e "[$GREEN OK $RESET]"
         fi
-        # configuration des locales
-        # CHECK_LOCALE=$(/usr/bin/locale | grep "LANG=fr_FR.UTF-8")
-        # if [ -z "$CHECK_LOCALE" ];then
-        #     echo -ne "Configuration des locales en Français " &&
-        #     locale-gen --purge fr_FR.UTF-8 > /dev/null &&
-        #     echo -e 'LANG="fr_FR.UTF-8"' > /etc/default/locale &&
-        #     echo -e "[$GREEN OK $RESET]"
-        # fi
     fi
 
     # Dépendances Redhat :
