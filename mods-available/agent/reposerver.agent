@@ -12,10 +12,6 @@ NGREP_FULL_HISTORY_RUNNING="no"
 MAX_HISTORY="0"
 COUNTER="0"
 
-GREEN=$(tput setaf 2)
-RED=$(tput setaf 1)
-YELLOW=$(tput setaf 3)
-RESET=$(tput sgr0)
 
 ## Functions ##
 
