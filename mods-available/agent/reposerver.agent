@@ -22,13 +22,13 @@ RESET=$(tput sgr0)
 function general_checks {
     # Checking that reposerver module is enabled
     if [ ! -f "/opt/linupdate/mods-enabled/reposerver.mod" ];then
-        echo -e "[$RED ERROR $RESET] reposerver module is disabled."
+        echo -e "[ ERROR ] reposerver module is disabled."
         exit 1
     fi
 
     # Checking that a configuration file exists for reposerver module
     if [ ! -f "$REPOSERVER_CONF" ];then
-        echo -e "[$RED ERROR $RESET] No configuration file '$REPOSERVER_CONF' has been found"
+        echo -e "[ ERROR ] No configuration file '$REPOSERVER_CONF' has been found"
         exit 1
     fi
 
@@ -40,7 +40,7 @@ function general_checks {
         LOGFILE="/var/log/apt/history.log"
 
     else
-        echo -e "[$RED ERROR $RESET] No log file for yum or apt has been found."
+        echo -e "[ ERROR ] No log file for yum or apt has been found."
         exit 1
     fi
 
@@ -52,7 +52,7 @@ function general_checks {
 
         REPOSERVER_IP=$(grep "^IP=" "$REPOSERVER_CONF" | sed 's/IP=//g' | sed 's/"//g')
         if [ -z "$REPOSERVER_IP" ];then
-            echo -e "[$RED ERROR $RESET] Cannot retrieve Repomanager server IP address"
+            echo -e "[ ERROR ] Cannot retrieve Repomanager server IP address"
             exit 1
         fi
     fi
@@ -62,9 +62,9 @@ function general_checks {
 function send_general_status {
     /opt/linupdate/linupdate --mod-exec reposerver --from-agent --send-general-status > /dev/null
     if [ $? != "0" ];then
-        echo -e "${YELLOW}An error occured while sending data$RESET\n"
+        echo -e "An error occured while sending data\n"
     else
-        echo -e "${GREEN}Data have been send$RESET\n"
+        echo -e "Data have been send\n"
     fi
 }
 
@@ -76,9 +76,9 @@ function send_full_history {
         /opt/linupdate/linupdate --mod-exec reposerver --from-agent --send-full-history > /dev/null
     fi
     if [ $? != "0" ];then
-        echo -e "${YELLOW}An error occured while sending data$RESET\n"
+        echo -e "An error occured while sending data\n"
     else
-        echo -e "${GREEN}History has been send$RESET\n"
+        echo -e "History has been send\n"
     fi
 }
 
@@ -86,9 +86,9 @@ function send_full_history {
 function send_packages_status {
     /opt/linupdate/linupdate --mod-exec reposerver --from-agent --send-packages-status > /dev/null
     if [ $? != "0" ];then
-        echo -e "${YELLOW}An error occured while sending data$RESET\n"
+        echo -e "An error occured while sending data\n"
     else
-        echo -e "${GREEN}Data have been send$RESET\n"
+        echo -e "Data have been send\n"
     fi
 }
 
@@ -96,9 +96,9 @@ function send_packages_status {
 function send_full_status {
     /opt/linupdate/linupdate --mod-exec reposerver --from-agent --send-full-status > /dev/null
     if [ $? != "0" ];then
-        echo -e "${YELLOW}An error occured while sending data$RESET\n"
+        echo -e "An error occured while sending data\n"
     else
-        echo -e "${GREEN}Data have been send$RESET\n"
+        echo -e "Data have been send\n"
     fi
 }
 
@@ -168,9 +168,9 @@ function ngrep_packages_update_requested {
             # Executing packages update
             /opt/linupdate/linupdate --assume-yes
             if [ $? != "0" ];then
-                echo -e "${YELLOW}An error occured while executing package update${RESET}\n"
+                echo -e "An error occured while executing package update\n"
             else
-                echo -e "${GREEN}Package update is completed${RESET}\n"
+                echo -e "Package update is completed\n"
             fi
 
             sleep 2
@@ -203,12 +203,12 @@ if [ "$NGREP_ENABLED" == "yes" ];then
         DEFAULT_INT_COUNT=$(echo "$DEFAULT_INT" | wc -l)
 
         if [ -z "$DEFAULT_INT" ];then
-            echo -e "[$RED ERROR $RESET] Cannot determine default network interface."
+            echo -e "[ ERROR ] Cannot determine default network interface."
             exit 1
         fi
 
         if [ "$DEFAULT_INT_COUNT" != "1" ];then
-            echo -e "[$RED ERROR $RESET] Cannot determine default network interface: multiple default interfaces have been detected."
+            echo -e "[ ERROR ] Cannot determine default network interface: multiple default interfaces have been detected."
             exit 1
         fi
 
