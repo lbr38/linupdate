@@ -225,7 +225,7 @@ while true; do
 
     # Regulary sending data to the Repomanager server (every hour)
     # 3600 / 5sec (sleep 5) = 720
-    if [ "$COUNTER" -eq "720" ];then
+    if [ "$COUNTER" -eq "0" ] || [ "$COUNTER" -eq "720" ];then
         # Sending full status
         echo -e "Periodically sending informations about this host to the repomanager server"
         send_full_status
