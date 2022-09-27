@@ -295,9 +295,6 @@ function mod_configure
     SEND_FULL_HISTORY="no"
     SEND_FULL_HISTORY_LIMIT=""
 
-    # Defini si le module est exécuté par l'agent ou non
-    FROM_AGENT="0"
-
     # Défini le status de l'agent linupdate (démarré, arrêté)
     if systemctl is-active --quiet linupdate.service;then
         AGENT_STATUS="running"
@@ -316,9 +313,6 @@ function mod_configure
             --help)
                 mod_help
                 clean_exit
-            ;;
-            --from-agent)
-                FROM_AGENT="1"
             ;;
             --agent-watch-int)
                 WATCH_INTERFACE="$2"

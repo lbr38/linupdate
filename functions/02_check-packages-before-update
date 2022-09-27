@@ -1,22 +1,23 @@
 #!/usr/bin/env bash
 
-# Cette fonction est exécutée juste avant la maj. Elle vérifie si des paquets "critiques" (renseignés dans le fichier de conf) vont être mis à jour ou non et les exclu si c'est le cas.
+# This function is executed just before packages update.
+# It checks if packages to exclude have been specified in the configuration file and, if so, then exclude them if needed.
 
 function checkPackagesBeforeUpdate
 {
     if [ "$OS_FAMILY" == "Redhat" ];then
-        # Nettoie le cache yum
+        # Clean yum cache
         yum clean all -q
     fi
     if [ "$OS_FAMILY" == "Debian" ];then
-        # Nettoie le cache apt et charge la liste des paquets à mettre à jour
+        # Clean and reload apt cache
         apt-get clean && apt-get -qq --allow-releaseinfo-change update
     fi
 
-    # echo -e "\nVérification des paquets critiques avant traitement :"
-    CHECK_UPDATE_TMP="/tmp/linupdate_check-update.tmp" # On définit un fichier temporaire avec lequel on va travailler
+    # Temporary file to work with
+    CHECK_UPDATE_TMP="/tmp/linupdate_check-update.tmp"
 
-    # Liste les paquets à mettre à jour : 
+    # List packages available for update
     if [ "$OS_FAMILY" == "Redhat" ];then
         repoquery -q -a --qf="%{name} %{version}-%{release}.%{arch} %{repoid}" --pkgnarrow=updates > "$CHECK_UPDATE_TMP"
     fi
@@ -24,7 +25,7 @@ function checkPackagesBeforeUpdate
         aptitude -F"%p %V %v" --disable-columns search ~U > "$CHECK_UPDATE_TMP"
     fi
 
-    # On place la liste des paquets disponibles dans un tableau, ça peut servir pour d'autres opérations
+    # Add the available packages list in an array, it could be needed for others operations
     OLD_IFS=$IFS
     PACKAGES=()
 
@@ -34,27 +35,29 @@ function checkPackagesBeforeUpdate
 
     IFS=$OLD_IFS
 
-    # Si le paramètre --ignore-exclude a été passé, on ignore toutes les exclusions de paquets renseignées dans le fichier de conf
+    # If --ignore-exclude param has been set then ignore all packages exclusions that have been specified by the user
     if [ "$IGNORE_EXCLUDE" -eq "1" ];then
         echo -e "${YELLOW}--ignore-exclude${RESET} param is enabled, no exclusion will be taken into account."
         
         if [ "$OS_FAMILY" == "Debian" ];then
-            # On récupère les éventuels paquets passés en état "hold" (ignoré) lors d'une précédente maj
+            # Get all packages that could have been holded (on another linupdate execution)
             HOLDED_PACKAGES=$(apt-mark showhold)
 
+            # Then unhold them all
             if [ ! -z "$HOLDED_PACKAGES" ];then
                 OLD_IFS="$IFS"
                 IFS=$'\n'
-                # Et on les ré-active
+
                 for HOLDED_PACKAGE in $(echo "$HOLDED_PACKAGES");do
                     apt-mark unhold "$HOLDED_PACKAGE"
                 done
+
                 IFS="$OLD_IFS"
             fi
         fi
     fi
 
-    # Si --ignore-exclude n'est pas activé alors on va vérifier si des paquets doivent être exclus
+    # If --ignore-exclude param has NOT been set, then check if some packages need to be excluded from packages update
     if [ "$IGNORE_EXCLUDE" -eq "0" ];then
         # Gestion des exclusions de paquets
         #
@@ -73,57 +76,91 @@ function checkPackagesBeforeUpdate
         #   maj majeure ou non. Si php.* serait renseigné dans 
         #   EXCLUDE= alors le script excluerai les deux occurences 
         #   trouvées quoi qu'il arrive.
-        #
-        # Paquets exclus si maj majeure (EXCLUDE_MAJOR) :
+
+        # Process packages to exclude on major release update (EXCLUDE_MAJOR):
         if [ ! -z "$CONF_SOFT_EXCLUDE_MAJOR" ];then
-            # Initialisation des variables et du séparateur (ici le séparateur est une virgule dans EXCLUDE_MAJOR)
+
             PACKAGES_EXCLUDE_MAJOR=""
             IFS=','
-            
-            # On injecte dans PACKAGES_EXCLUDE_MAJOR, la liste des paquets renseignés dans EXCLUDE_MAJOR
+
+            # Inject exclusion list into PACKAGES_EXCLUDE_MAJOR
             read -ra PACKAGES_EXCLUDE_MAJOR <<< "$CONF_SOFT_EXCLUDE_MAJOR"
             
-            # On parcourt PACKAGES_EXCLUDE_MAJOR, et pour chaque PACKAGE on vérifie si une mise à jour est disponible (dans /tmp/linupdate_check-update.tmp)
+            # Run through all packages in PACKAGES_EXCLUDE_MAJOR
+            # For each package name, check if an update is available by looking in $CHECK_UPDATE_TMP
             for PACKAGE in "${PACKAGES_EXCLUDE_MAJOR[@]}"; do
-                # Si le $PACKAGE se trouve parmi les paquets à mettre à jour on va déterminer si il s'agit d'une maj majeure ou mineure :
-                if egrep -q "^${PACKAGE} " $CHECK_UPDATE_TMP;then # Si une ou plusieurs occurence(s) de $PACKAGE a été trouvée dans $CHECK_UPDATE_TMP, alors on va vérifier si il s'agit d'un maj majeure ou non (et pour toutes les occurences si il y en a plusieurs)
-                    old_IFS=$IFS # Sauvegarde du séparateur de champ (virgule) de la boucle for ci-dessus car il faudra la rétablir ensuite
-                    IFS=$'\n'    # La commande egrep ci-dessous va afficher chaque occurence trouvée sur une nouvelle ligne, le séparateur est donc un saut de ligne (\n)
-                    for OCCURENCE in $(egrep "^${PACKAGE} " $CHECK_UPDATE_TMP | awk '{print $1}');do # Pr chaque occurence trouvée, on vérifie s'il s'agit d'une maj majeure 
-                        echo -e "${YELLOW} ⚠ ${OCCURENCE} :$RESET" &&
-                        # ici on va parser le fichier un peu différemment selon si c'est repoquery ou apt qui a généré le contenu de $CHECK_UPDATE_TMP
-                        PQT_NOM=$(egrep "^${OCCURENCE} " "$CHECK_UPDATE_TMP" | awk '{print $1}') &&  # On récupère le nom exact du paquet à mettre à jour
-                        PQT_VER=$(egrep "^${OCCURENCE} " "$CHECK_UPDATE_TMP" | awk '{print $2}') &&  # Et sa nouvelle version disponible
+
+                # If package occurence is found in $CHECK_UPDATE_TMP, then it means that an update is available for this package
+                # We will have to check if it is a major release update or a minor release update
+                if egrep -q "^${PACKAGE} " $CHECK_UPDATE_TMP;then
+                    
+                    # Save the actual IFS (comma) because it will be needed again by the previous FOR loop 
+                    old_IFS=$IFS
+                    IFS=$'\n'
+    
+                    # For every occurence of the package found in $CHECK_UPDATE_TMP (there could be more than one),
+                    # check if its available upsate is a major release or a minor release update
+                    for OCCURENCE in $(egrep "^${PACKAGE} " $CHECK_UPDATE_TMP | awk '{print $1}');do
+
+                        echo -e "${YELLOW} ⚠ ${OCCURENCE}:$RESET"
+
+                        # Get package exact name
+                        PKG_NAME=$(egrep "^${OCCURENCE} " "$CHECK_UPDATE_TMP" | awk '{print $1}')
+
+                        # And its available release version
+                        PKG_VER=$(egrep "^${OCCURENCE} " "$CHECK_UPDATE_TMP" | awk '{print $2}')
+                        
+                        # Get the package actual release version that is installed on the system
+
+                        # If Debian
                         if [ "$OS_FAMILY" == "Debian" ];then
-                            PQT_VER_ACT=$(egrep "^${OCCURENCE} " "$CHECK_UPDATE_TMP" | awk '{print $3}')  # On récupère la version actuellement installée du paquet afin de pouvoir ensuite la comparer à celle disponible
+                            PKG_ACTUAL_VERSION=$(egrep "^${OCCURENCE} " "$CHECK_UPDATE_TMP" | awk '{print $3}')
                         fi
+                        # If RHEL
                         if [ "$OS_FAMILY" == "Redhat" ];then
-                            PQT_VER_ACT=$(rpm -qi $OCCURENCE | grep Version | head -n1 | awk '{print $3}') && # On récupère la version actuellement installée du paquet afin de pouvoir ensuite la comparer à celle disponible
-                            PQT_RELEASE=$(rpm -qi $OCCURENCE | grep Release | head -n1 | awk '{print $3}')
-                            PQT_VER_ACT="${PQT_VER_ACT}-${PQT_RELEASE}" # Puis on concatene ces deux dernières variables en une seule
+                            PKG_ACTUAL_VERSION=$(rpm -qi $OCCURENCE | grep Version | head -n1 | awk '{print $3}')
+                            PKG_RELEASE=$(rpm -qi $OCCURENCE | grep Release | head -n1 | awk '{print $3}')
+                            # Concatenate both 
+                            PKG_ACTUAL_VERSION="${PKG_ACTUAL_VERSION}-${PKG_RELEASE}"
                         fi
 
-                        if [ -z "$PQT_NOM" ] || [ -z "$PQT_VER" ] || [ -z "$PQT_VER_ACT" ];then    # Si une des trois variables générée précédemment est vide, on affiche une erreur car on n'a pas tous les éléments nécessaires pour faire notre comparaison 
+                        # If one of the variables is empty then print an error because we have not all the necessary informations to check if it's a major or minor update 
+                        # In doubt, the package will be excluded to avoid any problem
+                        if [ -z "$PKG_NAME" ] || [ -z "$PKG_VER" ] || [ -z "$PKG_ACTUAL_VERSION" ];then
                             echo -e "[$RED ERROR $RESET] while checking ${YELLOW}${OCCURENCE}${RESET} package. It will be excluded from update."
-                            UPDATE_EXCLUDE="$UPDATE_EXCLUDE $OCCURENCE"
-                        fi &&
-                        # On parse les numéros de version pour voir s'il s'agit d'une mise à jour majeure ou mineure
+
+                            # Add the package name to the final exclude list
+                            UPDATE_EXCLUDE+=" $OCCURENCE"
+                        fi
+
+                        # Parsing and comparing retrieved release version
                         # ex : 9.2.24-1.el7_5
                         #      |_______
                         #              |
-                        # Si le premier chiffre ne change pas, on considère qu'il s'agit d'une mise à jour mineure qui ne devrait pas poser problème. Sinon majeure.
-                        PARSE_PQT_VER="$(echo "$PQT_VER" | awk -F. '{print $1}')" &&
-                        PARSE_PQT_VER_ACT="$(echo "$PQT_VER_ACT" | awk -F. '{print $1}')" &&
-                        if [ "$PARSE_PQT_VER" != "$PARSE_PQT_VER_ACT" ];then 
-                            echo -e "  [$YELLOW WARNING $RESET] A major release version is available for this package" &&
-                            echo -e "   → Current version   : ${YELLOW}${PQT_VER_ACT}${RESET}" &&
-                            echo -e "   → Available version : ${YELLOW}${PQT_VER}${RESET}" &&
-                            UPDATE_EXCLUDE="$UPDATE_EXCLUDE $OCCURENCE"
+                        # If first number does not change, then it is not a major update but a minor update that should not be problematic.
+                        # Else (if the first number is different), it is a major update
+                        PARSE_PKG_VER="$(echo "$PKG_VER" | awk -F. '{print $1}')"
+                        PARSE_PKG_ACTUAL_VERSION="$(echo "$PKG_ACTUAL_VERSION" | awk -F. '{print $1}')"
+
+                        # Cas it is a major update
+                        if [ "$PARSE_PKG_VER" != "$PARSE_PKG_ACTUAL_VERSION" ];then 
+                            echo -e "  [$YELLOW WARNING $RESET] A major release version is available for this package"
+                            echo -e "   → Current version   : ${YELLOW}${PKG_ACTUAL_VERSION}${RESET}"
+                            echo -e "   → Available version : ${YELLOW}${PKG_VER}${RESET}"
+
+                            # Add the package name to the final exclude list
+                            UPDATE_EXCLUDE+=" $OCCURENCE"
+
+                        # Case it is a minor update: just print a message
                         else
-                            echo -e "  An update is available for this package but no major release version (Current version: ${PQT_VER_ACT} / Avail. version: $PQT_VER)."
+                            echo -e "  An update is available for this package but no major release version (Current version: $PKG_ACTUAL_VERSION / Avail. version: $PKG_VER)."
                         fi
                     done
-                        IFS=$old_IFS # Rétablissement du séparateur de champ précédent (qui était défini comme une virgule (,) pour la boucle for précédente)
+                    
+                    # Set back the prviously saved IFS (comma) for the previous FOR loop to work
+                    IFS=$old_IFS
+
+                # Cas no update is available for this package
                 else
                     echo -e "${YELLOW} ⚠ ${PACKAGE} :$RESET" &&
                     echo -e "  No available update for this package."
@@ -131,84 +168,87 @@ function checkPackagesBeforeUpdate
             done
         fi
 
+        # Process packages to exclude no matter the release update, they always have to be excluded.
         if [ ! -z "$CONF_SOFT_EXCLUDE" ];then
-            # Initialisation des variables et du séparateur (ici le séparateur est une virgule dans EXCLUDE_MAJOR)
+
             PACKAGES_EXCLUDE=""
             IFS=','
 
-            # On continue à alimenter la liste en ajoutant les paquets à exclure dans tous les cas (que ce soit maj mineure ou majeure) (paramètre EXCLUDE= dans linupdate.conf)
-            # On injecte dans PACKAGES_EXCLUDE, la liste des paquets critiques renseignés dans le fichier linupdate.conf
+            # Inject exclusion list into PACKAGES_EXCLUDE
             read -ra PACKAGES_EXCLUDE <<< "$CONF_SOFT_EXCLUDE"
 
-            # On parcourt PACKAGES_EXCLUDE, et pour chaque PACKAGE on l'ajoute à la suite de la liste déjà existante
-            for PACKAGE in "${PACKAGES_EXCLUDE[@]}"; do
-                if egrep -q "^${PACKAGE} " $CHECK_UPDATE_TMP;then # Si le PACKAGE se trouve parmi les paquets à mettre à jour on l'ajoute à la liste d'exclusion sinon on ne fait rien, puisque il ne sera pas mis à jour de toute façon
-                    old_IFS=$IFS # Sauvegarde du séparateur de champ (virgule) de la boucle for ci-dessus car il faudra la rétablir ensuite
-                    IFS=$'\n'    # La commade egrep ci-dessous va afficher chaque occurence trouvée sur une nouvelle ligne, le séparateur est donc un saut de ligne (\n)
+            # Run through all packages in PACKAGES_EXCLUDE_MAJOR
+            # For each package name, check if an update is available by looking in $CHECK_UPDATE_TMP
+            for PACKAGE in "${PACKAGES_EXCLUDE[@]}";do
+
+                # If package occurence is found in $CHECK_UPDATE_TMP, then it means that an update is available for this package
+                # It will be excluded
+                if egrep -q "^${PACKAGE} " $CHECK_UPDATE_TMP;then
+
+                    # Save the actual IFS (comma) because it will be needed again by the previous FOR loop 
+                    old_IFS=$IFS
+                    IFS=$'\n'
                     
-                    for OCCURENCE in $(egrep "^${PACKAGE} " $CHECK_UPDATE_TMP | awk '{print $1}');do # Pr chaque occurence trouvée, on vérifie s'il s'agit d'une maj majeure 
-                        UPDATE_EXCLUDE="$UPDATE_EXCLUDE $OCCURENCE" # Si on trouve une occurence dans la liste des paquets à mettre à jour, alors on ajoute ce paquet à la liste d'exclusion
+                    # For every occurence of the package found in $CHECK_UPDATE_TMP (there could be more than one),
+                    # add it to the final exclude list
+                    for OCCURENCE in $(egrep "^${PACKAGE} " $CHECK_UPDATE_TMP | awk '{print $1}');do
+                        UPDATE_EXCLUDE+=" $OCCURENCE"
                     done
-                    IFS=$old_IFS # Rétablissement du séparateur de champ précédent (qui était défini comme une virgule (,) pour la boucle for précédente)
+        
+                    # Set back the prviously saved IFS (comma) for the previous FOR loop to work
+                    IFS=$old_IFS
                 fi
             done
 
-            # On termine en supprimant le premier espace de la liste
+            # Finalize the list by adding a white space in the end to be sure the last package in the list will be taken into account when processing exclusion from this list
             UPDATE_EXCLUDE="${UPDATE_EXCLUDE} "
+            # Then delete the very first white space 
             UPDATE_EXCLUDE="${UPDATE_EXCLUDE/ /}"
         fi
     fi
 
-    # Gestion des paquets nécessitant un redémarrage
-    # On redémarre le service uniquement si le paquet a été mis à jour (et qu'il s'agit d'une maj mineure. Si maj majeure le paquet est exclu de la maj par sécurité)
+    # Process services that will need a restart after packages update
     if [ ! -z "$CONF_SOFT_NEED_RESTART" ];then
-        # Initialisation des variables et du séparateur (ici le séparateur est une virgule dans EXCLUDE_MAJOR)
-        # SERVICE_NEED_RESTART=""
         IFS=','
 
-        # On injecte dans SERVICE_NEED_RESTART, la liste des paquets renseignés dans le fichier linupdate.conf (NEED_RESTART=)
-        # read -ra SERVICE_NEED_RESTART <<< "$CONF_SOFT_NEED_RESTART"
-
-        # On parcourt CONF_SOFT_NEED_RESTART, et pour chaque SERVICE on vérifie si un paquet du même nom va être mis à jour ou non 
+        # Run through CONF_SOFT_NEED_RESTART
         for SERVICE in "${CONF_SOFT_NEED_RESTART[@]}"; do
-            # Si le SERVICE se trouve parmi les paquets à mettre à jour on active le redémarrage du service SAUF si ce 
-            # paquet est un paquet critique et qu'il s'agit d'une mise à jour majeure. Dans ce cas ce paquet est exclu de la maj donc 
-            # inutile de le redémarrer. Cependant si il s'agit d'une mise à jour mineure il n'est pas exclu et donc un redémarrage est nécessaire.
-            if egrep -q "^${SERVICE} " $CHECK_UPDATE_TMP;then
-                if echo "$UPDATE_EXCLUDE" | grep -q "$SERVICE";then
-                    echo -e "Le paquet du service '$SERVICE' a été exclu de la mise à jour. Il est donc ignoré et son service ne sera pas redémarré en fin de traitement."
-                else
-                    # On vérifie que le service à redémarrer existe avant de l'ajouter à la liste des services à redémarrer
-                    if ! systemctl list-unit-files "${SERVICE}.service" | grep -q "0 unit files";then
-                        SERVICE_TO_BE_RESTARTED+=" $SERVICE"
-                    fi
-                fi
+            
+            # Check if specified service really exists, if yes then add it to the final services to restart list
+            if ! systemctl list-unit-files "${SERVICE}.service" | grep -q "0 unit files";then
+                SERVICE_TO_BE_RESTARTED+=" $SERVICE"
             fi
         done
+
+        SERVICE_TO_BE_RESTARTED="${SERVICE_TO_BE_RESTARTED} "
         SERVICE_TO_BE_RESTARTED="${SERVICE_TO_BE_RESTARTED/ /}"
     fi
 
     echo ""
 
+    # Print all packages that will be excluded, if any
     if [ ! -z "$UPDATE_EXCLUDE" ];then
         echo -e "Following packages will be excluded from update: ${YELLOW}${UPDATE_EXCLUDE}${RESET}"
     fi
+
+    # Print all services that will be restarted, if any
     if [ ! -z "$SERVICE_TO_BE_RESTARTED" ];then
         echo -e "Following services will be restarted after update: ${YELLOW}${SERVICE_TO_BE_RESTARTED}${RESET}"
     fi
 
     echo -e "\n$SEP\n"
 
+    # If $CHECK_UPDATE_TMP is empty then there is no update available
     if [ ! -s "$CHECK_UPDATE_TMP" ];then
         echo -e "${YELLOW}No available package for update${RESET}\n"
 
-        # On indique donc de ne pas exécuter les mises à jour (inutile)
+        # Indicate that there is no need to execute apt/yum packages update
         SOMETHING_TO_UPDATE="no"
 
         return
     fi
 
-    # Affichage de la liste des paquets à mettre à jour
+    # Print packages that will be updated in columns
     if [ "$OS_FAMILY" == "Debian" ];then
         COLUMS_SIZE="%-40s %-20s %-45s %-45s\n"
         printf "$COLUMS_SIZE" " Package" "" "   Current version" "   Available version"
@@ -219,63 +259,67 @@ function checkPackagesBeforeUpdate
     fi
 
     while read PACKAGE;do
-        # Nom du paquet
-        PQT_NOM=$(echo "${PACKAGE}" | awk '{print $1}')
+        # Packahe name
+        PKG_NAME=$(echo "${PACKAGE}" | awk '{print $1}')
 
-        # Version de paquet qu'on propose d'installer
+        # Package version update that is available and will be installed
         if [ "$OS_FAMILY" == "Redhat" ];then
-            PQT_VER=$(echo "${PACKAGE}" | awk '{print $2}')
+            PKG_VER=$(echo "${PACKAGE}" | awk '{print $2}')
         fi
         if [ "$OS_FAMILY" == "Debian" ];then
-            PQT_VER=$(echo ${PACKAGE} | awk '{print $2}' | sed 's/(//g')
+            PKG_VER=$(echo ${PACKAGE} | awk '{print $2}' | sed 's/(//g')
         fi
 
-        # Version de paquet actuellement installée
+        # Package actual version that is installed on the system
         if [ "$OS_FAMILY" == "Redhat" ];then
-            PQT_VER_ACT=$(rpm -qi $PQT_NOM | grep Version | head -n1 | awk '{print $3}')
+            PKG_ACTUAL_VERSION=$(rpm -qi $PKG_NAME | grep Version | head -n1 | awk '{print $3}')
         fi
         if [ "$OS_FAMILY" == "Debian" ];then
-            PQT_VER_ACT=$(echo ${PACKAGE} | awk '{print $3}')
+            PKG_ACTUAL_VERSION=$(echo ${PACKAGE} | awk '{print $3}')
         fi
 
-        # Avec en plus la release et le repo qui propose la mise à jour (Redhat)
+        # On RHEL, also get the actual package release and the repo from where the package will be updated
         if [ "$OS_FAMILY" == "Redhat" ];then 
-            PQT_RELEASE_ACT=$(rpm -qi $PQT_NOM | grep Release | head -n1 | awk '{print $3}')
+            PKG_ACTUAL_RELEASE=$(rpm -qi $PKG_NAME | grep Release | head -n1 | awk '{print $3}')
             REPO=$(echo "${PACKAGE}" | awk '{print $3}')
         fi
 
-        # Maintenant on affiche la liste des paquets, ceux qui seront installés et ceux qui seront exclu. Les colonnes sont différentes selon si c'est un OS type Debian ou Redhat
-        if echo "${UPDATE_EXCLUDE}" | grep -q "${PQT_NOM} ";then
-            ETAT="(exclu)"
+        # Now print the line with all the package informations
+        # Columns size is different depending on whether the system is Debian or RHEL
+
+        # Cas the package to print will be excluded, a "excluded" tag will be printed
+        if echo "${UPDATE_EXCLUDE}" | grep -q "${PKG_NAME} ";then
+            EXCLUDE_STATE="(excluded)"
+
             if [ "$OS_FAMILY" == "Redhat" ];then
                 echo -ne "${RED} ✕ ${RESET}"
-                printf "$COLUMS_SIZE" "${PQT_NOM}" "${ETAT}" "${PQT_VER_ACT}-${PQT_RELEASE_ACT}" "$PQT_VER" "$REPO"
+                printf "$COLUMS_SIZE" "${PKG_NAME}" "${EXCLUDE_STATE}" "${PKG_ACTUAL_VERSION}-${PKG_ACTUAL_RELEASE}" "$PKG_VER" "$REPO"
                 echo -n ""
             fi
             if [ "$OS_FAMILY" == "Debian" ];then
                 echo -ne "${RED} ✕ ${RESET}"
-                printf "$COLUMS_SIZE" "${PQT_NOM}" "${ETAT}" "${PQT_VER_ACT}" "${PQT_VER}"
+                printf "$COLUMS_SIZE" "${PKG_NAME}" "${EXCLUDE_STATE}" "${PKG_ACTUAL_VERSION}" "${PKG_VER}"
                 echo -n ""
             fi
         else
-            ETAT=""
+            EXCLUDE_STATE=""
             if [ "$OS_FAMILY" == "Redhat" ];then
                 echo -ne "${GREEN} ✔ ${RESET}"
-                printf "$COLUMS_SIZE" "${PQT_NOM}" "${ETAT}" "${PQT_VER_ACT}-${PQT_RELEASE_ACT}" "$PQT_VER" "$REPO"
+                printf "$COLUMS_SIZE" "${PKG_NAME}" "${EXCLUDE_STATE}" "${PKG_ACTUAL_VERSION}-${PKG_ACTUAL_RELEASE}" "$PKG_VER" "$REPO"
                 echo -n ""
             fi
             if [ "$OS_FAMILY" == "Debian" ];then
                 echo -ne "${GREEN} ✔ ${RESET}"
-                printf "$COLUMS_SIZE" "${PQT_NOM}" "${ETAT}" "${PQT_VER_ACT}" "${PQT_VER}"
+                printf "$COLUMS_SIZE" "${PKG_NAME}" "${EXCLUDE_STATE}" "${PKG_ACTUAL_VERSION}" "${PKG_VER}"
                 echo -n ""
             fi
         fi
         
     done < "$CHECK_UPDATE_TMP"
 
-    # Dans le cas où l'exécution est manuelle (un terminal existe), on demande une confirmation avant d'installer
     echo -e "\n${SEP}\n"
 
+    # If --assume-yes param has not been specified, then ask for confirmation before installing the printed packages update list
     if [ "$ASSUME_YES" == "0" ];then
         echo -ne "${YELLOW}→ Confirm installation (yes/no): $RESET"; read -p "" CONFIRM &&
         if [ "$CONFIRM" != "yes" ];then
