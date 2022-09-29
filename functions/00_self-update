@@ -42,9 +42,7 @@ function selfUpdate
             fi
         fi
 
-        # Récupération des paramètres passés au script
-        ARGS=$(cat "/tmp/.linupdate_${PROCID}_main_params.tmp") 
-        echo -e " → Relaunching linupdate with the same parameters: $ARGS"
+        echo -e " → Relaunching linupdate with the same parameters: $LINUPDATE_PARAMS"
         sleep 1
 
         # Si il n'y a pas d'argument à passer, on reéxécute le script sans paramètre

@@ -43,7 +43,7 @@ Main:
 --disable-auto-update                        → Disable linupdate automatic update
 --install|--reinstall|-i                     → Install or reinstall linupdate (/!\ will delete actual configuration)
 --profile|--type|--print-profile PROFILE     → Configure host profile (leave empty to print actual)
---environnement|--env ENV                    → Configure host environment (leave empty to print actual)
+--environment|--env ENV                    → Configure host environment (leave empty to print actual)
 
 Package update configuration
 --exclude-major|-em PACKAGE                  → Configure packages to exclude on major release update, separated by a comma. Specify 'none' to clean.
