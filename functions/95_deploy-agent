@@ -33,7 +33,7 @@ function deployAgent
         enableAgent
     fi
 
-    echo -ne "\Start ${YELLOW}linupdate${RESET} agent now? (yes/no): ";read -p "" CONFIRM
+    echo -ne "\nStart ${YELLOW}linupdate${RESET} agent now? (yes/no): ";read -p "" CONFIRM
     if [ "$CONFIRM" == "yes" ];then 
         startAgent
     fi

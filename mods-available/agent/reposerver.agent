@@ -162,7 +162,7 @@ function ngrep_packages_update_requested {
             echo "A package update is requested by the Repomanager server - executing update with linupdate."
 
             # Executing packages update
-            /opt/linupdate/linupdate --assume-yes
+            /opt/linupdate/linupdate --assume-yes --keep-oldconf
             if [ $? != "0" ];then
                 echo -e "An error occured while executing package update\n"
             else

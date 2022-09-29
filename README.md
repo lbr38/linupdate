@@ -1,20 +1,30 @@
 
 <h1>LINUPDATE</h1>
 
-<b>linupdate</b> is a package updater tool for Debian and Redhat based OS.
+**linupdate** is a package updater tool for Debian and Redhat based OS.
 
 Using apt and yum, it provides basic and avanced update features especially when being managed by a <a href="https://github.com/lbr38/repomanager">Repomanager</a> reposerver:
 - update packages
 - exclude packages from update
 - execute pre or post update actions (e.g: restart services)
 - receive mail update reports
-- register to a <b>Repomanager</b> reposerver and get configuration from that server
+- register to a **Repomanager** reposerver and get configuration from that server
 
 linupdate is a modular tool. New modules could be added in the future to improve the update experience.
 
-![alt text](https://github.com/lbr38/repomanager-docs/blob/main/screenshots/linupdate/linupdate-1.png?raw=true)
+![alt text](https://raw.githubusercontent.com/lbr38/resources/main/screenshots/linupdate/linupdate-1.png)
 
-<h1>Installation</h1>
+<h2>Requirements</h2>
+
+<h3>OS</h3>
+
+Linupdate **has been tested and runs fine** on following systems:
+- Debian 10, 11
+- CentOS 7
+
+It may run on most recent Debian/RHEL systems but haven't been tested yet / maybe needs some code update.
+
+<h2>Installation</h2>
 
 ```
 git clone https://github.com/lbr38/linupdate.git /tmp/linupdate
@@ -22,7 +32,7 @@ cd /tmp/linupdate
 ./linupdate
 ```
 
-<h1>Parameters</h1>
+<h2>Parameters</h2>
 
 <pre>
 Main:
@@ -61,13 +71,15 @@ Agent
 --agent-enable|--enable-agent                → Enable linupdate agent start on boot
 </pre>
 
-<h1>Modules</h1>
+<h2>Modules</h2>
 
-<h2>Linupdate & Repomanager</h2>
+<h3>Linupdate & Repomanager</h3>
 
-The linupdate <b>reposerver</b> module provides a connection between linupdate and a Repomanager server. The 'Manage hosts' parameter must be enabled on Repomanager's side.
+The linupdate **reposerver** module provides a connection between linupdate and a <a href="https://github.com/lbr38/repomanager">Repomanager</a> server.
 
-<b>Managing hosts</b>
+The **Manage hosts** parameter must be enabled on Repomanager's side.
+
+**Managing hosts**
 
 An host executing linupdate can send its system and packages informations to the Repomanager server, especially:
 - General information (Hostname, IP, Kernel, OS...)
@@ -78,20 +90,21 @@ An host executing linupdate can send its system and packages informations to the
 If enabled, an agent can regulary send those informations to the reposerver.
 
 
-The <b>Manage hosts</b> tab on Repomanager regroup all hosts that have sended their informations:
+The **Manage hosts** tab on Repomanager regroup all hosts that have sended their informations:
 
-![alt text](https://github.com/lbr38/repomanager-docs/blob/main/screenshots/linupdate/linupdate-repomanager-4.png?raw=true)
+![alt text](https://github.com/lbr38/resources/raw/main/screenshots/repomanager/repomanager-5.png?raw=true)
+![alt text](https://github.com/lbr38/resources/raw/main/screenshots/repomanager/repomanager-3.png?raw=true)
 
 
-<b>Managing configuration profiles</b>
+**Managing configuration profiles**
 
-The <b>Manage profiles</b> tab on Repomanager provides a way to create configuration profiles for hosts executing linupdate and registered to Repomanager.
+The **Manage profiles** tab on Repomanager provides a way to create configuration profiles for hosts executing linupdate and registered to Repomanager.
 A profile can define packages to exclude from an update, services to restart after an update and repos sources configuration for hosts using that profile. It's a convenient way to manage multiple hosts with the same configuration and limit the risks on critical packages updates.
 
-Every time <b>linupdate</b> is executed, it gets its profile configuration (including repos conf and packages exclusions) from its reposerver.
+Every time **linupdate** is executed, it gets its profile configuration (including repos conf and packages exclusions) from its reposerver.
 
 
-<b>Configuration</b>
+**How to register an host executing linupdate to a Repomanager server**
 
 Enable reposerver module:
 
@@ -111,20 +124,20 @@ Register this host to Repomanager to retrieve an authentication Id+token.
 linupdate --mod-configure reposerver --register
 ```
 
-From here, the host become visible from Repomanager web interface, in <b>Manage hosts</b> tab.
+From here, the host become visible from Repomanager web interface, in **Manage hosts** tab.
 
 Send informations to the server:
 
 ```
-linupdate --mod-configure reposerver --send-general-status    # send global informations 
-linupdate --mod-configure reposerver --send-full-status       # send packages inventory and events history
+linupdate --mod-configure reposerver --send-general-status    # send host global informations 
+linupdate --mod-configure reposerver --send-full-status       # send host packages inventory and events history
 ```
 
-Enable reposerver agent:
+Deploy and enable reposerver agent:
 
 ```
 linupdate --mod-configure reposerver --enable-agent
-linupdate --restart-agent
+linupdate --agent-deploy
 ```
 
 Check that linupdate agent is running:

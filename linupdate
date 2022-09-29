@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # set -u
-export LC_ALL="fr_FR.UTF-8"
+export LC_ALL="en_US.UTF-8"
 export TERM="xterm-256color"
 export COLUMNS=190
 
@@ -41,11 +41,7 @@ MAIL_RECIPIENT=""
 CONF_SOFT_EXCLUDE_MAJOR=""
 CONF_SOFT_EXCLUDE=""
 CONF_SOFT_NEED_RESTART=""
-# CONF_SOFT_KEEP_CRON=""
 HISTORIQUE="${BASE_DIR}/linupdate.history"                                 # Emplacement du fichier d'historique des mises à jour
-if [ -f "${BASE_DIR}/linupdate" ];then
-    MD5SUM="$(/usr/bin/md5sum ${BASE_DIR}/linupdate | awk '{print $1}')"   # md5sum de ce script
-fi
 REPORT="${DATE_YMD}_${TIME_FULL}_linupdate_${HOSTNAME}.log"                # Nom du fichier de log/rapport
 LOG="${LOGS_DIR}/${REPORT}"                                                # Emplacement du fichier de log
 LOG_REPORT_MAIL="/tmp/${REPORT}"                                           # Le même fichier mais qui sera légèrement reformaté pour être envoyé par mail puis supprimé
@@ -64,6 +60,7 @@ ASSUME_YES="0"
 ONLY_UPDATE="0"
 PROCID=$(echo "$RANDOM")
 VERBOSE="0"
+FROM_AGENT="0"
 
 # Variables de modules
 MOD_ERROR="0"
@@ -401,6 +398,9 @@ while [ $# -ge 1 ];do
             disableAgent
             clean_exit
         ;;
+        --from-agent)
+            FROM_AGENT="1"
+        ;;
         --enable-auto-update)
             enableSelfUpdate
             clean_exit
@@ -446,7 +446,7 @@ execPreModules
 
 echo -e " Hostname:         ${YELLOW}${HOSTNAME}${RESET}"
 echo -e " OS:               ${YELLOW}${OS_NAME} $OS_VERSION ${RESET}"
-echo -e " Kernel:           ${YELLOW}$KERNEL ${ARCH}${RESET}"
+echo -e " Kernel:           ${YELLOW}$KERNEL${RESET}"
 if [ ! -z "$VIRT_TYPE" ];then
     echo -e " Virtualization:   ${YELLOW}${VIRT_TYPE}${RESET}"
 fi
@@ -454,10 +454,15 @@ echo -e " Profile:          ${YELLOW}${PROFILE}${RESET}"
 echo -e " Environment:      ${YELLOW}${SERVER_ENV}${RESET}"
 echo -e " Executed on:      ${YELLOW}${DATE_DMY} at ${TIME}${RESET}"
 echo -ne " Executed by:     ${YELLOW} "; whoami; echo -ne "${RESET}"
-if [ -t 0 ];then
-    echo -e " Execution:        ${YELLOW}manual${RESET}"
+echo -ne " Execution method: "
+if [ "$FROM_AGENT" == "1" ];then
+    echo -e "${YELLOW}from linupdate agent${RESET}"
 else
-    echo -e " Execution:        ${YELLOW}automatic (no tty)${RESET}"
+    if [ -t 0 ];then
+        echo -e "${YELLOW}manual${RESET}"
+    else
+        echo -e "${YELLOW}automatic (no tty)${RESET}"
+    fi
 fi
 
 # Vérification des paquets à exclure avant de lancer la mise à jour
