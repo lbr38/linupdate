@@ -229,9 +229,11 @@ chmod 660 "$LOG"
 exec &> >(tee -a "$LOG")
 
 # Detect virtualization type
-VIRT_TYPE=$(/usr/sbin/virt-what)
-if [ -z "$VIRT_TYPE" ];then
-    VIRT_TYPE="Bare metal"
+if [ -f "/usr/sbin/virt-what" ];then
+    VIRT_TYPE=$(/usr/sbin/virt-what)
+    if [ -z "$VIRT_TYPE" ];then
+        VIRT_TYPE="Bare metal"
+    fi
 fi
 
 set +u
@@ -481,14 +483,14 @@ if [ "$OS_FAMILY" == "Debian" ];then
     fi
 fi
 
+# Check if a system reboot is required
+checkRebootNeeded
+
 # Execute post-update modules
 execPostModules
 
 # Restarting services
 restartService
-
-# Check if a system reboot is required
-checkRebootNeeded
 
 echo -e "\nOperation completed\n" 
 
