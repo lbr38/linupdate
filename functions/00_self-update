@@ -46,12 +46,12 @@ function selfUpdate
         sleep 1
 
         # Si il n'y a pas d'argument à passer, on reéxécute le script sans paramètre
-        if [ -z "$ARGS" ];then 
+        if [ -z "$LINUPDATE_PARAMS" ];then 
             exec "$LINUPDATE"
         # Si il y a eu des paramètres, on reéxécute le script avec les mêmes paramètres.
-        # Ne pas mettre $ARGS entre quotes "" sinon les paramètres vont se réexécuter comme 1 seul paramètre et ne seront pas reconnus.
+        # Ne pas mettre $LINUPDATE_PARAMS entre quotes "" sinon les paramètres vont se réexécuter comme 1 seul paramètre et ne seront pas reconnus.
         else 
-            exec "$LINUPDATE" $ARGS
+            exec "$LINUPDATE" $LINUPDATE_PARAMS
         fi
     else
         # Dans le cas où on a fait une demande de mise à jour seulement (paramètre --update), on affiche quand même un message pour avertir qu'aucune nouvelle version n'est disponible

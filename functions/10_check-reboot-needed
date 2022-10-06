@@ -7,14 +7,14 @@ function checkRebootNeeded
     if [ "$OS_FAMILY" == "Redhat" ] && [ -f "/usr/bin/needs-restarting" ];then
         # If following command does not return 0 then reboot is required
         if ! /usr/bin/needs-restarting -r > /dev/null;then
-            echo -e " ${YELLOW}Reboot is required${RESET}"
+            echo -e "${YELLOW}Reboot is required${RESET}\n"
         fi
     fi
 
     if [ "$OS_FAMILY" == "Debian" ];then
         # If following file exists then reboot is required
         if [ -f "/var/run/reboot-required" ];then
-            echo -e " ${YELLOW}Reboot is required${RESET}"
+            echo -e "${YELLOW}Reboot is required${RESET}\n"
         fi
     fi
 }
