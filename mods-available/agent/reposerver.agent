@@ -28,9 +28,12 @@ function general_checks {
         exit 1
     fi
 
-    # Checking that a log file exists for yum or apt
+    # Checking that a log file exists for yum/dnf or apt
     if [ -f "/var/log/yum.log" ];then
         LOGFILE="/var/log/yum.log"
+
+    elif [ -f "/var/log/dnf.log" ];then
+        LOGFILE="/var/log/dnf.log"
 
     elif [ -f "/var/log/apt/history.log" ];then
         LOGFILE="/var/log/apt/history.log"
