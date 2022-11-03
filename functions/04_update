@@ -26,14 +26,14 @@ function update
 
         # Si c'est du Debian, on charge la liste des paquets
         if [ "$OS_FAMILY" == "Debian" ];then
-			apt-get -o Acquire::Check-Valid-Until=false -qq --allow-releaseinfo-change update
-		fi
+            apt-get -o Acquire::Check-Valid-Until=false -qq --allow-releaseinfo-change update
+        fi
 
         # Si $UPDATE_EXCLUDE n'est pas vide, alors on exclu les paquets de la mise à jour
         if [ ! -z "$UPDATE_EXCLUDE" ];then
             if [ "$OS_FAMILY" == "Redhat" ];then
-				yum --exclude=${UPDATE_EXCLUDE} update -y
-			fi
+                yum --exclude=${UPDATE_EXCLUDE} update -y
+            fi
             if [ "$OS_FAMILY" == "Debian" ];then
                 echo -e "\nExcluding critical packages: $YELLOW"
                 IFS=' ' # Dans $UPDATE_EXCLUDE le séparateur est un espace
@@ -43,21 +43,27 @@ function update
 
                 echo -e "$RESET"
                 # Puis on met à jour, plusieurs cas possible avec Debian : mise à jour normale ou dist-upgrade ; écrasement des fichiers de conf ou conservation 
-                if   [ "$DIST_UPGRADE" -eq "1" ] && [ "$KEEP_OLDCONF" -eq "0" ];then apt-get dist-upgrade -y
-                elif [ "$DIST_UPGRADE" -eq "1" ] && [ "$KEEP_OLDCONF" -eq "1" ];then apt-get -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" dist-upgrade -y
-                elif [ "$DIST_UPGRADE" -eq "0" ] && [ "$KEEP_OLDCONF" -eq "0" ];then apt-get upgrade -y
-                elif [ "$DIST_UPGRADE" -eq "0" ] && [ "$KEEP_OLDCONF" -eq "1" ];then apt-get -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" upgrade -y
-                fi
+                # if   [ "$DIST_UPGRADE" -eq "1" ] && [ "$KEEP_OLDCONF" -eq "0" ];then apt-get $APT_UPGRADE -y
+                # elif [ "$DIST_UPGRADE" -eq "1" ] && [ "$KEEP_OLDCONF" -eq "1" ];then apt-get -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" $APT_UPGRADE -y
+                # elif [ "$DIST_UPGRADE" -eq "0" ] && [ "$KEEP_OLDCONF" -eq "0" ];then apt-get $APT_UPGRADE -y
+                # elif [ "$DIST_UPGRADE" -eq "0" ] && [ "$KEEP_OLDCONF" -eq "1" ];then apt-get -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" $APT_UPGRADE -y
+                # fi
+
+                apt-get $APT_OPTIONS $APT_UPGRADE -y
             fi
-        else # Si $UPDATE_EXCLUDE est vide alors on met à jour normalement, sans exclusion
-            if [ "$OS_FAMILY" == "Redhat" ];then yum update -y;fi
+        # Si $UPDATE_EXCLUDE est vide alors on met à jour normalement, sans exclusion
+        else
+            if [ "$OS_FAMILY" == "Redhat" ];then
+                yum update -y
+            fi
             if [ "$OS_FAMILY" == "Debian" ];then 
                 # Plusieurs cas possible avec Debian : mise à jour normale ou dist-upgrade ; écrasement des fichiers de conf ou conservation 
-                if   [ "$DIST_UPGRADE" -eq "1" ] && [ "$KEEP_OLDCONF" -eq "0" ];then apt-get dist-upgrade -y
-                elif [ "$DIST_UPGRADE" -eq "1" ] && [ "$KEEP_OLDCONF" -eq "1" ];then apt-get -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" dist-upgrade -y
-                elif [ "$DIST_UPGRADE" -eq "0" ] && [ "$KEEP_OLDCONF" -eq "0" ];then apt-get upgrade -y
-                elif [ "$DIST_UPGRADE" -eq "0" ] && [ "$KEEP_OLDCONF" -eq "1" ];then apt-get -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" upgrade -y
-                fi
+                # if   [ "$DIST_UPGRADE" -eq "1" ] && [ "$KEEP_OLDCONF" -eq "0" ];then apt-get $APT_UPGRADE -y
+                # elif [ "$DIST_UPGRADE" -eq "1" ] && [ "$KEEP_OLDCONF" -eq "1" ];then apt-get -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" $APT_UPGRADE -y
+                # elif [ "$DIST_UPGRADE" -eq "0" ] && [ "$KEEP_OLDCONF" -eq "0" ];then apt-get $APT_UPGRADE -y
+                # elif [ "$DIST_UPGRADE" -eq "0" ] && [ "$KEEP_OLDCONF" -eq "1" ];then apt-get -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" $APT_UPGRADE -y
+                # fi
+                apt-get $APT_OPTIONS $APT_UPGRADE -y
             fi
         fi &&
         echo -e "\n${GREEN}Update completed${RESET}\n"

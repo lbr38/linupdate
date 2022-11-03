@@ -46,7 +46,8 @@ HISTORIQUE="${BASE_DIR}/linupdate.history"                     # Packages update
 REPORT="${DATE_YMD}_${TIME_FULL}_linupdate_${HOSTNAME}.log"    # Name of the log/report file
 LOG="${LOGS_DIR}/${REPORT}"                                    # Location of the log/report file
 LOG_REPORT_MAIL="/tmp/${REPORT}"                               # Same file but this one will be formated to be sent by mail (without ANSI characters)
-DIST_UPGRADE="0"
+APT_UPGRADE="upgrade"                                          # upgrade or dist-upgrade (default: upgrade)
+APT_OPTIONS=""
 KEEP_OLDCONF="0"
 UPDATE_ERROR="0"
 SOMETHING_TO_UPDATE="yes"
@@ -254,7 +255,7 @@ while [ $# -ge 1 ];do
         --force|--assume-yes)
             ASSUME_YES="1"
         ;;
-        --profile|--type|--print-profile)
+        --profile|--type)
             # If nothing has been specified then print actual profile
             if [ -z "$2" ];then
                 PROFILE=$(grep "^PROFILE=" $CONF | sed 's/PROFILE=//g' | sed 's/"//g')
@@ -291,7 +292,9 @@ while [ $# -ge 1 ];do
         --install|--reinstall|-i)
             if [ -d "/opt/linupdate" ];then
                 echo -n " This action will delete the entire actual linupdate installation and its modules. Confirm (yes/no): "; read -p "" CONFIRM
-                if [ "$CONFIRM" != "yes" ];then clean_exit;fi
+                if [ "$CONFIRM" != "yes" ];then
+                    clean_exit
+                fi
                 rm ${BASE_DIR} -rf
             fi
             selfInstall
@@ -310,10 +313,10 @@ while [ $# -ge 1 ];do
             clean_exit
         ;;
         --dist-upgrade|-du)
-            DIST_UPGRADE=1
+            APT_UPGRADE="dist-upgrade"
         ;;
         --keep-oldconf|-ko)
-            KEEP_OLDCONF=1
+            APT_OPTIONS='-o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold"'
         ;;
         --exclude|-e)
             if [ ! -z "$2" ];then
