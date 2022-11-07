@@ -6,7 +6,7 @@ function restartService
     # Si $SERVICE_TO_BE_RESTARTED contient des services nécessitant un redémarrage, on traite
     if [ ! -z "$SERVICE_TO_BE_RESTARTED" ];then
         OLD_IFS="$IFS"
-        IFS=$','
+        IFS=','
 
         for SERVICE in $SERVICE_TO_BE_RESTARTED; do
             echo -ne "→ Restarting ${YELLOW}${SERVICE}${RESET} service: "
