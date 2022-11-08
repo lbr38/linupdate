@@ -48,6 +48,7 @@ LOG="${LOGS_DIR}/${REPORT}"                                    # Location of the
 LOG_REPORT_MAIL="/tmp/${REPORT}"                               # Same file but this one will be formated to be sent by mail (without ANSI characters)
 APT_UPGRADE="upgrade"                                          # upgrade or dist-upgrade (default: upgrade)
 APT_OPTIONS=""
+YUM_OPTIONS=""
 KEEP_OLDCONF="0"
 UPDATE_ERROR="0"
 SOMETHING_TO_UPDATE="yes"
@@ -316,6 +317,7 @@ while [ $# -ge 1 ];do
             APT_UPGRADE="dist-upgrade"
         ;;
         --keep-oldconf|-ko)
+            export DEBIAN_FRONTEND="noninteractive"
             APT_OPTIONS='-o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold"'
         ;;
         --exclude|-e)
