@@ -47,7 +47,7 @@ function update
             fi
         fi
 
-        # Updating
+        # Updating packages
         if [ "$OS_FAMILY" == "Redhat" ];then
             yum $YUM_OPTIONS update -y
         fi
@@ -56,9 +56,10 @@ function update
         fi
 
         echo -e "\n${GREEN}Update completed${RESET}\n"
-        
-    } || { # Si une commande échoue
+
+    # If one command fail    
+    } || {
         echo -e "\n${YELLOW}Update has failed${RESET}"
-        (( UPDATE_ERROR++ ))    # On incrémente $UPDATE_ERROR
+        (( UPDATE_ERROR++ ))
     }
 }

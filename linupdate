@@ -3,12 +3,10 @@
 export LC_ALL="en_US.UTF-8"
 export TERM="xterm-256color"
 # export COLUMNS=190
-
-BASE_DIR="/opt/linupdate"
-
 cd "/home"
 
 ## ↓ VARIABLES ↓ ##
+BASE_DIR="/opt/linupdate"
 DATE_DMY=$(date +%d-%m-%Y)                          # Today date in 'DD-MM-YYYY' format
 DATE_YMD=$(date +%Y-%m-%d)                          # Today date in 'YYYY-MM-DD' format
 DATE_FULL=$(date +%d-%m-%Y_%Hh%M)                   # Today date in 'DD-MM-YYYY_hh-mm' format
@@ -219,6 +217,13 @@ fi
 
 
 ## ↓ EXECUTION ↓ ##
+
+# Params pre-check
+# If --from-agent param is passed, then rewrite output log filename and make it hidden
+if echo "$@" | grep -q "\-\-from\-agent";then
+    REPORT=".${DATE_YMD}_${TIME_FULL}_linupdate_${HOSTNAME}-agent.log"
+    LOG="${LOGS_DIR}/${REPORT}"
+fi
 
 # Create logs dir if not exist
 mkdir -p "$LOGS_DIR"
