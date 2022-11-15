@@ -36,7 +36,7 @@ function register
 
     # Si on n'a pas précisé d'adresse IP à enregistrer alors on tente de récupérer l'adresse IP publique de cette machine
     if [ -z "$REGISTER_IP" ];then
-        REGISTER_IP=$(curl -s -4 ifconfig.co)
+        REGISTER_IP=$(curl -s -4 ifconfig.io)
         if [ -z "$REGISTER_IP" ];then
             echo -e "[$YELLOW ERROR $RESET] Cannot determine this host's IP address."
             ERROR_STATUS=1
