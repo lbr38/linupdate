@@ -9,6 +9,7 @@ function restartService
         IFS=','
 
         for SERVICE in $SERVICE_TO_BE_RESTARTED; do
+            SERVICE=$(echo "$SERVICE" | sed 's/ //g')
             echo -ne "→ Restarting ${YELLOW}${SERVICE}${RESET} service: "
             systemctl restart "$SERVICE" --quiet
             if [ "$?" != "0" ];then
