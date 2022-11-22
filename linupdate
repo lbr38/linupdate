@@ -50,6 +50,7 @@ YUM_OPTIONS=""
 KEEP_OLDCONF="0"
 UPDATE_ERROR="0"
 SOMETHING_TO_UPDATE="yes"
+ONLY_CHECK_UPDATE="false"
 IGNORE_EXCLUDE="0"
 UPDATE_EXCLUDE=""
 SERVICE_TO_BE_RESTARTED=""
@@ -314,6 +315,7 @@ while [ $# -ge 1 ];do
             IGNORE_EXCLUDE=1
         ;;
         --check-updates|-cu)
+            ONLY_CHECK_UPDATE="true"
             getConf
             checkPackagesBeforeUpdate
             clean_exit
