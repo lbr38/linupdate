@@ -260,14 +260,14 @@ function checkPackagesBeforeUpdate
 
     while read PACKAGE;do
         # Packahe name
-        PKG_NAME=$(echo "${PACKAGE}" | awk '{print $1}')
+        PKG_NAME=$(echo "$PACKAGE" | awk '{print $1}')
 
         # Package version update that is available and will be installed
         if [ "$OS_FAMILY" == "Redhat" ];then
-            PKG_VER=$(echo "${PACKAGE}" | awk '{print $2}')
+            PKG_VER=$(echo "$PACKAGE" | awk '{print $2}')
         fi
         if [ "$OS_FAMILY" == "Debian" ];then
-            PKG_VER=$(echo ${PACKAGE} | awk '{print $2}' | sed 's/(//g')
+            PKG_VER=$(echo $PACKAGE | awk '{print $2}' | sed 's/(//g')
         fi
 
         # Package actual version that is installed on the system
@@ -275,42 +275,42 @@ function checkPackagesBeforeUpdate
             PKG_ACTUAL_VERSION=$(rpm -qi $PKG_NAME | grep Version | head -n1 | awk '{print $3}')
         fi
         if [ "$OS_FAMILY" == "Debian" ];then
-            PKG_ACTUAL_VERSION=$(echo ${PACKAGE} | awk '{print $3}')
+            PKG_ACTUAL_VERSION=$(echo $PACKAGE | awk '{print $3}')
         fi
 
         # On RHEL, also get the actual package release and the repo from where the package will be updated
         if [ "$OS_FAMILY" == "Redhat" ];then 
             PKG_ACTUAL_RELEASE=$(rpm -qi $PKG_NAME | grep Release | head -n1 | awk '{print $3}')
-            REPO=$(echo "${PACKAGE}" | awk '{print $3}')
+            REPO=$(echo "$PACKAGE" | awk '{print $3}')
         fi
 
         # Now print the line with all the package informations
         # Columns size is different depending on whether the system is Debian or RHEL
 
         # Cas the package to print will be excluded, a "excluded" tag will be printed
-        if echo "${UPDATE_EXCLUDE}" | grep -q "${PKG_NAME} ";then
+        if echo "$UPDATE_EXCLUDE" | grep -q "$PKG_NAME ";then
             EXCLUDE_STATE="(excluded)"
 
             if [ "$OS_FAMILY" == "Redhat" ];then
                 echo -ne "${RED} ✕ ${RESET}"
-                printf "$COLUMS_SIZE" "${PKG_NAME}" "${EXCLUDE_STATE}" "${PKG_ACTUAL_VERSION}-${PKG_ACTUAL_RELEASE}" "$PKG_VER" "$REPO"
+                printf "$COLUMS_SIZE" "$PKG_NAME" "$EXCLUDE_STATE" "${PKG_ACTUAL_VERSION}-${PKG_ACTUAL_RELEASE}" "$PKG_VER" "$REPO"
                 echo -n ""
             fi
             if [ "$OS_FAMILY" == "Debian" ];then
                 echo -ne "${RED} ✕ ${RESET}"
-                printf "$COLUMS_SIZE" "${PKG_NAME}" "${EXCLUDE_STATE}" "${PKG_ACTUAL_VERSION}" "${PKG_VER}"
+                printf "$COLUMS_SIZE" "$PKG_NAME" "$EXCLUDE_STATE" "$PKG_ACTUAL_VERSION" "$PKG_VER"
                 echo -n ""
             fi
         else
             EXCLUDE_STATE=""
             if [ "$OS_FAMILY" == "Redhat" ];then
                 echo -ne "${GREEN} ✔ ${RESET}"
-                printf "$COLUMS_SIZE" "${PKG_NAME}" "${EXCLUDE_STATE}" "${PKG_ACTUAL_VERSION}-${PKG_ACTUAL_RELEASE}" "$PKG_VER" "$REPO"
+                printf "$COLUMS_SIZE" "$PKG_NAME" "$EXCLUDE_STATE" "${PKG_ACTUAL_VERSION}-${PKG_ACTUAL_RELEASE}" "$PKG_VER" "$REPO"
                 echo -n ""
             fi
             if [ "$OS_FAMILY" == "Debian" ];then
                 echo -ne "${GREEN} ✔ ${RESET}"
-                printf "$COLUMS_SIZE" "${PKG_NAME}" "${EXCLUDE_STATE}" "${PKG_ACTUAL_VERSION}" "${PKG_VER}"
+                printf "$COLUMS_SIZE" "$PKG_NAME" "$EXCLUDE_STATE" "$PKG_ACTUAL_VERSION" "$PKG_VER"
                 echo -n ""
             fi
         fi
@@ -318,6 +318,11 @@ function checkPackagesBeforeUpdate
     done < "$CHECK_UPDATE_TMP"
 
     echo -e "\n${SEP}\n"
+
+    # If --check-updates param, then quit
+    if [ "$ONLY_CHECK_UPDATE" == "true" ];then
+        exit
+    fi
 
     # If --assume-yes param has not been specified, then ask for confirmation before installing the printed packages update list
     if [ "$ASSUME_YES" == "0" ];then
