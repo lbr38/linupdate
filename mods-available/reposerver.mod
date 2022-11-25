@@ -196,16 +196,14 @@ function mod_help
     echo -e " Main:"
     echo -e "  --url http(s)://...           → Configure target reposerver URL"
     echo -e "  --fail-level 1|2|3            → Configure module criticality (between 1 and 3)"
-    echo -e "                                  1: linupdate stops no matter the module error (disabled module, reposerver does not handle the same package type, minor or critical error...)"
-    echo -e "                                  2: linupdate stops on module critical error (continue on minor error)"
-    echo -e "                                  3: linupdate continue even in case of module critical error"
+    echo -e "                                  1: linupdate stops no matter the module error (disabled module, the target reposerver does not handle the same package type, minor or critical error...)"
+    echo -e "                                  2: linupdate stops on module critical error (continues on minor error)"
+    echo -e "                                  3: linupdate continues even in case of module critical error"
     echo -e "  --register                    → Register this host to reposerver"
     echo -e "  --unregister                  → Unregister this host from reposerver"
-    echo -e "  --allow-conf-update yes|no    → Allow reposerver to configure packages exclusions on this host."
-    echo -e "  --allow-repos-update yes|no   → Allow reposerver to configure repos sources (.repo or .list files) on this host"
-    echo -e "  --allow-overwrite yes|no      → Allo reposerver to overwrite the two previous parameters configuration"
     echo -e "  --get-server-conf             → Get reposerver global configuration."
     echo -e "  --get-profile-conf            → Get profile global configuration from reposerver."
+    echo -e "  --get-profile-packages-conf   → Get profile packages excludes configurtion from reposerver."
     echo -e "  --get-profile-repos           → Get repos sources configuration from reposerver."
     echo -e "  --send-general-status         → Send host global informations to reposerver (OS, version, kernel..)"
     echo -e "  --send-full-history           → Send host packages events history to reposerver (installation, update, uninstallation...)"
@@ -214,7 +212,7 @@ function mod_help
     echo -e ""
     echo -e " Agent:"
     echo -e "  --enable-agent                → Enable reposerver module agent"
-    echo -e "                                  This agent will regularly send informations about this host to reposerver (global info., packages info...)"
+    echo -e "                                  This agent will regularly send informations about this host to reposerver (global informations, packages informations...)"
     echo -e "  --disable-agent               → Disable reposerver module agent"
     echo -e "  --agent-watch-enable          → Enable reposerver requests watching"
     echo -e "  --agent-watch-disable         → Disable reposerver requests watching"
@@ -566,8 +564,16 @@ function mod_load
 
     # Section [AGENT]
     echo -e "\n[AGENT]" >> "$TMP_MOD_CONF"
-    grep "^WATCH_FOR_REQUEST=" "$MOD_CONF" >> "$TMP_MOD_CONF"
-    grep "^WATCH_INTERFACE=" "$MOD_CONF" >> "$TMP_MOD_CONF"
+    if ! grep -q "^WATCH_FOR_REQUEST=" "$MOD_CONF";then
+        echo "WATCH_FOR_REQUEST=\"enabled\"" >> "$TMP_MOD_CONF"
+    else
+        grep "^WATCH_FOR_REQUEST=" "$MOD_CONF" >> "$TMP_MOD_CONF"
+    fi
+    if ! grep -q "^WATCH_INTERFACE=" "$MOD_CONF";then
+        echo "WATCH_INTERFACE=\"auto\"" >> "$TMP_MOD_CONF"
+    else
+        grep "^WATCH_INTERFACE=" "$MOD_CONF" >> "$TMP_MOD_CONF"
+    fi
 
 	# Remplacement du fichier de conf par le fichier précédemment construit
 	cat "$TMP_MOD_CONF" > "$MOD_CONF"
@@ -947,7 +953,7 @@ function getProfileRepos
 
     echo -e "[$GREEN OK $RESET]"
 
-    echo ""
+    # echo ""
 }
 
 # Exécution pre-mise à jour des paquets
