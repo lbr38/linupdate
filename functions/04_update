@@ -47,16 +47,23 @@ function update
             fi
         fi
 
-        # Trim whitespaces
-        YUM_OPTIONS="${YUM_OPTIONS#"${YUM_OPTIONS%%[![:space:]]*}"}"
-        YUM_OPTIONS="${YUM_OPTIONS%"${YUM_OPTIONS##*[![:space:]]}"}"
-
         # Updating packages
         if [ "$OS_FAMILY" == "Redhat" ];then
-            yum "$YUM_OPTIONS" update -y
+            if [ ! -z "$YUM_OPTIONS" ];then
+                # Trim whitespaces
+                YUM_OPTIONS="${YUM_OPTIONS#"${YUM_OPTIONS%%[![:space:]]*}"}"
+                YUM_OPTIONS="${YUM_OPTIONS%"${YUM_OPTIONS##*[![:space:]]}"}"
+                yum "$YUM_OPTIONS" update -y
+            else
+                yum update -y
+            fi
         fi
         if [ "$OS_FAMILY" == "Debian" ];then
-            apt-get "$APT_UPGRADE" -y "$APT_OPTIONS"
+            if [ ! -z "$APT_OPTIONS" ];then
+                apt-get "$APT_UPGRADE" -y "$APT_OPTIONS"
+            else
+                apt-get "$APT_UPGRADE" -y
+            fi
         fi
 
         echo -e "\n${GREEN}Update completed${RESET}\n"
