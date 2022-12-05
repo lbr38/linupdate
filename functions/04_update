@@ -34,6 +34,9 @@ function update
         if [ ! -z "$UPDATE_EXCLUDE" ];then
             if [ "$OS_FAMILY" == "Redhat" ];then
                 YUM_OPTIONS+=" --exclude=${UPDATE_EXCLUDE}"
+                # Trim whitespaces
+                YUM_OPTIONS="${YUM_OPTIONS#"${YUM_OPTIONS%%[![:space:]]*}"}"
+                YUM_OPTIONS="${YUM_OPTIONS%"${YUM_OPTIONS##*[![:space:]]}"}"
             fi
             if [ "$OS_FAMILY" == "Debian" ];then
                 echo -e "\nExcluding critical packages: $YELLOW"
@@ -50,9 +53,6 @@ function update
         # Updating packages
         if [ "$OS_FAMILY" == "Redhat" ];then
             if [ ! -z "$YUM_OPTIONS" ];then
-                # Trim whitespaces
-                YUM_OPTIONS="${YUM_OPTIONS#"${YUM_OPTIONS%%[![:space:]]*}"}"
-                YUM_OPTIONS="${YUM_OPTIONS%"${YUM_OPTIONS##*[![:space:]]}"}"
                 yum "$YUM_OPTIONS" update -y
             else
                 yum update -y

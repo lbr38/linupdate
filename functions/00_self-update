@@ -8,7 +8,7 @@ function selfUpdate
         return
     fi
 
-    AVAILABLE_VERSION=$(curl -s "https://raw.githubusercontent.com/lbr38/linupdate/master/version")
+    AVAILABLE_VERSION=$(curl -s "https://raw.githubusercontent.com/lbr38/linupdate/main/version")
     if [ -z "$AVAILABLE_VERSION" ];then
         echo -e "Checking new available release update: [$RED ERROR $RESET] while retrieving new available release version.\n"
 

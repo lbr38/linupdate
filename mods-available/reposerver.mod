@@ -44,8 +44,8 @@ function register
         fi
     fi
 
-    CURL=$(curl -s -q -H "Content-Type: application/json" -X POST -d "{\"ip\":\"$REGISTER_IP\",\"hostname\":\"$REGISTER_HOSTNAME\"}" "${REPOSERVER_URL}/api/hosts" 2> /dev/null)
-   
+    CURL=$(curl -s -q -H "Content-Type: application/json" -X POST -d "{\"ip\":\"$REGISTER_IP\",\"hostname\":\"$REGISTER_HOSTNAME\"}" "${REPOSERVER_URL}/api/v2/host/registering" 2> /dev/null)
+
     # Parsage de la réponse et affichage des messages si il y en a
     curl_result_parse
 
@@ -55,8 +55,8 @@ function register
     fi
 
     # Le serveur a dû renvoyer un id et token d'identification qu'on récupère
-    REGISTER_ID=$(jq -r '.id' <<< "$CURL")
-    REGISTER_TOKEN=$(jq -r '.token' <<< "$CURL")
+    REGISTER_ID=$(jq -r '.results.id' <<< "$CURL")
+    REGISTER_TOKEN=$(jq -r '.results.token' <<< "$CURL")
 
     # Si l'enregistrement a été effectué, on vérifie qu'on a bien pu récupérer un id
     if [ -z "$REGISTER_ID" ] || [ "$REGISTER_ID" == "null" ];then
@@ -110,7 +110,7 @@ function unregister
 
     # Tentative de suppression de l'enregistrement
     echo -ne " Unregistering from ${YELLOW}${REPOSERVER_URL}${RESET}: "
-    CURL=$(curl -s -q -H "Content-Type: application/json" -X DELETE -d "{\"id\":\"$HOST_ID\", \"token\":\"$TOKEN\"}" "${REPOSERVER_URL}/api/hosts" 2> /dev/null)
+    CURL=$(curl -s -q -H "Content-Type: application/json" -X DELETE -d "{\"id\":\"$HOST_ID\", \"token\":\"$TOKEN\"}" "${REPOSERVER_URL}/api/v2/host/registering" 2> /dev/null)
  
     # Parsage de la réponse et affichage des messages si il y en a
     curl_result_parse
@@ -127,9 +127,8 @@ function unregister
 function testConnection
 {
     # On teste l'accès à l'url avec un curl pour vérifier que le serveur est joignable
-    # if ! curl -s -q -H "Content-Type: application/json" -X GET "${REPOSERVER_URL}/api/hosts/get.php" 2> /dev/null;then
-    if ! curl -s -q -H "Content-Type: application/json" -X GET -d "{\"status\":\"\"}" "${REPOSERVER_URL}/api/hosts" 2> /dev/null;then
-        echo -e " [$YELLOW ERROR $RESET] Cannot reach reposerver from $REPOSERVER_URL"
+    if ! curl --silent -q -H "Content-Type: application/json" -X GET "${REPOSERVER_URL}/api/v2/status" > /dev/null;then
+        echo -e " [$YELLOW ERROR $RESET] Cannot reach reposerver from ${YELLOW}${REPOSERVER_URL}${RESET}"
         ERROR_STATUS=1
         clean_exit
     fi
@@ -139,11 +138,10 @@ function testConnection
 function curl_result_parse
 {
     CURL_ERROR="0";
+    UPDATE_RETURN=""
 
     # On récupère le code retour si il y en a un
-    if ! echo "$CURL" | grep -q ".return";then
-        UPDATE_RETURN=""
-    else
+    if echo "$CURL" | grep -q ".return";then
         UPDATE_RETURN=$(jq -r '.return' <<< "$CURL")
     fi
 
@@ -162,7 +160,6 @@ function curl_result_parse
 
     # Si il y a eu des messages d'erreur on les affiche
     if echo "$CURL" | grep -q "message_error";then
-
         # array
         UPDATE_MESSAGE_ERROR=($(jq -r '.message_error[]' <<< "$CURL"))
 
@@ -175,10 +172,9 @@ function curl_result_parse
     fi
 
     # Si il y a eu des message de succès on les affiche
-    if echo "$CURL" | grep -q "message_success";then
-
+    if echo "$CURL" | grep -q '"message"';then
         # array
-        UPDATE_MESSAGE_SUCCESS=($(jq -r '.message_success[]' <<< "$CURL"))
+        UPDATE_MESSAGE_SUCCESS=($(jq -r '.message[]' <<< "$CURL"))
 
         # $UPDATE_MESSAGE_SUCCESS est un array pouvant contenir plusieurs messages d'erreurs
         for MESSAGE in "${UPDATE_MESSAGE_SUCCESS[@]}"; do
@@ -604,8 +600,6 @@ function getModConf
     # Configuration serveur (section [REPOSERVER])
     REPOSERVER_URL="$(grep "^URL=" $MOD_CONF | cut -d'=' -f2 | sed 's/"//g')"
     REPOSERVER_PACKAGE_TYPE="$(grep "^PACKAGE_TYPE=" $MOD_CONF | cut -d'=' -f2 | sed 's/"//g')"
-    # REPOSERVER_MANAGE_CLIENT_CONF="$(grep "^MANAGE_CLIENTS_CONF=" $MOD_CONF | cut -d'=' -f2 | sed 's/"//g')"
-    # REPOSERVER_MANAGE_CLIENT_REPOS="$(grep "^MANAGE_CLIENTS_REPOSCONF=" $MOD_CONF | cut -d'=' -f2 | sed 's/"//g')"
 
     # Récupération du FAILLEVEL pour ce module
     FAILLEVEL=$(grep "^FAILLEVEL=" "$MOD_CONF" | cut -d'=' -f2 | sed 's/"//g')
@@ -613,16 +607,16 @@ function getModConf
     # Si on n'a pas pu récupérer le FAILLEVEL dans le fichier de conf alors on le set à 1 par défaut
     # De même si le FAILLEVEL récupéré n'est pas un chiffre alors on le set à 1
     if [ -z "$FAILLEVEL" ];then
-        echo -e "[$YELLOW WARNING $RESET] FAILLEVEL parameter is not defined for this module → default to 1 (stops on critical or minor error)"
+        echo -e "    [$YELLOW WARNING $RESET] FAILLEVEL parameter is not defined for this module → default to 1 (stops on critical or minor error)"
         FAILLEVEL="1"
     fi
-    if ! [[ "$FAILLEVEL" =~ ^[0-9]+$ ]];then
-        echo -e "[$YELLOW WARNING $RESET] FAILLEVEL parameter is not properly defined for this module (must be a numeric value) → default to 1 (stops on critical or minor error)"
+    if ! [[ "$FAILLEVEL" =~ ^[1-3]+$ ]];then
+        echo -e "    [$YELLOW WARNING $RESET] FAILLEVEL parameter is not properly defined for this module (must be a numeric value) → default to 1 (stops on critical or minor error)"
         FAILLEVEL="1"
     fi
 
-    if [ -z "$REPOSERVER_URL" ];then
-        echo -e " - reposerver module: [$YELLOW ERROR $RESET] reposerver URL is not defined"
+    if [ -z "$REPOSERVER_URL" ] || [ "$REPOSERVER_URL" == "null" ];then
+        echo -e "    [$YELLOW ERROR $RESET] reposerver URL is not defined"
         return 2
     fi
 
@@ -642,7 +636,7 @@ function getServerConf
 
     # Demande de la configuration auprès du serveur de repos
     # Ce dernier renverra la configuration au format JSON
-    CURL=$(curl -s -q -H "Content-Type: application/json" -X GET -d "{\"getConfiguration\":\"server\"}" "${REPOSERVER_URL}/api/hosts" 2> /dev/null)
+    CURL=$(curl -s -q -H "Content-Type: application/json" -X GET "${REPOSERVER_URL}/api/v2/profile/server-settings" 2> /dev/null)
     curl_result_parse
 
     # Si il y a eu une erreur lors de la requête on quitte la fonction
@@ -653,7 +647,7 @@ function getServerConf
     # Puis on récupère la configuration transmise par le serveur au format JSON
     # On parcourt chaque configuration et on récupère le nom du fichier à créer, la description et le contenu à insérer
     # On remplace à la volée l'environnement dans le contenu récupéré
-    for ROW in $(echo "${CURL}" | jq -r '.configuration | @base64'); do
+    for ROW in $(echo "${CURL}" | jq -r '.results[] | @base64'); do
         _jq() {
             echo ${ROW} | base64 --decode | jq -r ${1}
         }
@@ -736,11 +730,11 @@ function preCheck
 function getProfileConf
 {
     # Si le serveur reposerver ne gère pas les profils ou que le client refuse d'être mis à jour par son serveur de repo, on quitte la fonction
-    echo -ne "  → Get ${YELLOW}${PROFILE}${RESET} profile configuration: "
+    echo -ne "  → Getting ${YELLOW}${PROFILE}${RESET} profile configuration: "
 
     # Demande de la configuration des repos auprès du serveur de repos
     # Ce dernier renverra la configuration au format JSON
-    CURL=$(curl -s -q -H "Content-Type: application/json" -X GET -d "{\"id\":\"$HOST_ID\",\"token\":\"$TOKEN\",\"profile\":\"$PROFILE\",\"getConfiguration\":\"general\"}" "${REPOSERVER_URL}/api/hosts" 2> /dev/null)
+    CURL=$(curl -s -q -H "Content-Type: application/json" -X GET -d "{\"id\":\"$HOST_ID\",\"token\":\"$TOKEN\"}" "${REPOSERVER_URL}/api/v2/profile/${PROFILE}" 2> /dev/null)
     curl_result_parse
 
     # Si il y a eu une erreur lors de la requête on quitte la fonction
@@ -751,9 +745,9 @@ function getProfileConf
     # Puis on récupère la configuration transmise par le serveur au format JSON
     # On parcourt chaque configuration et on récupère le nom du fichier à créer, la description et le contenu à insérer
     # On remplace à la volée l'environnement dans le contenu récupéré
-    for ROW in $(echo "${CURL}" | jq -r '.configuration | @base64'); do
+    for ROW in $(echo "${CURL}" | jq -r '.results[] | @base64'); do
         _jq() {
-        echo ${ROW} | base64 --decode | jq -r ${1}
+            echo ${ROW} | base64 --decode | jq -r ${1}
         }
 
         GET_PROFILE_PKG_CONF_FROM_REPOSERVER=$(_jq '.Linupdate_get_pkg_conf')
@@ -797,7 +791,17 @@ function getProfileConf
 # Get profile packages configuratin (packages excludes)
 function getProfilePackagesConf
 {
-    echo -ne "  → Get ${YELLOW}${PROFILE}${RESET} profile packages configuration: "
+    echo -ne "  → Getting ${YELLOW}${PROFILE}${RESET} profile packages configuration: "
+
+    # Demande de la configuration des paquets auprès du serveur de repos
+    # Ce dernier renverra la configuration au format JSON
+    CURL=$(curl -s -q -H "Content-Type: application/json" -X GET -d "{\"id\":\"$HOST_ID\",\"token\":\"$TOKEN\"}" "${REPOSERVER_URL}/api/v2/profile/${PROFILE}/excludes" 2> /dev/null)
+    curl_result_parse
+
+    # Si il y a eu une erreur lors de la requête on quitte la fonction
+    if [ "$CURL_ERROR" != "0" ];then
+        return 2
+    fi
 
     if [ "$REPOSERVER_MANAGE_CLIENT_CONF" == "false" ] || [ "$GET_PROFILE_PKG_CONF_FROM_REPOSERVER" == "false" ];then
         if [ "$REPOSERVER_MANAGE_CLIENT_CONF" == "false" ];then
@@ -810,22 +814,12 @@ function getProfilePackagesConf
         fi
     fi
 
-    # Demande de la configuration des paquets auprès du serveur de repos
-    # Ce dernier renverra la configuration au format JSON
-    CURL=$(curl -s -q -H "Content-Type: application/json" -X GET -d "{\"id\":\"$HOST_ID\",\"token\":\"$TOKEN\",\"profile\":\"$PROFILE\",\"getConfiguration\":\"packages\"}" "${REPOSERVER_URL}/api/hosts" 2> /dev/null)
-    curl_result_parse
-
-    # Si il y a eu une erreur lors de la requête on quitte la fonction
-    if [ "$CURL_ERROR" != "0" ];then
-        return 2
-    fi
-
     # Puis on récupère la configuration transmise par le serveur au format JSON
     # On parcourt chaque configuration et on récupère le nom du fichier à créer, la description et le contenu à insérer
     # On remplace à la volée l'environnement dans le contenu récupéré
-    for ROW in $(echo "${CURL}" | jq -r '.configuration | @base64'); do
+    for ROW in $(echo "${CURL}" | jq -r '.results[] | @base64'); do
         _jq() {
-        echo ${ROW} | base64 --decode | jq -r ${1}
+            echo ${ROW} | base64 --decode | jq -r ${1}
         }
 
         EXCLUDE_MAJOR=$(_jq '.Package_exclude_major')
@@ -862,22 +856,11 @@ function getProfilePackagesConf
 function getProfileRepos
 {
     # Si on est autorisé à mettre à jour les fichiers de conf de repos et si le serveur de repos le gère
-    echo -ne "  → Get ${YELLOW}${PROFILE}${RESET} profile repositories: "
-
-    if [ "$REPOSERVER_MANAGE_CLIENT_REPOS" == "false" ] || [ "$GET_PROFILE_REPOS_FROM_REPOSERVER" == "false" ];then
-        if [ "$REPOSERVER_MANAGE_CLIENT_REPOS" != "true" ];then
-            echo -e "${YELLOW}Disabled (not handled by reposerver)${RESET}"
-            return 1
-        fi
-        if [ "$GET_PROFILE_REPOS_FROM_REPOSERVER" != "true" ];then
-            echo -e "${YELLOW}Disabled by profile configuration${RESET}"
-            return 1
-        fi
-    fi
+    echo -ne "  → Getting ${YELLOW}${PROFILE}${RESET} profile repositories: "
 
     # Demande de la configuration des repos auprès du serveur de repos
     # Ce dernier renverra la configuration au format JSON
-    CURL=$(curl -s -q -H "Content-Type: application/json" -X GET -d "{\"id\":\"$HOST_ID\",\"token\":\"$TOKEN\",\"profile\":\"$PROFILE\",\"getConfiguration\":\"repos\"}" "${REPOSERVER_URL}/api/hosts" 2> /dev/null)
+    CURL=$(curl -s -q -H "Content-Type: application/json" -X GET -d "{\"id\":\"$HOST_ID\",\"token\":\"$TOKEN\"}" "${REPOSERVER_URL}/api/v2/profile/${PROFILE}/repos" 2> /dev/null)
     curl_result_parse
 
     # Si il y a eu une erreur lors de la requête on quitte la fonction
@@ -888,9 +871,20 @@ function getProfileRepos
     # Sinon on récupère les configurations de repos que la requête a renvoyé
     # On s'assure que le paramètre 'configuraiton' fait bien partie de la réponse JSON renvoyée par le serveur
     # Ce paramètre peut être vide toutefois si la configuration du profil côté serveur n'a aucun repo de configuré
-    if ! echo "$CURL" | grep -q "configuration";then
+    if ! echo "$CURL" | grep -q "results";then
         echo -e "[$YELLOW ERROR $RESET] $PROFILE profile repos sources configuration have not been sended by reposerver."
         return 2
+    fi
+
+    if [ "$REPOSERVER_MANAGE_CLIENT_REPOS" == "false" ] || [ "$GET_PROFILE_REPOS_FROM_REPOSERVER" == "false" ];then
+        if [ "$REPOSERVER_MANAGE_CLIENT_REPOS" != "true" ];then
+            echo -e "${YELLOW}Disabled (not handled by reposerver)${RESET}"
+            return 1
+        fi
+        if [ "$GET_PROFILE_REPOS_FROM_REPOSERVER" != "true" ];then
+            echo -e "${YELLOW}Disabled by profile configuration${RESET}"
+            return 1
+        fi
     fi
 
     # Si le paramètre existe alors on peut continuer le traitement
@@ -906,9 +900,9 @@ function getProfileRepos
     # On parcourt chaque configuration et on récupère le nom du fichier à créer, la description et le contenu à insérer
     # On remplace à la volée l'environnement dans le contenu récupéré
     IFS=$'\n'
-    for ROW in $(echo "${CURL}" | jq -r '.configuration[] | @base64'); do
+    for ROW in $(echo "${CURL}" | jq -r '.results[] | @base64'); do
         _jq() {
-        echo ${ROW} | base64 --decode | jq -r ${1}
+            echo ${ROW} | base64 --decode | jq -r ${1}
         }
 
         FILENAME=$(_jq '.filename')
@@ -952,8 +946,6 @@ function getProfileRepos
     fi
 
     echo -e "[$GREEN OK $RESET]"
-
-    # echo ""
 }
 
 # Exécution pre-mise à jour des paquets
@@ -1117,9 +1109,11 @@ function update_request_status
         echo -ne " Acknowledging reposerver request: "
     fi
 
-    CURL_PARAMS="\"id\":\"$HOST_ID\", \"token\":\"$TOKEN\", \"set_update_request_type\":\"$UPDATE_REQUEST_TYPE\", \"set_update_request_status\":\"$UPDATE_REQUEST_STATUS\""
+    CURL_PARAMS="\"id\":\"$HOST_ID\", \"token\":\"$TOKEN\", \"status\":\"$UPDATE_REQUEST_STATUS\""
 
-    CURL=$(curl -s -q -H "Content-Type: application/json" -X PUT -d "{$CURL_PARAMS}" "${REPOSERVER_URL}/api/hosts" 2> /dev/null)
+    # CURL=$(curl -s -q -H "Content-Type: application/json" -X PUT -d "{$CURL_PARAMS}" "${REPOSERVER_URL}/api/hosts" 2> /dev/null)
+    CURL=$(curl -s -q -H "Content-Type: application/json" -X PUT -d "{$CURL_PARAMS}" "${REPOSERVER_URL}/api/v2/host/request/$UPDATE_REQUEST_TYPE" 2> /dev/null)
+
 
     # On n'affiche les message d'erreur et de succès uniquement si la verbosité est supérieur à 0
     if [ "$VERBOSE" -gt "0" ];then
@@ -1171,13 +1165,15 @@ function send_general_status
     if [ ! -z "$AGENT_STATUS" ];then
         CURL_PARAMS+=", \"agent_status\":\"$AGENT_STATUS\""
     fi
+    if [ ! -z "$VERSION" ];then
+        CURL_PARAMS+=", \"linupdate_version\":\"$VERSION\""
+    fi
 
     # Fin de construction des paramètres curl puis envoi.
 
     # Envoi des données :
     echo -e "→ Sending status to ${YELLOW}${REPOSERVER_URL}${RESET}: "
-    CURL=$(curl -s -q -H "Content-Type: application/json" -X PUT -d "{$CURL_PARAMS}" "${REPOSERVER_URL}/api/hosts" 2> /dev/null)
-    UPDATE_RETURN=$(jq -r '.return' <<< "$CURL")
+    CURL=$(curl -s -q -H "Content-Type: application/json" -X PUT -d "{$CURL_PARAMS}" "${REPOSERVER_URL}/api/v2/host/status" 2> /dev/null)
 
     # Récupération et affichage des messages
     curl_result_parse
@@ -1283,7 +1279,7 @@ function send_installed_packages_status
 
     # Envoi des données :
     echo -ne "→ Sending data to ${YELLOW}${REPOSERVER_URL}${RESET}: "
-    CURL=$(curl -s -q -H "Content-Type: application/json" -X PUT -d "{$CURL_PARAMS}" "${REPOSERVER_URL}/api/hosts" 2> /dev/null)
+    CURL=$(curl -s -q -H "Content-Type: application/json" -X PUT -d "{$CURL_PARAMS}" "${REPOSERVER_URL}/api/v2/host/packages/installed" 2> /dev/null)
     
     # Récupération et affichage des messages
     curl_result_parse
@@ -1343,7 +1339,9 @@ function send_available_packages_status
             fi
 
             # Si le nom du paquet est vide alors on passe au suivant
-            if [ -z "$PACKAGE_NAME" ];then continue;fi
+            if [ -z "$PACKAGE_NAME" ];then
+                continue
+            fi
 
             # Ajout du nom du paquet, sa version actuelle et sa version disponible à l'array $AVAILABLE_PACKAGES
             AVAILABLE_PACKAGES+="${PACKAGE_NAME}|${PACKAGE_AVL_VERSION},"
@@ -1359,8 +1357,8 @@ function send_available_packages_status
     CURL_PARAMS="$CURL_PARAMS, \"available_packages\":\"$AVAILABLE_PACKAGES\""
 
     # Envoi des données :
-    echo -ne "→ Sending status to ${YELLOW}${REPOSERVER_URL}${RESET}: "
-    CURL=$(curl -s -q -H "Content-Type: application/json" -X PUT -d "{$CURL_PARAMS}" "${REPOSERVER_URL}/api/hosts" 2> /dev/null)
+    echo -ne "→ Sending data to ${YELLOW}${REPOSERVER_URL}${RESET}: "
+    CURL=$(curl -s -q -H "Content-Type: application/json" -X PUT -d "{$CURL_PARAMS}" "${REPOSERVER_URL}/api/v2/host/packages/available" 2> /dev/null)
     
     # Récupération et affichage des messages
     curl_result_parse
@@ -1489,7 +1487,7 @@ function genFullHistory
 
     # Envoi des données :
     echo -ne "→ Sending history to ${YELLOW}${REPOSERVER_URL}${RESET}: "
-    CURL=$(curl -s -q -H "Content-Type: application/json" -X PUT -d @${JSON_FILE} "${REPOSERVER_URL}/api/hosts" 2> /dev/null)
+    CURL=$(curl -s -q -H "Content-Type: application/json" -X PUT -d @${JSON_FILE} "${REPOSERVER_URL}/api/v2/host/packages/event" 2> /dev/null)
 
     # Récupération et affichage des messages
     curl_result_parse
