@@ -47,9 +47,13 @@ function update
             fi
         fi
 
+        # Trim whitespaces
+        YUM_OPTIONS="${YUM_OPTIONS#"${YUM_OPTIONS%%[![:space:]]*}"}"
+        YUM_OPTIONS="${YUM_OPTIONS%"${YUM_OPTIONS##*[![:space:]]}"}"
+
         # Updating packages
         if [ "$OS_FAMILY" == "Redhat" ];then
-            yum $YUM_OPTIONS update -y
+            yum "$YUM_OPTIONS" update -y
         fi
         if [ "$OS_FAMILY" == "Debian" ];then
             apt-get "$APT_UPGRADE" -y "$APT_OPTIONS"
