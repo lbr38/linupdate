@@ -57,6 +57,21 @@ function general_checks {
     fi
 }
 
+# Check if this service needs to be restarted
+function checkRestartNeeded
+{
+    if [ -f "/tmp/linupdate-service.restart" ];then
+        # Only restart the service if linupdate is not running otherwise it could cut off a running update...
+        if [ -f "/tmp/linupdate.lock" ];then
+            return
+        fi
+        
+        echo "A restart of this service is required. Restarting..."
+        rm "/tmp/linupdate-service.restart" -f
+        exec systemctl --quiet restart repomanager
+    fi
+}
+
 # Sending general informations
 function send_general_status {
     /opt/linupdate/linupdate --mod-exec reposerver --from-agent --send-general-status > /dev/null
@@ -225,6 +240,9 @@ while true; do
     # Checking that all the necessary elements are present for the agent execution.
     # This is checked every time in case that a configuration change has been made in the configuration file
     general_checks
+
+    # Check if a restart of this service is needed
+    checkRestartNeeded
 
     # Regulary sending data to the Repomanager server (every hour)
     # 3600 / 5sec (sleep 5) = 720
