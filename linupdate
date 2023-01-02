@@ -3,6 +3,7 @@
 export LC_ALL="en_US.UTF-8"
 export TERM="xterm-256color"
 # export COLUMNS=190
+
 cd "/home"
 
 ## ↓ VARIABLES ↓ ##
@@ -100,6 +101,11 @@ if [ "$(id -u)" -ne "0" ];then
     exit
 fi
 
+# Create lock file
+if [ ! -f "/tmp/linupdate.lock" ];then
+    touch "/tmp/linupdate.lock"
+fi
+
 # Create some base directories
 mkdir -p "$ETC_DIR"
 mkdir -p "$MODULES_CONF_DIR"
@@ -109,7 +115,7 @@ mkdir -p "$AGENTS_ENABLED_DIR"
 mkdir -p "$SERVICE_DIR"
 
 
-## ↓ FONCTIONS ↓ ##
+## ↓ FUNCTIONS ↓ ##
 
 # Print available parameters
 help() {
