@@ -70,6 +70,14 @@ function checkDependencies
             apt-get -qq install virt-what -y > /dev/null &&
             echo -e "$GREEN OK $RESET"
         fi
+        # net-tools
+        CHECK_DEP=$(dpkg -l | grep " net-tools " | grep "ii")
+        if [ -z "$CHECK_DEP" ];then
+            apt-get -o Acquire::Check-Valid-Until=false -qq --allow-releaseinfo-change update &&
+            echo -ne " Installing net-tools..." &&
+            apt-get -qq install net-tools -y > /dev/null &&
+            echo -e "$GREEN OK $RESET"
+        fi
     fi
 
     # Dépendances Redhat :
@@ -114,6 +122,13 @@ function checkDependencies
         if [ -z "$CHECK_DEP" ];then
             echo -ne " Installing virt-what..." &&
             yum install virt-what -y > /dev/null &&
+            echo -e "$GREEN OK $RESET"
+        fi
+        # net-tools
+        CHECK_DEP=$(rpm -qa net-tools)
+        if [ -z "$CHECK_DEP" ];then
+            echo -ne " Installing net-tools..." &&
+            yum install net-tools -y > /dev/null &&
             echo -e "$GREEN OK $RESET"
         fi
     fi
