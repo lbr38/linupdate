@@ -1,0 +1,9 @@
+[Unit]
+Description=linupdate-agent
+
+[Service]
+Type=simple
+ExecStart=/opt/linupdate/service/linupdate-agent
+
+[Install]
+WantedBy=multi-user.target

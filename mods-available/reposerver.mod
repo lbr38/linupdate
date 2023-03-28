@@ -659,6 +659,21 @@ function getServerConf
         REPOSERVER_MANAGE_CLIENT_REPOS=$(_jq '.Manage_client_repos')
     done
 
+    # Retrieve the server IP address from the server URL
+    i="1"
+    REPOSERVER_IP=$(echo "$REPOSERVER_URL" | sed 's/https\?:\/\///g' | cut -d'/' -f1)
+    # Some DNS servers return multiple IP addresses for a single domain name or a CNAME value
+    # Loop until we get a real single IP address
+    while [[ "$REPOSERVER_IP" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]];do
+        REPOSERVER_IP=$(dig +short "$REPOSERVER_IP" | head -n${i} | tail -n1)
+        (( i++ ))
+
+        # If we can't retrieve the IP address after 10 tries, stop the loop
+        if [ "$i" -gt 10 ];then
+            echo -e "  [$YELLOW ERROR $RESET] Unable to retrieve the IP address of the reposerver"
+        fi
+    done
+
     # converting to boolean
     if [ "$REPOSERVER_MANAGE_CLIENT_CONF" == "no" ];then
         REPOSERVER_MANAGE_CLIENT_CONF="false"
@@ -693,8 +708,6 @@ function getServerConf
     echo "IP=\"$REPOSERVER_IP\"" >> "$TMP_FILE_REPOSERVER"
     echo "URL=\"$REPOSERVER_URL\"" >> "$TMP_FILE_REPOSERVER"
     echo "PACKAGE_TYPE=\"$REPOSERVER_PACKAGE_TYPE\"" >> "$TMP_FILE_REPOSERVER"
-    # echo "MANAGE_CLIENTS_CONF=\"$REPOSERVER_MANAGE_CLIENT_CONF\"" >> "$TMP_FILE_REPOSERVER"
-    # echo "MANAGE_CLIENTS_REPOSCONF=\"$REPOSERVER_MANAGE_CLIENT_REPOS\"" >> "$TMP_FILE_REPOSERVER"
     echo "" >> "$TMP_FILE_REPOSERVER"
 
     # On reconstruit le fichier de configuration
