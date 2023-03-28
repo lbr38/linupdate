@@ -16,7 +16,6 @@ function getConf
     SERVER_ENV=$(egrep "^ENV=" "$CONF" | cut -d'=' -f 2 | sed 's/"//g')  # Env
     MAIL_ENABLED=$(egrep "^MAIL_ENABLED=" "$CONF" | cut -d'=' -f 2 | sed 's/"//g')
     MAIL_RECIPIENT=$(egrep "^MAIL_RECIPIENT=" "$CONF" | cut -d'=' -f 2 | sed 's/"//g')
-    ALLOW_SELF_UPDATE=$(egrep "^ALLOW_SELF_UPDATE=" "$CONF" | cut -d'=' -f 2 | sed 's/"//g')    # Autoriser l'auto-update du script depuis github
     CONF_SOFT_EXCLUDE_MAJOR=$(egrep "^EXCLUDE_MAJOR=" "$CONF" | cut -d'=' -f 2 | sed 's/"//g')  # Paquets critiques à exclure en cas de maj majeure
     CONF_SOFT_EXCLUDE=$(egrep "^EXCLUDE=" "$CONF" | cut -d'=' -f 2 | sed 's/"//g')              # Paquets critiques à exclure dans tous les cas
     CONF_SOFT_NEED_RESTART=$(egrep "^NEED_RESTART=" "$CONF" | cut -d'=' -f 2 | sed 's/"//g')    # Paquets critiques ou non à redémarrer

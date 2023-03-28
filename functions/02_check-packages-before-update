@@ -19,7 +19,11 @@ function checkPackagesBeforeUpdate
 
     # List packages available for update
     if [ "$OS_FAMILY" == "Redhat" ];then
-        repoquery -q -a --qf="%{name} %{version}-%{release}.%{arch} %{repoid}" --pkgnarrow=updates > "$CHECK_UPDATE_TMP"
+        if [ -f "/usr/bin/dnf" ];then
+            repoquery -q -a --qf="%{name} %{version}-%{release}.%{arch} %{repoid}" --upgrades >> "$CHECK_UPDATE_TMP"
+        else
+            repoquery -q -a --qf="%{name} %{version}-%{release}.%{arch} %{repoid}" --pkgnarrow=updates > "$CHECK_UPDATE_TMP"
+        fi
     fi
     if [ "$OS_FAMILY" == "Debian" ];then
         aptitude -F"%p %V %v" --disable-columns search ~U > "$CHECK_UPDATE_TMP"

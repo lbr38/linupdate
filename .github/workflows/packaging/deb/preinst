@@ -1,0 +1,9 @@
+#!/bin/bash
+
+# Only if systemd is installed (not the case on github runners)
+if [ -f "/usr/bin/systemd" ];then
+    # Stop service if started
+    if systemctl is-active --quiet linupdate;then
+        systemctl stop --quiet linupdate
+    fi
+fi

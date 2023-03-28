@@ -2,9 +2,7 @@
 
 export LC_ALL="en_US.UTF-8"
 export TERM="xterm-256color"
-# export COLUMNS=190
 
-cd "/home"
 
 ## ↓ VARIABLES ↓ ##
 BASE_DIR="/opt/linupdate"
@@ -123,10 +121,6 @@ help() {
     echo -e " Main:"
     echo -e "  --vv|-vv                                     → Enable verbose mode"
     echo -e "  --version|-v                                 → Print current version"
-    echo -e "  --update|-u                                  → Update linupdate to the last available release on github"
-    echo -e "  --enable-auto-update                         → Enable linupdate automatic update"
-    echo -e "  --disable-auto-update                        → Disable linupdate automatic update"
-    echo -e "  --install|--reinstall|-i                     → Install or reinstall linupdate (/!\ will delete actual configuration)"
     echo -e "  --profile|--type|--print-profile PROFILE     → Configure host profile (leave empty to print actual)"
     echo -e "  --environment|--env ENV                      → Configure host environment (leave empty to print actual)"
     echo -e ""
@@ -134,7 +128,7 @@ help() {
     echo -e "  --exclude-major|-em PACKAGE                  → Configure packages to exclude on major release update, separated by a comma. Specify 'none' to clean."
     echo -e "  --exclude|-e PACKAGE                         → Configure packages to exclude, separated by a comma. Specify 'none' to clean."
     echo -e ""
-    echo -e " Update execution"
+    echo -e " Package update execution"
     echo -e "  --check-updates|-cu                          → Check packages to be updated and quit"
     echo -e "  --assume-yes|--force                         → Enable 'assume yes' (answer 'yes' to every confirm prompt)"
     echo -e "  --dist-upgrade|-du                           → Enable 'dist-upgrade' for apt (Debian only)"
@@ -149,50 +143,12 @@ help() {
     echo -e "  --mod-configure MODULE --help                → Print module help"
     echo -e ""
     echo -e " Agent"
-    echo -e "  --agent-deploy|--deploy-agent                → Deploy linupdate agent"
-    echo -e "  --agent-start|--start-agent                  → Start linupdate agent"
-    echo -e "  --agent-stop|--stop-agent                    → Stop linupdate agent"
-    echo -e "  --agent-restart|--restart-agent              → Restart linupdate agent"
-    echo -e "  --agent-enable|--enable-agent                → Enable linupdate agent start on boot"
+    echo -e "  --agent-start                                → Start linupdate agent"
+    echo -e "  --agent-stop                                 → Stop linupdate agent"
+    echo -e "  --agent-restart                              → Restart linupdate agent"
+    echo -e "  --agent-enable                               → Enable linupdate agent start on boot"
+    echo -e "  --agent-disable                              → Disable linupdate agent start on boot"
     echo -e ""
-}
-
-# Install linupdate files and directories
-selfInstall() {
-    # Clean /opt/linupdate
-    rm "$BASE_DIR" -rf
-
-    # Get linupdate from github
-    rm -rf /tmp/linupdate
-    git clone --quiet https://github.com/lbr38/linupdate.git /tmp/linupdate > /dev/null &&
-
-    # Create functions dir
-    mkdir -p "$FUNCTIONS"
-
-    # Copy functions
-    \cp -r /tmp/linupdate/functions ${BASE_DIR}/
-
-    # Copy modules
-    \cp -r /tmp/linupdate/mods-available ${BASE_DIR}/
-
-    # Copy service
-    \cp -r /tmp/linupdate/service ${BASE_DIR}/
-
-    # Copy linupdate itself
-    \cp /tmp/linupdate/linupdate ${BASE_DIR}/
-
-    # Version
-    cp /tmp/linupdate/version ${BASE_DIR}/version
-
-    # Create a linupdate symlink inside /usr/bin/
-    rm /usr/bin/linupdate -f
-    ln -s ${BASE_DIR}/linupdate /usr/bin/linupdate
-
-    # Set permissions on main script
-    chmod 700 ${BASE_DIR}/linupdate
-
-    # Restart linupdate
-    exec "${BASE_DIR}/linupdate"
 }
 
 # Loading all functions from functions dir
@@ -206,21 +162,12 @@ fi
 
 ## 1. If /opt/linupdate does not exist then process first installation
 if [ ! -d "$BASE_DIR" ] || [ ! -d "$BASE_DIR/functions" ];then
-    # selfInstall will copy all necessary files to /opt/linupdate from linupdate's git main branch
-    selfInstall
-    
-    # Install dependencies
-    checkDependencies
+    echo -e "[$YELLOW ERROR $RESET] Some linupdate core files are missing. You might reinstall linupdate."
+    exit 1
 fi
 
 # Check that system is valid before continue
 checkSystem
-
-## 2. If no configuration file exists in /etc/linupdate/linupdate.conf then launch linupdate configuration
-if [ ! -f "$CONF" ];then
-    mkdir -p "$ETC_DIR"
-    configure
-fi
 
 
 ## ↓ EXECUTION ↓ ##
@@ -244,7 +191,7 @@ exec &> >(tee -a "$LOG")
 
 # Detect virtualization type
 if [ -f "/usr/sbin/virt-what" ];then
-    VIRT_TYPE=$(/usr/sbin/virt-what)
+    VIRT_TYPE=$(/usr/sbin/virt-what | tr '\n' ' ')
     if [ -z "$VIRT_TYPE" ];then
         VIRT_TYPE="Bare metal"
     fi
@@ -294,23 +241,6 @@ while [ $# -ge 1 ];do
                     echo -e "Environment has been changed: ${YELLOW}$2${RESET}"
                 fi
             fi
-            clean_exit
-        ;;
-        --update|-u)
-            ONLY_UPDATE="1"
-            getConf
-            selfUpdate
-            clean_exit
-        ;;
-        --install|--reinstall|-i)
-            if [ -d "/opt/linupdate" ];then
-                echo -n " This action will delete the entire actual linupdate installation and its modules. Confirm (yes/no): "; read -p "" CONFIRM
-                if [ "$CONFIRM" != "yes" ];then
-                    clean_exit
-                fi
-                rm ${BASE_DIR} -rf
-            fi
-            selfInstall
             clean_exit
         ;;
         --list-modules|--list-mod|-m)
@@ -391,40 +321,28 @@ while [ $# -ge 1 ];do
             echo -e "Module ${YELLOW}${MODULE}${RESET} configured"
             clean_exit
         ;;
-        --agent-deploy|--deploy-agent)
-            deployAgent
-            clean_exit
-        ;;
-        --agent-start|--start-agent)
+        --agent-start)
             startAgent
             clean_exit
         ;;
-        --agent-stop|--stop-agent)
+        --agent-stop)
             stopAgent
             clean_exit
         ;;
-        --agent-restart|--restart-agent)
+        --agent-restart)
             restartAgent
             clean_exit
         ;;
-        --agent-enable|--enable-agent)
+        --agent-enable)
             enableAgent
             clean_exit
         ;;
-        --agent-disable|--disable-agent)
+        --agent-disable)
             disableAgent
             clean_exit
         ;;
         --from-agent)
             FROM_AGENT="1"
-        ;;
-        --enable-auto-update)
-            enableSelfUpdate
-            clean_exit
-        ;;
-        --disable-auto-update)
-            disableSelfUpdate
-            clean_exit
         ;;
         *)
             echo "Unknown parameter: $1"
@@ -446,14 +364,11 @@ echo -e "\n\n
 
  ${YELLOW}linupdate${RESET} - advanced package updater for linux distributions\n\n"
 
-# Checking dependencies
-checkDependencies
-
 # Reading configuration file
 getConf
 
 # Check if a new linupdate release is available and update (if auto-update enabled)
-selfUpdate
+# selfUpdate
 
 # Loading modules
 loadModules
@@ -469,7 +384,7 @@ if [ ! -z "$VIRT_TYPE" ];then
 fi
 echo -e " Profile:                      ${YELLOW}${PROFILE}${RESET}"
 echo -e " Environment:                  ${YELLOW}${SERVER_ENV}${RESET}"
-echo -e " Executed on:                  ${YELLOW}${DATE_DMY} at ${TIME}${RESET}"
+echo -e " Executed on:                  ${YELLOW}${DATE_DMY} ${TIME}${RESET}"
 echo -ne " Executed by:                 ${YELLOW} "; whoami; echo -ne "${RESET}"
 echo -ne " Execution method: "
 if [ "$FROM_AGENT" == "1" ];then

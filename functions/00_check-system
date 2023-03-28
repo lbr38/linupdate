@@ -19,7 +19,7 @@ function checkSystem
         fi
 
         # Si OS_FAMILY contient l'un des termes suivants alors c'est la famille redhat
-        if echo "$OS_FAMILY" | egrep -q -i 'rhel|centos|fedora';then
+        if echo "$OS_FAMILY" | egrep -q -i 'rhel|centos|fedora|rocky|alma';then
             OS_FAMILY="Redhat"
         fi
 

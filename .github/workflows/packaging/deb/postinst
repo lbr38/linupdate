@@ -1,0 +1,34 @@
+#!/bin/bash
+
+DATA_DIR="/opt/linupdate"
+SERVICE="$DATA_DIR/service/linupdate-agent"
+
+# Create a symlink to main script
+ln -sf /opt/linupdate/linupdate /usr/bin/linupdate
+
+# Install en_US.UTF-8 locale if not present
+if ! locale -a | grep -q "en_US.UTF-8";then
+    apt-get install locales-all -y > /dev/null
+fi
+
+# Set permissions
+chmod 750 /etc/linupdate
+chmod 750 /opt/linupdate
+
+# Only if systemd is installed (not the case on github runners)
+if [ -f "/usr/bin/systemd" ];then
+
+    # Enable service script by creating a symlink
+    ln -sf /lib/systemd/system/linupdate.service /etc/systemd/system/linupdate.service
+    chmod 550 "$SERVICE"
+    chown root:root "$SERVICE"
+
+    systemctl --quiet daemon-reload
+
+    # Start service
+    if systemctl is-active --quiet linupdate;then
+        systemctl restart --quiet linupdate
+    else
+        systemctl start --quiet linupdate
+    fi
+fi

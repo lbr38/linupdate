@@ -1,0 +1,74 @@
+Name:           linupdate
+Version:        __VERSION__
+Release:        stable
+Summary:        Linupdate package updater - Repomanager client side agent
+
+BuildArch:      noarch
+License:        GPL-3.0
+URL:            https://github.com/lbr38/linupdate
+
+Requires: curl
+Requires: git
+Requires: mutt
+Requires: ngrep
+Requires: inotify-tools
+Requires: jq
+Requires: virt-what
+Requires: net-tools
+Requires: yum-utils
+
+%description
+Linupdate package updater - Repomanager client side agent
+
+%prep
+# Only if systemd is installed (not the case on github runners)
+if [ -f "/usr/bin/systemd" ];then
+    # Stop service if started
+    if systemctl is-active --quiet linupdate;then
+        systemctl stop --quiet linupdate
+    fi
+fi
+
+%install
+# Copy local files to the rpm build directory
+install -m 0700 -d $RPM_BUILD_ROOT/opt/
+install -m 0700 -d $RPM_BUILD_ROOT/etc/
+install -d $RPM_BUILD_ROOT/lib/systemd/system/
+cp -r /opt/linupdate $RPM_BUILD_ROOT/opt/
+cp -r /etc/linupdate $RPM_BUILD_ROOT/etc/
+cp /lib/systemd/system/linupdate.service $RPM_BUILD_ROOT/lib/systemd/system/linupdate.service
+
+%post
+DATA_DIR="/opt/linupdate"
+SERVICE="$DATA_DIR/service/linupdate-agent"
+
+# Create a symlink to main script
+ln -sf /opt/linupdate/linupdate /usr/bin/linupdate
+
+# Set permissions
+chmod 750 /etc/linupdate
+chmod 750 /opt/linupdate
+
+# Only if systemd is installed (not the case on github runners)
+if [ -f "/usr/bin/systemd" ];then
+    # Enable service script by creating a symlink
+    ln -sf /lib/systemd/system/linupdate.service /etc/systemd/system/linupdate.service
+    chmod 550 "$SERVICE"
+    chown root:root "$SERVICE"
+
+    systemctl --quiet daemon-reload
+
+    # Start service
+    if systemctl is-active --quiet linupdate;then
+        systemctl restart --quiet linupdate
+    else
+        systemctl start --quiet linupdate
+    fi
+fi
+
+%files
+/opt/linupdate/*
+/etc/linupdate/*
+/lib/systemd/system/linupdate.service
+
+%changelog
