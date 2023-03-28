@@ -55,13 +55,13 @@ UPDATE_EXCLUDE=""
 SERVICE_TO_BE_RESTARTED=""
 READ_PACKAGES_TO_EXCLUDE=""
 READ_PACKAGES_TO_EXCLUDE_MAJOR=""
-CRONTAB_PATH=""
 ERROR_STATUS="0"
 ASSUME_YES="0"
 ONLY_UPDATE="0"
 PROCID=$(echo "$RANDOM")
 VERBOSE="0"
 FROM_AGENT="0"
+REBOOT_REQUIRED="false"
 
 # Mods variables
 MOD_ERROR="0"
@@ -416,9 +416,6 @@ if [ "$OS_FAMILY" == "Debian" ];then
     fi
 fi
 
-# Check if a system reboot is required
-checkRebootNeeded
-
 # Execute post-update modules
 execPostModules
 
@@ -426,6 +423,12 @@ execPostModules
 restartService
 
 echo -e "\nOperation completed\n" 
+
+# Check if a system reboot is required
+checkRebootNeeded
+if [ "$REBOOT_REQUIRED" == "true" ];then
+    echo -e "${YELLOW}Reboot is required${RESET}\n"
+fi
 
 # Sending mail report
 sendMail

@@ -165,10 +165,9 @@ jobs:
           tag_name: ${{ env.VERSION }}
           release_name: ${{ env.VERSION }}
           body: |
-            **Changes**:
+            **Fixes**:
 
-            - Deb and rpm packages now available
-            - Fixed compatibility with RHEL 8 based OS
+            - (reposerver module) Fixed reposerver IP retrieving
           draft: false
           prerelease: false
 

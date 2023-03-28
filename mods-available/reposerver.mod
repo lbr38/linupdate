@@ -664,7 +664,7 @@ function getServerConf
     REPOSERVER_IP=$(echo "$REPOSERVER_URL" | sed 's/https\?:\/\///g' | cut -d'/' -f1)
     # Some DNS servers return multiple IP addresses for a single domain name or a CNAME value
     # Loop until we get a real single IP address
-    while [[ "$REPOSERVER_IP" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]];do
+    while [[ ! "$REPOSERVER_IP" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]];do
         REPOSERVER_IP=$(dig +short "$REPOSERVER_IP" | head -n${i} | tail -n1)
         (( i++ ))
 
@@ -1144,6 +1144,9 @@ function send_general_status
     UPDATE_MESSAGE_SUCCESS=""
     UPDATE_MESSAGE_ERROR=""
 
+    # Check if reboot is needed
+    checkRebootNeeded
+
     # Paramètres d'authentification (id et token)
     CURL_PARAMS="\"id\":\"$HOST_ID\", \"token\":\"$TOKEN\""
 
@@ -1180,6 +1183,9 @@ function send_general_status
     fi
     if [ ! -z "$VERSION" ];then
         CURL_PARAMS+=", \"linupdate_version\":\"$VERSION\""
+    fi
+    if [ ! -z "$REBOOT_REQUIRED" ];then
+        CURL_PARAMS+=", \"reboot_required\":\"$REBOOT_REQUIRED\""
     fi
 
     # Fin de construction des paramètres curl puis envoi.
