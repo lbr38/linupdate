@@ -71,7 +71,7 @@ jobs:
     name: Build rpm package
     runs-on: ubuntu-latest
     container:
-      image: fedora:latest
+      image: centos:7
       options: --user root
     steps:
       - name: Checkout
