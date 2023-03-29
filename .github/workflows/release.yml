@@ -40,7 +40,6 @@ jobs:
           cp -r ${GITHUB_WORKSPACE}/service/* /tmp/linupdate-build/opt/linupdate/service/
           cp ${GITHUB_WORKSPACE}/linupdate /tmp/linupdate-build/opt/linupdate/linupdate
           cp ${GITHUB_WORKSPACE}/version /tmp/linupdate-build/opt/linupdate/version
-          cp ${GITHUB_WORKSPACE}/.github/workflows/packaging/linupdate.conf /tmp/linupdate-build/etc/linupdate/linupdate.conf
           cp -r ${GITHUB_WORKSPACE}/service/linupdate.systemd.template /tmp/linupdate-build/lib/systemd/system/linupdate.service
 
       - name: Copy control file
@@ -107,7 +106,6 @@ jobs:
           cp -r ${GITHUB_WORKSPACE}/service/* /opt/linupdate/service/
           cp ${GITHUB_WORKSPACE}/linupdate /opt/linupdate/linupdate
           cp ${GITHUB_WORKSPACE}/version /opt/linupdate/version
-          cp ${GITHUB_WORKSPACE}/.github/workflows/packaging/linupdate.conf /etc/linupdate/linupdate.conf
           cp -r ${GITHUB_WORKSPACE}/service/linupdate.systemd.template /lib/systemd/system/linupdate.service
 
       - name: Copy spec file
