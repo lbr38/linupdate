@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+
+# Print help
+
+function help {
+    echo -e "Available parameters:\n"
+    echo -e " Main:"
+    echo -e "  --vv|-vv                                     → Enable verbose mode"
+    echo -e "  --version|-v                                 → Print current version"
+    echo -e "  --profile|--type|--print-profile PROFILE     → Configure host profile (leave empty to print actual)"
+    echo -e "  --environment|--env ENV                      → Configure host environment (leave empty to print actual)"
+    echo -e ""
+    echo -e " Package update configuration"
+    echo -e "  --exclude-major|-em PACKAGE                  → Configure packages to exclude on major release update, separated by a comma. Specify 'none' to clean."
+    echo -e "  --exclude|-e PACKAGE                         → Configure packages to exclude, separated by a comma. Specify 'none' to clean."
+    echo -e ""
+    echo -e " Package update execution"
+    echo -e "  --check-updates|-cu                          → Check packages to be updated and quit"
+    echo -e "  --assume-yes|--force                         → Enable 'assume yes' (answer 'yes' to every confirm prompt)"
+    echo -e "  --dist-upgrade|-du                           → Enable 'dist-upgrade' for apt (Debian only)"
+    echo -e "  --keep-oldconf|-ko                           → Keep actual configuration file when attempting to be overwrited by apt during package update (Debian only)"
+    echo -e "  --ignore-exclude|-ie                         → Ignore all packages minor or major release update exclusions"
+    echo -e ""
+    echo -e " Modules"
+    echo -e "  --list-modules|--list-mod|-m                 → List available modules"
+    echo -e "  --mod-enable|-mod-enable|-me MODULE          → Enable specified module"
+    echo -e "  --mod-disable|-mod-disable|-md MODULE        → Disable specified module"
+    echo -e "  --mod-configure|-mc|--mod-exec MODULE        → Configure specified module (using module commands, see module help or documentation)"
+    echo -e "  --mod-configure MODULE --help                → Print module help"
+    echo -e ""
+    echo -e " Agent"
+    echo -e "  --agent-start                                → Start linupdate agent"
+    echo -e "  --agent-stop                                 → Stop linupdate agent"
+    echo -e "  --agent-restart                              → Restart linupdate agent"
+    echo -e "  --agent-enable                               → Enable linupdate agent start on boot"
+    echo -e "  --agent-disable                              → Disable linupdate agent start on boot"
+    echo -e ""
+}

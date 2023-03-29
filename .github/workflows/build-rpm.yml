@@ -48,7 +48,6 @@ jobs:
           cp -r ${GITHUB_WORKSPACE}/service/* /opt/linupdate/service/
           cp ${GITHUB_WORKSPACE}/linupdate /opt/linupdate/linupdate
           cp ${GITHUB_WORKSPACE}/version /opt/linupdate/version
-          cp ${GITHUB_WORKSPACE}/.github/workflows/packaging/linupdate.conf /etc/linupdate/linupdate.conf
           cp -r ${GITHUB_WORKSPACE}/service/linupdate.systemd.template /lib/systemd/system/linupdate.service
 
       - name: Copy spec file

@@ -301,7 +301,6 @@ function mod_configure
     fi
 
     # Récupération des paramètres passés à la fonction
-    set +u
     while [ $# -ge 1 ];do
         case "$1" in
             --help)
@@ -468,10 +467,9 @@ function mod_configure
         esac
         shift
     done
-    # set -u
 }
 
-# La fonction mod_load() permet de s'assurer que le module est un minimum configuré avant qu'il soit intégré à l'exécution du programme principal
+# La fonction mod_load() permet de s'assurer que le module est un minimum configuré avant qu'il soit intégré à l'exécution du programme principal
 # Retourner 1 si des éléments sont manquants
 # Retourner 0 si tout est OK
 function mod_load
