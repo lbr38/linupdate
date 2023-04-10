@@ -10,6 +10,13 @@ MOD_CONF="${MODULES_CONF_DIR}/reposerver.conf"
 # Enregistrement auprès d'un serveur Repomanager
 function register
 {
+    # Check that API key is set
+    if [ -z "$REPOSERVER_API_KEY" ];then
+        echo -e " [$YELLOW ERROR $RESET] Cannot register to reposerver. You must specify an API key from a Repomanager user account."
+        ERROR_STATUS=1
+        clean_exit
+    fi
+
     # Au préalable, récupération des informations concernant le serveur repomanager
     # Si la configuration est incomplète alors on quitte
     getModConf
@@ -44,7 +51,7 @@ function register
         fi
     fi
 
-    CURL=$(curl -s -q -H "Content-Type: application/json" -X POST -d "{\"ip\":\"$REGISTER_IP\",\"hostname\":\"$REGISTER_HOSTNAME\"}" "${REPOSERVER_URL}/api/v2/host/registering" 2> /dev/null)
+    CURL=$(curl -s -q -H "Content-Type: application/json" -X POST -d "{\"apikey\":\"$REPOSERVER_API_KEY\",\"ip\":\"$REGISTER_IP\",\"hostname\":\"$REGISTER_HOSTNAME\"}" "${REPOSERVER_URL}/api/v2/host/registering" 2> /dev/null)
 
     # Parsage de la réponse et affichage des messages si il y en a
     curl_result_parse
@@ -126,8 +133,15 @@ function unregister
 # Teste la connexion au serveur Repomanager
 function testConnection
 {
-    # On teste l'accès à l'url avec un curl pour vérifier que le serveur est joignable
-    if ! curl --silent -q -H "Content-Type: application/json" -X GET "${REPOSERVER_URL}/api/v2/status" > /dev/null;then
+    if [ ! -z "$REPOSERVER_API_KEY" ];then
+        CURL_PARAMS="\"apikey\":\"$REPOSERVER_API_KEY\""
+    fi
+
+    if [ ! -z "$HOST_ID" ] && [ ! -z "$TOKEN" ];then
+        CURL_PARAMS="\"id\":\"$HOST_ID\", \"token\":\"$TOKEN\""
+    fi
+
+    if ! curl --silent -q -H "Content-Type: application/json" -X GET -d "{$CURL_PARAMS}" "${REPOSERVER_URL}/api/v2/status" > /dev/null;then
         echo -e " [$YELLOW ERROR $RESET] Cannot reach reposerver from ${YELLOW}${REPOSERVER_URL}${RESET}"
         ERROR_STATUS=1
         clean_exit
@@ -306,6 +320,16 @@ function mod_configure
             --help)
                 mod_help
                 clean_exit
+            ;;
+            --api-key)
+                REPOSERVER_API_KEY="$2"
+                shift
+
+                # Check that provided API key name is valid (must start with "ak_")
+                if ! echo "$REPOSERVER_API_KEY" | grep -q "^ak_";then
+                    ERROR_STATUS=1
+                    echo "Invalid API key name, must start with 'ak_'"
+                fi
             ;;
             --agent-watch-int)
                 WATCH_INTERFACE="$2"
@@ -632,9 +656,12 @@ function getServerConf
     # On charge les paramètres du module
     getModConf
 
+    # Paramètres d'authentification (id et token)
+    CURL_PARAMS="\"id\":\"$HOST_ID\", \"token\":\"$TOKEN\""
+
     # Demande de la configuration auprès du serveur de repos
     # Ce dernier renverra la configuration au format JSON
-    CURL=$(curl -s -q -H "Content-Type: application/json" -X GET "${REPOSERVER_URL}/api/v2/profile/server-settings" 2> /dev/null)
+    CURL=$(curl -s -q -H "Content-Type: application/json" -X GET -d "{$CURL_PARAMS}" "${REPOSERVER_URL}/api/v2/profile/server-settings" 2> /dev/null)
     curl_result_parse
 
     # Si il y a eu une erreur lors de la requête on quitte la fonction
@@ -1122,7 +1149,6 @@ function update_request_status
 
     CURL_PARAMS="\"id\":\"$HOST_ID\", \"token\":\"$TOKEN\", \"status\":\"$UPDATE_REQUEST_STATUS\""
 
-    # CURL=$(curl -s -q -H "Content-Type: application/json" -X PUT -d "{$CURL_PARAMS}" "${REPOSERVER_URL}/api/hosts" 2> /dev/null)
     CURL=$(curl -s -q -H "Content-Type: application/json" -X PUT -d "{$CURL_PARAMS}" "${REPOSERVER_URL}/api/v2/host/request/$UPDATE_REQUEST_TYPE" 2> /dev/null)
 
 

@@ -163,9 +163,9 @@ jobs:
           tag_name: ${{ env.VERSION }}
           release_name: ${{ env.VERSION }}
           body: |
-            **Fixes**:
+            **Changes**:
 
-            - (reposerver module) Fixed reposerver IP retrieving
+            - reposerver module: added a --api-key parameter to provide a key to authenticate to the API
           draft: false
           prerelease: false
 
