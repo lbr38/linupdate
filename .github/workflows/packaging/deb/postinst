@@ -3,6 +3,12 @@
 DATA_DIR="/opt/linupdate"
 SERVICE="$DATA_DIR/service/linupdate-agent"
 
+# Restore configuration file if exists
+if [ -f "/tmp/linupdate.conf.debsave" ];then
+    rm -f /etc/linupdate/linupdate.conf
+    mv /tmp/linupdate.conf.debsave /etc/linupdate/linupdate.conf
+fi
+
 # Create a symlink to main script
 ln -sf /opt/linupdate/linupdate /usr/bin/linupdate
 

@@ -1,5 +1,10 @@
 #!/bin/bash
 
+# Save current configuration file if exists
+if [ -f "/etc/linupdate/linupdate.conf" ];then
+    cp /etc/linupdate/linupdate.conf /tmp/linupdate.conf.debsave
+fi
+
 # Only if systemd is installed (not the case on github runners)
 if [ -f "/usr/bin/systemd" ];then
     # Stop service if started

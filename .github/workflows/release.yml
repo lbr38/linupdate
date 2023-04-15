@@ -163,9 +163,10 @@ jobs:
           tag_name: ${{ env.VERSION }}
           release_name: ${{ env.VERSION }}
           body: |
-            **Changes**:
+            **Fixes**:
 
-            - reposerver module: added a --api-key parameter to provide a key to authenticate to the API
+            - Fixed config file overwrite on update
+            - Fixed linupdate service not restarting on update
           draft: false
           prerelease: false
 
