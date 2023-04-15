@@ -21,6 +21,11 @@ Requires: yum-utils
 Linupdate package updater - Repomanager client side agent
 
 %prep
+# Save current configuration file if exists
+if [ -f "/etc/linupdate/linupdate.conf" ];then
+    cp /etc/linupdate/linupdate.conf /tmp/linupdate.conf.rpmsave
+fi
+
 # Only if systemd is installed (not the case on github runners)
 if [ -f "/usr/bin/systemd" ];then
     # Stop service if started
@@ -42,6 +47,12 @@ cp /lib/systemd/system/linupdate.service $RPM_BUILD_ROOT/lib/systemd/system/linu
 DATA_DIR="/opt/linupdate"
 SERVICE="$DATA_DIR/service/linupdate-agent"
 
+# Restore configuration file if exists
+if [ -f "/tmp/linupdate.conf.rpmsave" ];then
+    rm -f /etc/linupdate/linupdate.conf
+    mv /tmp/linupdate.conf.rpmsave /etc/linupdate/linupdate.conf
+fi
+
 # Create a symlink to main script
 ln -sf /opt/linupdate/linupdate /usr/bin/linupdate
 
@@ -50,7 +61,7 @@ chmod 750 /etc/linupdate
 chmod 750 /opt/linupdate
 
 # Only if systemd is installed (not the case on github runners)
-if [ -f "/usr/bin/systemd" ];then
+if [ -f "/usr/lib/systemd" ];then
     # Enable service script by creating a symlink
     ln -sf /lib/systemd/system/linupdate.service /etc/systemd/system/linupdate.service
     chmod 550 "$SERVICE"
