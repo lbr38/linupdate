@@ -22,19 +22,19 @@ chmod 750 /etc/linupdate
 chmod 750 /opt/linupdate
 
 # Only if systemd is installed (not the case on github runners)
-if [ -f "/usr/bin/systemd" ];then
+if [ -f "/usr/bin/systemctl" ];then
 
     # Enable service script by creating a symlink
     ln -sf /lib/systemd/system/linupdate.service /etc/systemd/system/linupdate.service
     chmod 550 "$SERVICE"
     chown root:root "$SERVICE"
 
-    systemctl --quiet daemon-reload
+    /usr/bin/systemctl --quiet daemon-reload
 
     # Start service
-    if systemctl is-active --quiet linupdate;then
-        systemctl restart --quiet linupdate
+    if /usr/bin/systemctl is-active --quiet linupdate;then
+        /usr/bin/systemctl restart --quiet linupdate
     else
-        systemctl start --quiet linupdate
+        /usr/bin/systemctl start --quiet linupdate
     fi
 fi
