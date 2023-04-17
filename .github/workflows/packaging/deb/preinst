@@ -6,9 +6,9 @@ if [ -f "/etc/linupdate/linupdate.conf" ];then
 fi
 
 # Only if systemd is installed (not the case on github runners)
-if [ -f "/usr/bin/systemd" ];then
+if [ -f "/usr/bin/systemctl" ];then
     # Stop service if started
-    if systemctl is-active --quiet linupdate;then
-        systemctl stop --quiet linupdate
+    if /usr/bin/systemctl is-active --quiet linupdate;then
+        /usr/bin/systemctl stop --quiet linupdate
     fi
 fi
