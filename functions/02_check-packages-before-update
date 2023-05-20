@@ -203,12 +203,14 @@ function checkPackagesBeforeUpdate
                     IFS=$old_IFS
                 fi
             done
-
-            # Finalize the list by adding a white space in the end to be sure the last package in the list will be taken into account when processing exclusion from this list
-            UPDATE_EXCLUDE="${UPDATE_EXCLUDE} "
-            # Then delete the very first white space 
-            UPDATE_EXCLUDE="${UPDATE_EXCLUDE/ /}"
         fi
+    fi
+
+    # Finalize the list by adding a white space in the end to be sure the last package in the list will be taken into account when processing exclusion from this list
+    if [ ! -z "$UPDATE_EXCLUDE" ];then
+        UPDATE_EXCLUDE="${UPDATE_EXCLUDE} "
+        # Delete leading white space
+        UPDATE_EXCLUDE=$(echo "$UPDATE_EXCLUDE" | sed -e 's/^[[:space:]]*//')
     fi
 
     # Process services that will need a restart after packages update
