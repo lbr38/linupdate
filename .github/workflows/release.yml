@@ -162,11 +162,7 @@ jobs:
         with:
           tag_name: ${{ env.VERSION }}
           release_name: ${{ env.VERSION }}
-          body: |
-            **Fixes**:
-
-            - Fixed config file overwrite on update
-            - Fixed linupdate service not restarting on update
+          body: ""
           draft: false
           prerelease: false
 
