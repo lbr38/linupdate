@@ -49,7 +49,7 @@ function checkPackagesBeforeUpdate
 
             # Then unhold them all
             if [ ! -z "$HOLDED_PACKAGES" ];then
-                OLD_IFS="$IFS"
+                OLD_IFS=$IFS
                 IFS=$'\n'
 
                 for HOLDED_PACKAGE in $(echo "$HOLDED_PACKAGES");do
@@ -99,7 +99,7 @@ function checkPackagesBeforeUpdate
                 if egrep -q "^${PACKAGE} " $CHECK_UPDATE_TMP;then
                     
                     # Save the actual IFS (comma) because it will be needed again by the previous FOR loop 
-                    old_IFS=$IFS
+                    OLD_IFS=$IFS
                     IFS=$'\n'
     
                     # For every occurence of the package found in $CHECK_UPDATE_TMP (there could be more than one),
@@ -162,7 +162,7 @@ function checkPackagesBeforeUpdate
                     done
                     
                     # Set back the prviously saved IFS (comma) for the previous FOR loop to work
-                    IFS=$old_IFS
+                    IFS=$OLD_IFS
 
                 # Cas no update is available for this package
                 else
@@ -190,7 +190,7 @@ function checkPackagesBeforeUpdate
                 if egrep -q "^${PACKAGE} " $CHECK_UPDATE_TMP;then
 
                     # Save the actual IFS (comma) because it will be needed again by the previous FOR loop 
-                    old_IFS=$IFS
+                    OLD_IFS=$IFS
                     IFS=$'\n'
                     
                     # For every occurence of the package found in $CHECK_UPDATE_TMP (there could be more than one),
@@ -200,7 +200,7 @@ function checkPackagesBeforeUpdate
                     done
         
                     # Set back the prviously saved IFS (comma) for the previous FOR loop to work
-                    IFS=$old_IFS
+                    IFS=$OLD_IFS
                 fi
             done
         fi
@@ -215,19 +215,24 @@ function checkPackagesBeforeUpdate
 
     # Process services that will need a restart after packages update
     if [ ! -z "$CONF_SOFT_NEED_RESTART" ];then
+        OLD_IFS=$IFS
         IFS=','
 
-        # Run through CONF_SOFT_NEED_RESTART
-        for SERVICE in "${CONF_SOFT_NEED_RESTART[@]}"; do
-            
+        # Inject services list into SERVICES_TO_RESTART
+        read -ra SERVICES_TO_RESTART <<< "$CONF_SOFT_NEED_RESTART"
+
+        # Run through SERVICES_TO_RESTART
+        for SERVICE in "${SERVICES_TO_RESTART[@]}"; do
             # Check if specified service really exists, if yes then add it to the final services to restart list
-            if ! systemctl list-unit-files "${SERVICE}.service" | grep -q "0 unit files";then
+            if systemctl list-units --all -t service --full | grep "${SERVICE}.service";then
                 SERVICE_TO_BE_RESTARTED+=" $SERVICE"
             fi
         done
 
         SERVICE_TO_BE_RESTARTED="${SERVICE_TO_BE_RESTARTED} "
         SERVICE_TO_BE_RESTARTED="${SERVICE_TO_BE_RESTARTED/ /}"
+
+        IFS=$OLD_IFS
     fi
 
     echo ""
