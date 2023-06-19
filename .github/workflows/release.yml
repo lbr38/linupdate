@@ -162,7 +162,7 @@ jobs:
         with:
           tag_name: ${{ env.VERSION }}
           release_name: ${{ env.VERSION }}
-          body: ""
+          body: "Fixed services restart after update"
           draft: false
           prerelease: false
 
