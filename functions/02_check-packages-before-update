@@ -224,7 +224,7 @@ function checkPackagesBeforeUpdate
         # Run through SERVICES_TO_RESTART
         for SERVICE in "${SERVICES_TO_RESTART[@]}"; do
             # Check if specified service really exists, if yes then add it to the final services to restart list
-            if systemctl list-units --all -t service --full | grep "${SERVICE}.service";then
+            if systemctl list-units --all -t service --full | grep -q "${SERVICE}.service";then
                 SERVICE_TO_BE_RESTARTED+=" $SERVICE"
             fi
         done
