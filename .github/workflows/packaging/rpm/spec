@@ -15,6 +15,7 @@ Requires: inotify-tools
 Requires: jq
 Requires: virt-what
 Requires: net-tools
+Requires: bind-utils
 Requires: yum-utils
 
 %description

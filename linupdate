@@ -380,7 +380,11 @@ execPostModules
 # Restarting services
 restartService
 
-echo -e "\nOperation completed\n" 
+if [ "$UPDATE_ERROR" -gt "0" ];then
+    echo -e "\nOperation completed with errors\n"
+else
+    echo -e "\nOperation completed\n"
+fi
 
 # Check if a system reboot is required
 checkRebootNeeded

@@ -15,5 +15,9 @@ function clean_exit
 
     rm "/tmp/linupdate.lock" -f
 
+    if [ "$UPDATE_ERROR" -gt "0" ];then
+        (( ERROR_STATUS++ ))
+    fi
+
     exit $ERROR_STATUS
 }
