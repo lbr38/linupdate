@@ -78,7 +78,7 @@ function send_general_status {
     if [ $? != "0" ];then
         echo -e "An error occured while sending data\n"
     else
-        echo -e "Data have been send\n"
+        echo -e "Data have been sent\n"
     fi
 }
 
@@ -102,7 +102,7 @@ function send_packages_status {
     if [ $? != "0" ];then
         echo -e "An error occured while sending data\n"
     else
-        echo -e "Data have been send\n"
+        echo -e "Data have been sent\n"
     fi
 }
 
@@ -112,7 +112,7 @@ function send_full_status {
     if [ $? != "0" ];then
         echo -e "An error occured while sending data\n"
     else
-        echo -e "Data have been send\n"
+        echo -e "Data have been sent\n"
     fi
 }
 

@@ -7,7 +7,7 @@ AGENTS_ENABLED_DIR="/opt/linupdate/agents-enabled"
 sleep 60
 
 # On vérifie qu'au moins 1 agent est activé
-if ls -A $AGENTS_ENABLED_DIR/* > /dev/null;then
+if ls -A $AGENTS_ENABLED_DIR/* 2> /dev/null;then
     # Inclusion de tous les 'modules agent'
     for AGENT in $(ls -A1 ${AGENTS_ENABLED_DIR}/);do
         source "${AGENTS_ENABLED_DIR}/${AGENT}"

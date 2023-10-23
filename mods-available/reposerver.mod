@@ -794,12 +794,12 @@ function getProfileConf
     done
 
     if [ "$GET_PROFILE_PKG_CONF_FROM_REPOSERVER" == "null" ];then
-        echo -e "[$YELLOW ERROR $RESET] Server send ${YELLOW}null${RESET} data"
+        echo -e "[$YELLOW ERROR $RESET] Server sent ${YELLOW}null${RESET} data"
         return 2
     fi
 
     if [ "$GET_PROFILE_REPOS_FROM_REPOSERVER" == "null" ];then
-        echo -e "[$YELLOW ERROR $RESET] Server send ${YELLOW}null${RESET} data"
+        echo -e "[$YELLOW ERROR $RESET] Server sent ${YELLOW}null${RESET} data"
         return 2
     fi
 
@@ -911,7 +911,7 @@ function getProfileRepos
     # On s'assure que le paramètre 'configuraiton' fait bien partie de la réponse JSON renvoyée par le serveur
     # Ce paramètre peut être vide toutefois si la configuration du profil côté serveur n'a aucun repo de configuré
     if ! echo "$CURL" | grep -q "results";then
-        echo -e "[$YELLOW ERROR $RESET] $PROFILE profile repos sources configuration have not been sended by reposerver."
+        echo -e "[$YELLOW ERROR $RESET] $PROFILE profile repos sources configuration have not been sent by reposerver."
         return 2
     fi
 
@@ -932,6 +932,7 @@ function getProfileRepos
         rm /etc/yum.repos.d/*.repo -f
     fi
     if [ "$OS_FAMILY" == "Debian" ];then
+        echo -n> /etc/apt/sources.list
         rm /etc/apt/sources.list.d/*.list -f
     fi
 
