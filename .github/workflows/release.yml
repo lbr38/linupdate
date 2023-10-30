@@ -163,8 +163,7 @@ jobs:
           tag_name: ${{ env.VERSION }}
           release_name: ${{ env.VERSION }}
           body: |
-            Added dependencies
-            Various fixes
+            - Various output fixes
           draft: false
           prerelease: false
 
