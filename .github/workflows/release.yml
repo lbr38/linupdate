@@ -163,7 +163,9 @@ jobs:
           tag_name: ${{ env.VERSION }}
           release_name: ${{ env.VERSION }}
           body: |
-            - Various output fixes
+            **Changes**:
+
+            - Update API authentication method
           draft: false
           prerelease: false
 

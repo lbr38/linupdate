@@ -51,7 +51,7 @@ function register
         fi
     fi
 
-    CURL=$(curl -L --post301 -s -q -H "Content-Type: application/json" -X POST -d "{\"apikey\":\"$REPOSERVER_API_KEY\",\"ip\":\"$REGISTER_IP\",\"hostname\":\"$REGISTER_HOSTNAME\"}" "${REPOSERVER_URL}/api/v2/host/registering" 2> /dev/null)
+    CURL=$(curl -L --post301 -s -q -H "Authorization: Bearer $REPOSERVER_API_KEY" -H "Content-Type: application/json" -X POST -d "{\"ip\":\"$REGISTER_IP\",\"hostname\":\"$REGISTER_HOSTNAME\"}" "${REPOSERVER_URL}/api/v2/host/registering" 2> /dev/null)
 
     # Parsage de la réponse et affichage des messages si il y en a
     curl_result_parse
@@ -117,7 +117,7 @@ function unregister
 
     # Tentative de suppression de l'enregistrement
     echo -ne " Unregistering from ${YELLOW}${REPOSERVER_URL}${RESET}: "
-    CURL=$(curl -L --post301 -s -q -H "Content-Type: application/json" -X DELETE -d "{\"id\":\"$HOST_ID\", \"token\":\"$TOKEN\"}" "${REPOSERVER_URL}/api/v2/host/registering" 2> /dev/null)
+    CURL=$(curl -L --post301 -s -q -H "Authorization: Host $HOST_ID:$TOKEN" -H "Content-Type: application/json" -X DELETE "${REPOSERVER_URL}/api/v2/host/registering" 2> /dev/null)
  
     # Parsage de la réponse et affichage des messages si il y en a
     curl_result_parse
@@ -134,14 +134,14 @@ function unregister
 function testConnection
 {
     if [ ! -z "$REPOSERVER_API_KEY" ];then
-        CURL_PARAMS="\"apikey\":\"$REPOSERVER_API_KEY\""
+        AUTH_HEADER="Authorization: Bearer $REPOSERVER_API_KEY"
     fi
 
     if [ ! -z "$HOST_ID" ] && [ ! -z "$TOKEN" ];then
-        CURL_PARAMS="\"id\":\"$HOST_ID\", \"token\":\"$TOKEN\""
+        AUTH_HEADER="Authorization: Host $HOST_ID:$TOKEN"
     fi
 
-    if ! curl -L --post301 -s -q -H "Content-Type: application/json" -X GET -d "{$CURL_PARAMS}" "${REPOSERVER_URL}/api/v2/status" > /dev/null;then
+    if ! curl -L --post301 -s -q -H "$AUTH_HEADER" -H "Content-Type: application/json" -X GET "${REPOSERVER_URL}/api/v2/status" > /dev/null;then
         echo -e " [$YELLOW ERROR $RESET] Cannot reach reposerver from ${YELLOW}${REPOSERVER_URL}${RESET}"
         ERROR_STATUS=1
         clean_exit
@@ -298,9 +298,9 @@ function mod_configure
     # Variables de status
     UPDATE_REQUEST_TYPE=""
     UPDATE_REQUEST_STATUS=""
-    SEND_GENERAL_STATUS="no"
-    SEND_PACKAGES_STATUS="no"
-    SEND_FULL_HISTORY="no"
+    SEND_GENERAL_STATUS="false"
+    SEND_PACKAGES_STATUS="false"
+    SEND_FULL_HISTORY="false"
     SEND_FULL_HISTORY_LIMIT=""
 
     # Défini le status de l'agent linupdate (démarré, arrêté)
@@ -463,17 +463,17 @@ function mod_configure
             ;;
             --send-full-status)
                 # Envoi du status complet du serveur
-                SEND_GENERAL_STATUS="yes"
-                SEND_PACKAGES_STATUS="yes"
+                SEND_GENERAL_STATUS="true"
+                SEND_PACKAGES_STATUS="true"
                 send_status
             ;;
             --send-general-status)
                 # Envoi du status général du serveur (OS, kernel..)
-                SEND_GENERAL_STATUS="yes"
+                SEND_GENERAL_STATUS="true"
                 send_status
             ;;
             --send-packages-status)
-                SEND_PACKAGES_STATUS="yes"
+                SEND_PACKAGES_STATUS="true"
                 send_status
             ;;
             --send-full-history)
@@ -481,7 +481,7 @@ function mod_configure
                 if [ ! -z "$2" ];then
                     SEND_FULL_HISTORY_LIMIT="$2"
                 fi
-                SEND_FULL_HISTORY="yes"
+                SEND_FULL_HISTORY="true"
                 send_status
             ;;
             # *)
@@ -656,12 +656,9 @@ function getServerConf
     # On charge les paramètres du module
     getModConf
 
-    # Paramètres d'authentification (id et token)
-    CURL_PARAMS="\"id\":\"$HOST_ID\", \"token\":\"$TOKEN\""
-
     # Demande de la configuration auprès du serveur de repos
     # Ce dernier renverra la configuration au format JSON
-    CURL=$(curl -L --post301 -s -q -H "Content-Type: application/json" -X GET -d "{$CURL_PARAMS}" "${REPOSERVER_URL}/api/v2/profile/server-settings" 2> /dev/null)
+    CURL=$(curl -L --post301 -s -q -H "Authorization: Host $HOST_ID:$TOKEN" -X GET "${REPOSERVER_URL}/api/v2/profile/server-settings" 2> /dev/null)
     curl_result_parse
 
     # Si il y a eu une erreur lors de la requête on quitte la fonction
@@ -773,7 +770,7 @@ function getProfileConf
 
     # Demande de la configuration des repos auprès du serveur de repos
     # Ce dernier renverra la configuration au format JSON
-    CURL=$(curl -L --post301 -s -q -H "Content-Type: application/json" -X GET -d "{\"id\":\"$HOST_ID\",\"token\":\"$TOKEN\"}" "${REPOSERVER_URL}/api/v2/profile/${PROFILE}" 2> /dev/null)
+    CURL=$(curl -L --post301 -s -q -H "Authorization: Host $HOST_ID:$TOKEN" -X GET "${REPOSERVER_URL}/api/v2/profile/${PROFILE}" 2> /dev/null)
     curl_result_parse
 
     # Si il y a eu une erreur lors de la requête on quitte la fonction
@@ -834,7 +831,7 @@ function getProfilePackagesConf
 
     # Demande de la configuration des paquets auprès du serveur de repos
     # Ce dernier renverra la configuration au format JSON
-    CURL=$(curl -L --post301 -s -q -H "Content-Type: application/json" -X GET -d "{\"id\":\"$HOST_ID\",\"token\":\"$TOKEN\"}" "${REPOSERVER_URL}/api/v2/profile/${PROFILE}/excludes" 2> /dev/null)
+    CURL=$(curl -L --post301 -s -q -H "Authorization: Host $HOST_ID:$TOKEN" -X GET "${REPOSERVER_URL}/api/v2/profile/${PROFILE}/excludes" 2> /dev/null)
     curl_result_parse
 
     # Si il y a eu une erreur lors de la requête on quitte la fonction
@@ -899,7 +896,7 @@ function getProfileRepos
 
     # Demande de la configuration des repos auprès du serveur de repos
     # Ce dernier renverra la configuration au format JSON
-    CURL=$(curl -L --post301 -s -q -H "Content-Type: application/json" -X GET -d "{\"id\":\"$HOST_ID\",\"token\":\"$TOKEN\"}" "${REPOSERVER_URL}/api/v2/profile/${PROFILE}/repos" 2> /dev/null)
+    CURL=$(curl -L --post301 -s -q -H "Authorization: Host $HOST_ID:$TOKEN" -X GET "${REPOSERVER_URL}/api/v2/profile/${PROFILE}/repos" 2> /dev/null)
     curl_result_parse
 
     # Si il y a eu une erreur lors de la requête on quitte la fonction
@@ -1106,28 +1103,18 @@ function send_status
     # Exécution des sous-fonctions
 
     # Général
-    if [ "$SEND_GENERAL_STATUS" == "yes" ];then
+    if [ "$SEND_GENERAL_STATUS" == "true" ];then
         send_general_status
     fi
 
     # Paquets
-    if [ "$SEND_PACKAGES_STATUS" == "yes" ];then
+    if [ "$SEND_PACKAGES_STATUS" == "true" ];then
         send_packages_status
     fi
 
     # Historique des évènements apt ou yum
-    if [ "$SEND_FULL_HISTORY" == "yes" ];then  
+    if [ "$SEND_FULL_HISTORY" == "true" ];then  
         genFullHistory
-    fi
-
-    # Paquets disponibles sur cet hôte
-    if [ "$SEND_AVAILABLE_PACKAGES_STATUS" == "yes" ];then
-        send_available_packages_status
-    fi
-
-    # Paquets installés sur cet hôte
-    if [ "$SEND_INSTALLED_PACKAGE_STATUS" == "yes" ];then
-        send_installed_packages_status
     fi
 
     IFS="$OLD_IFS"
@@ -1149,10 +1136,9 @@ function update_request_status
         echo -ne " Acknowledging reposerver request: "
     fi
 
-    CURL_PARAMS="\"id\":\"$HOST_ID\", \"token\":\"$TOKEN\", \"status\":\"$UPDATE_REQUEST_STATUS\""
+    CURL_PARAMS="\"status\":\"$UPDATE_REQUEST_STATUS\""
 
-    CURL=$(curl -L --post301 -s -q -H "Content-Type: application/json" -X PUT -d "{$CURL_PARAMS}" "${REPOSERVER_URL}/api/v2/host/request/$UPDATE_REQUEST_TYPE" 2> /dev/null)
-
+    CURL=$(curl -L --post301 -s -q -H "Authorization: Host $HOST_ID:$TOKEN" -H "Content-Type: application/json" -X PUT -d "{$CURL_PARAMS}" "${REPOSERVER_URL}/api/v2/host/request/$UPDATE_REQUEST_TYPE" 2> /dev/null)
 
     # On n'affiche les message d'erreur et de succès uniquement si la verbosité est supérieur à 0
     if [ "$VERBOSE" -gt "0" ];then
@@ -1173,52 +1159,54 @@ function send_general_status
     # Check if reboot is needed
     checkRebootNeeded
 
-    # Paramètres d'authentification (id et token)
-    CURL_PARAMS="\"id\":\"$HOST_ID\", \"token\":\"$TOKEN\""
+    CURL_PARAMS=""
 
     # Paramètres généraux (os, version, profil...)
     if [ ! -z "$HOSTNAME" ];then
-        CURL_PARAMS+=", \"hostname\":\"$HOSTNAME\""
+        CURL_PARAMS+="\"hostname\":\"$HOSTNAME\","
     fi
     if [ ! -z "$OS_NAME" ];then
-        CURL_PARAMS+=", \"os\":\"$OS_NAME\""
+        CURL_PARAMS+="\"os\":\"$OS_NAME\","
     fi
     if [ ! -z "$OS_VERSION" ];then
-        CURL_PARAMS+=", \"os_version\":\"$OS_VERSION\""
+        CURL_PARAMS+="\"os_version\":\"$OS_VERSION\","
     fi
     if [ ! -z "$OS_FAMILY" ];then
-        CURL_PARAMS+=", \"os_family\":\"$OS_FAMILY\""
+        CURL_PARAMS+="\"os_family\":\"$OS_FAMILY\","
     fi
     if [ ! -z "$VIRT_TYPE" ];then
-        CURL_PARAMS+=", \"type\":\"$VIRT_TYPE\""
+        CURL_PARAMS+="\"type\":\"$VIRT_TYPE\","
     fi
     if [ ! -z "$KERNEL" ];then
-        CURL_PARAMS+=", \"kernel\":\"$KERNEL\""
+        CURL_PARAMS+="\"kernel\":\"$KERNEL\","
     fi
     if [ ! -z "$ARCH" ];then
-        CURL_PARAMS+=", \"arch\":\"$ARCH\""
+        CURL_PARAMS+="\"arch\":\"$ARCH\","
     fi
     if [ ! -z "$PROFILE" ];then
-        CURL_PARAMS+=", \"profile\":\"$PROFILE\""
+        CURL_PARAMS+="\"profile\":\"$PROFILE\","
     fi
     if [ ! -z "$SERVER_ENV" ];then
-        CURL_PARAMS+=", \"env\":\"$SERVER_ENV\""
+        CURL_PARAMS+="\"env\":\"$SERVER_ENV\","
     fi
     if [ ! -z "$AGENT_STATUS" ];then
-        CURL_PARAMS+=", \"agent_status\":\"$AGENT_STATUS\""
+        CURL_PARAMS+="\"agent_status\":\"$AGENT_STATUS\","
     fi
     if [ ! -z "$VERSION" ];then
-        CURL_PARAMS+=", \"linupdate_version\":\"$VERSION\""
+        CURL_PARAMS+="\"linupdate_version\":\"$VERSION\","
     fi
     if [ ! -z "$REBOOT_REQUIRED" ];then
-        CURL_PARAMS+=", \"reboot_required\":\"$REBOOT_REQUIRED\""
+        CURL_PARAMS+="\"reboot_required\":\"$REBOOT_REQUIRED\","
     fi
+
+    # Delete the last comma
+    CURL_PARAMS=$(echo "${CURL_PARAMS::-1}")
 
     # Fin de construction des paramètres curl puis envoi.
 
     # Envoi des données :
     echo -e "→ Sending status to ${YELLOW}${REPOSERVER_URL}${RESET}: "
-    CURL=$(curl -L --post301 -s -q -H "Content-Type: application/json" -X PUT -d "{$CURL_PARAMS}" "${REPOSERVER_URL}/api/v2/host/status" 2> /dev/null)
+    CURL=$(curl -L --post301 -s -q -H "Authorization: Host $HOST_ID:$TOKEN" -H "Content-Type: application/json" -X PUT -d "{$CURL_PARAMS}" "${REPOSERVER_URL}/api/v2/host/status" 2> /dev/null)
 
     # Récupération et affichage des messages
     curl_result_parse
@@ -1288,9 +1276,6 @@ function send_installed_packages_status
         dpkg-query -W -f='${Status}\t${package}\t${version}\t\n' | grep "^install ok installed" | awk '{print $4, $5}' > "$INSTALLED_PACKAGES_TMP"
     fi
 
-    # Paramètres d'authentification (id et token)
-    CURL_PARAMS="\"id\":\"$HOST_ID\", \"token\":\"$TOKEN\""
-
     # Parsage des lignes des fichiers splités
     for LINE in $(cat "$INSTALLED_PACKAGES_TMP");do
 
@@ -1320,11 +1305,11 @@ function send_installed_packages_status
     INSTALLED_PACKAGES=$(echo "${INSTALLED_PACKAGES::-1}")
     
     # Construction des paramètres curl à envoyer
-    CURL_PARAMS="$CURL_PARAMS, \"installed_packages\":\"$INSTALLED_PACKAGES\""
+    CURL_PARAMS="\"installed_packages\":\"$INSTALLED_PACKAGES\""
 
     # Envoi des données :
     echo -ne "→ Sending data to ${YELLOW}${REPOSERVER_URL}${RESET}: "
-    CURL=$(curl -L --post301 -s -q -H "Content-Type: application/json" -X PUT -d "{$CURL_PARAMS}" "${REPOSERVER_URL}/api/v2/host/packages/installed" 2> /dev/null)
+    CURL=$(curl -L --post301 -s -q -H "Authorization: Host $HOST_ID:$TOKEN" -H "Content-Type: application/json" -X PUT -d "{$CURL_PARAMS}" "${REPOSERVER_URL}/api/v2/host/packages/installed" 2> /dev/null)
     
     # Récupération et affichage des messages
     curl_result_parse
@@ -1343,9 +1328,6 @@ function send_installed_packages_status
 function send_available_packages_status
 {
     AVAILABLE_PACKAGES=""
-
-    # Paramètres d'authentification (id et token)
-    CURL_PARAMS="\"id\":\"$HOST_ID\", \"token\":\"$TOKEN\""
 
     # Paramètres concernant les paquets (paquets disponibles...)
 
@@ -1399,11 +1381,11 @@ function send_available_packages_status
     rm "$AVAILABLE_PACKAGES_TMP" -f
 
     # Construction des paramètres curl à envoyer
-    CURL_PARAMS="$CURL_PARAMS, \"available_packages\":\"$AVAILABLE_PACKAGES\""
+    CURL_PARAMS="\"available_packages\":\"$AVAILABLE_PACKAGES\""
 
     # Envoi des données :
     echo -ne "→ Sending data to ${YELLOW}${REPOSERVER_URL}${RESET}: "
-    CURL=$(curl -L --post301 -s -q -H "Content-Type: application/json" -X PUT -d "{$CURL_PARAMS}" "${REPOSERVER_URL}/api/v2/host/packages/available" 2> /dev/null)
+    CURL=$(curl -L --post301 -s -q -H "Authorization: Host $HOST_ID:$TOKEN" -H "Content-Type: application/json" -X PUT -d "{$CURL_PARAMS}" "${REPOSERVER_URL}/api/v2/host/packages/available" 2> /dev/null)
     
     # Récupération et affichage des messages
     curl_result_parse
@@ -1526,13 +1508,13 @@ function genFullHistory
     EVENTS_JSON=$(echo "${EVENTS_JSON::-1}")
 
     # Construction du JSON final
-    echo "{\"id\" : \"$HOST_ID\",\"token\" : \"$TOKEN\",\"events\" : [$EVENTS_JSON]}" | jq . > "$JSON_FILE"
+    echo "{\"events\" : [$EVENTS_JSON]}" | jq . > "$JSON_FILE"
 
     IFS=$OLD_IFS
 
     # Envoi des données :
     echo -ne "→ Sending history to ${YELLOW}${REPOSERVER_URL}${RESET}: "
-    CURL=$(curl -L --post301 -s -q -H "Content-Type: application/json" -X PUT -d @${JSON_FILE} "${REPOSERVER_URL}/api/v2/host/packages/event" 2> /dev/null)
+    CURL=$(curl -L --post301 -s -q -H "Authorization: Host $HOST_ID:$TOKEN" -H "Content-Type: application/json" -X PUT -d @${JSON_FILE} "${REPOSERVER_URL}/api/v2/host/packages/event" 2> /dev/null)
 
     # Récupération et affichage des messages
     curl_result_parse
