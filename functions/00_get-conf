@@ -1,32 +1,34 @@
 #!/usr/bin/env bash
-# Récupération de la conf renseignée dans linupdate.conf
+# Retrieve configuration from linupdate.conf
 
 function getConf
 {
-	# Si le fichier de configuration n'existe pas alors on quitte
+    # If config file doesn't exist, exit
     if [ ! -f "$CONF" ];then
         echo -e "[${YELLOW} ERROR ${RESET}] No config file was found on this server. Use --install param to finalize linupdate installation.\n"
         (( UPDATE_ERROR++ ))
-        # On supprime le fichier de log, inutile
+
+        # Delete log file 
         rm "$LOG" -f
         clean_exit
     fi
 
-    PROFILE=$(egrep "^PROFILE=" "$CONF" | cut -d'=' -f 2 | sed 's/"//g') # Type de serveur
-    SERVER_ENV=$(egrep "^ENV=" "$CONF" | cut -d'=' -f 2 | sed 's/"//g')  # Env
-    MAIL_ENABLED=$(egrep "^MAIL_ENABLED=" "$CONF" | cut -d'=' -f 2 | sed 's/"//g')
-    MAIL_RECIPIENT=$(egrep "^MAIL_RECIPIENT=" "$CONF" | cut -d'=' -f 2 | sed 's/"//g')
-    CONF_SOFT_EXCLUDE_MAJOR=$(egrep "^EXCLUDE_MAJOR=" "$CONF" | cut -d'=' -f 2 | sed 's/"//g')  # Paquets critiques à exclure en cas de maj majeure
-    CONF_SOFT_EXCLUDE=$(egrep "^EXCLUDE=" "$CONF" | cut -d'=' -f 2 | sed 's/"//g')              # Paquets critiques à exclure dans tous les cas
-    CONF_SOFT_NEED_RESTART=$(egrep "^NEED_RESTART=" "$CONF" | cut -d'=' -f 2 | sed 's/"//g')    # Paquets critiques ou non à redémarrer
+    PROFILE=$(egrep "^PROFILE=" "$CONF" | cut -d'=' -f 2 | sed 's/"//g')                        # Profile name
+    ENV=$(egrep "^ENV=" "$CONF" | cut -d'=' -f 2 | sed 's/"//g')                                # Environment
+    MAIL_ENABLED=$(egrep "^MAIL_ENABLED=" "$CONF" | cut -d'=' -f 2 | sed 's/"//g')              # Enable mail notification
+    MAIL_RECIPIENT=$(egrep "^MAIL_RECIPIENT=" "$CONF" | cut -d'=' -f 2 | sed 's/"//g')          # Mail recipient
+    PACKAGES_EXCLUDE_MAJOR=$(egrep "^EXCLUDE_MAJOR=" "$CONF" | cut -d'=' -f 2 | sed 's/"//g')   # Packages to exclude on a major update
+    PACKAGES_EXCLUDE=$(egrep "^EXCLUDE=" "$CONF" | cut -d'=' -f 2 | sed 's/"//g')               # Packages to always exclude
+    SERVICE_RESTART=$(egrep "^SERVICE_RESTART=" "$CONF" | cut -d'=' -f 2 | sed 's/"//g')        # Services to restart after update
 
     if [ -z "$PROFILE" ];then
         echo -e "[${RED} ERROR ${RESET}] No profile is defined\n"
         (( UPDATE_ERROR++ ))
         clean_exit
     fi
-    if [ -z "$SERVER_ENV" ];then
-        echo -e "[${RED} ERROR ${RESET}] No env is defined\n"
+
+    if [ -z "$ENV" ];then
+        echo -e "[${RED} ERROR ${RESET}] No environment is defined\n"
         (( UPDATE_ERROR++ ))
         clean_exit
     fi

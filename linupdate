@@ -32,13 +32,13 @@ VIRT_TYPE=""
 PKG_MANAGER=""
 PKG_TYPE=""
 PROFILE=""
-SERVER_ENV=""
+ENV=""
 FAILLEVEL=""
 MAIL_ENABLED=""
 MAIL_RECIPIENT=""
-CONF_SOFT_EXCLUDE_MAJOR=""
-CONF_SOFT_EXCLUDE=""
-CONF_SOFT_NEED_RESTART=""
+PACKAGES_EXCLUDE_MAJOR=""
+PACKAGES_EXCLUDE=""
+SERVICE_RESTART=""
 HISTORIQUE="${BASE_DIR}/linupdate.history"                     # Packages updates history file
 REPORT="${DATE_YMD}_${TIME_FULL}_linupdate_${HOSTNAME}.log"    # Name of the log/report file
 LOG="${LOGS_DIR}/${REPORT}"                                    # Location of the log/report file
@@ -48,7 +48,7 @@ APT_OPTIONS=""
 YUM_OPTIONS=""
 KEEP_OLDCONF="0"
 UPDATE_ERROR="0"
-SOMETHING_TO_UPDATE="yes"
+SOMETHING_TO_UPDATE="true"
 ONLY_CHECK_UPDATE="false"
 IGNORE_EXCLUDE="0"
 UPDATE_EXCLUDE=""
@@ -129,6 +129,18 @@ checkSystem
 # Generate config file if not exist
 generateConf
 
+# Patch 2.2.12
+if [ -f "$CONF" ];then
+    # Replace NEED_RESTART by SERVICE_RESTART
+    sed -i "s/^NEED_RESTART/SERVICE_RESTART/g" "$CONF"
+    # Remove ALLOW_SELF_UPDATE
+    sed -i "/^ALLOW_SELF_UPDATE/d" "$CONF"
+    # Replace "yes" by "true" in MAIL_ENABLED
+    sed -i 's/^MAIL_ENABLED="yes"/MAIL_ENABLED="true"/g' "$CONF"
+    # Replace "no" by "false" in MAIL_ENABLED
+    sed -i 's/^MAIL_ENABLED="no"/MAIL_ENABLED="false"/g' "$CONF"
+fi
+
 
 ## ↓ EXECUTION ↓ ##
 
@@ -190,8 +202,8 @@ while [ $# -ge 1 ];do
         --environment|--env)
             # If nothing has been specified then print actual env
             if [ -z "$2" ];then
-                ENV=$(grep "^ENV=" $CONF | sed 's/ENV=//g' | sed 's/"//g')
-                echo -e "Current environment: ${YELLOW}$ENV${RESET}"
+                CURRENT_ENV=$(grep "^ENV=" $CONF | sed 's/ENV=//g' | sed 's/"//g')
+                echo -e "Current environment: ${YELLOW}$CURRENT_ENV${RESET}"
             else
                 # If an env name has been specified then replace actual env with it
                 if grep -q "ENV=" $CONF;then
@@ -341,7 +353,7 @@ if [ ! -z "$VIRT_TYPE" ];then
     echo -e " Virtualization:               ${YELLOW}${VIRT_TYPE}${RESET}"
 fi
 echo -e " Profile:                      ${YELLOW}${PROFILE}${RESET}"
-echo -e " Environment:                  ${YELLOW}${SERVER_ENV}${RESET}"
+echo -e " Environment:                  ${YELLOW}${ENV}${RESET}"
 echo -e " Executed on:                  ${YELLOW}${DATE_DMY} ${TIME}${RESET}"
 echo -ne " Executed by:                 ${YELLOW} "; whoami; echo -ne "${RESET}"
 echo -ne " Execution method: "

@@ -1,24 +1,30 @@
 #!/usr/bin/env bash
-# Redémarrage des services post-mise à jour
+# Restart services after update
 
 function restartService
 {
-    # Si $SERVICE_TO_BE_RESTARTED contient des services nécessitant un redémarrage, on traite
-    if [ ! -z "$SERVICE_TO_BE_RESTARTED" ];then
-        OLD_IFS=$IFS
-        IFS=' '
-
-        for SERVICE in $(echo "$SERVICE_TO_BE_RESTARTED"); do
-            SERVICE=$(echo "$SERVICE" | sed 's/ //g')
-            echo -ne "→ Restarting ${YELLOW}${SERVICE}${RESET} service: "
-            systemctl restart "$SERVICE" --quiet
-            if [ "$?" != "0" ];then
-                echo -e "[$YELLOW ERROR $RESET] while restarting"
-            else
-                echo -e "[$GREEN OK $RESET]"
-            fi
-        done
-
-        IFS=$OLD_IFS
+    # If $SERVICE_TO_BE_RESTARTED contains services that need to be restarted
+    if [ -z "$SERVICE_TO_BE_RESTARTED" ];then
+        return
     fi
+
+    OLD_IFS=$IFS
+    IFS=' '
+
+    for SERVICE in $(echo "$SERVICE_TO_BE_RESTARTED"); do
+        # Clean eventual spaces
+        SERVICE=$(echo "$SERVICE" | sed 's/ //g')
+
+        echo -ne "→ Restarting ${YELLOW}${SERVICE}${RESET} service: "
+
+        systemctl restart "$SERVICE" --quiet
+
+        if [ "$?" != "0" ];then
+            echo -e "[$YELLOW ERROR $RESET] while restarting"
+        else
+            echo -e "[$GREEN OK $RESET]"
+        fi
+    done
+
+    IFS=$OLD_IFS
 }
