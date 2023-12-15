@@ -82,17 +82,17 @@ function checkPackagesBeforeUpdate
         #   trouvées quoi qu'il arrive.
 
         # Process packages to exclude on major release update (EXCLUDE_MAJOR):
-        if [ ! -z "$CONF_SOFT_EXCLUDE_MAJOR" ];then
+        if [ ! -z "$PACKAGES_EXCLUDE_MAJOR" ];then
 
-            PACKAGES_EXCLUDE_MAJOR=""
+            PACKAGES_EXCLUDE_MAJOR_ARRAY=""
             IFS=','
 
-            # Inject exclusion list into PACKAGES_EXCLUDE_MAJOR
-            read -ra PACKAGES_EXCLUDE_MAJOR <<< "$CONF_SOFT_EXCLUDE_MAJOR"
+            # Inject exclusion list into PACKAGES_EXCLUDE_MAJOR_ARRAY
+            read -ra PACKAGES_EXCLUDE_MAJOR_ARRAY <<< "$PACKAGES_EXCLUDE_MAJOR"
             
-            # Run through all packages in PACKAGES_EXCLUDE_MAJOR
+            # Run through all packages in PACKAGES_EXCLUDE_MAJOR_ARRAY
             # For each package name, check if an update is available by looking in $CHECK_UPDATE_TMP
-            for PACKAGE in "${PACKAGES_EXCLUDE_MAJOR[@]}"; do
+            for PACKAGE in "${PACKAGES_EXCLUDE_MAJOR_ARRAY[@]}"; do
 
                 # If package occurence is found in $CHECK_UPDATE_TMP, then it means that an update is available for this package
                 # We will have to check if it is a major release update or a minor release update
@@ -173,17 +173,17 @@ function checkPackagesBeforeUpdate
         fi
 
         # Process packages to exclude no matter the release update, they always have to be excluded.
-        if [ ! -z "$CONF_SOFT_EXCLUDE" ];then
+        if [ ! -z "$PACKAGES_EXCLUDE" ];then
 
-            PACKAGES_EXCLUDE=""
+            PACKAGES_EXCLUDE_ARRAY=""
             IFS=','
 
-            # Inject exclusion list into PACKAGES_EXCLUDE
-            read -ra PACKAGES_EXCLUDE <<< "$CONF_SOFT_EXCLUDE"
+            # Inject exclusion list into PACKAGES_EXCLUDE_ARRAY
+            read -ra PACKAGES_EXCLUDE_ARRAY <<< "$PACKAGES_EXCLUDE"
 
-            # Run through all packages in PACKAGES_EXCLUDE_MAJOR
+            # Run through all packages in PACKAGES_EXCLUDE
             # For each package name, check if an update is available by looking in $CHECK_UPDATE_TMP
-            for PACKAGE in "${PACKAGES_EXCLUDE[@]}";do
+            for PACKAGE in "${PACKAGES_EXCLUDE_ARRAY[@]}";do
 
                 # If package occurence is found in $CHECK_UPDATE_TMP, then it means that an update is available for this package
                 # It will be excluded
@@ -214,18 +214,38 @@ function checkPackagesBeforeUpdate
     fi
 
     # Process services that will need a restart after packages update
-    if [ ! -z "$CONF_SOFT_NEED_RESTART" ];then
+    if [ ! -z "$SERVICE_RESTART" ];then
         OLD_IFS=$IFS
         IFS=','
 
         # Inject services list into SERVICES_TO_RESTART
-        read -ra SERVICES_TO_RESTART <<< "$CONF_SOFT_NEED_RESTART"
+        read -ra SERVICES_TO_RESTART <<< "$SERVICE_RESTART"
 
         # Run through SERVICES_TO_RESTART
         for SERVICE in "${SERVICES_TO_RESTART[@]}"; do
-            # Check if specified service really exists, if yes then add it to the final services to restart list
+            # If service restart is conditionned by a specific package update, then get the package name, e.g:
+            # httpd:ca-certificates => httpd service will be restarted if ca-certificates package is updated
+            if echo "$SERVICE" | grep -q ":"; then
+                SERVICE_CONDITIONNAL_PACKAGE_NAME=$(echo "$SERVICE" | awk -F: '{print $2}')
+                SERVICE=$(echo "$SERVICE" | awk -F: '{print $1}')
+
+                # If conditionnal package is empty, ignore this service and continue
+                if [ -z "$SERVICE_CONDITIONNAL_PACKAGE_NAME" ];then
+                    continue
+                fi
+
+                # Check if the package is in the list of packages that will be updated, if not then ignore this service and continue
+                if ! printf '%s\n' "${PACKAGES[@]}" | grep -q "^${SERVICE_CONDITIONNAL_PACKAGE_NAME}$";then
+                    continue
+                fi
+            fi
+
+            # Check if specified service really exists, if yes, then add it to the final services to restart list
             if systemctl list-units --all -t service --full | grep -q "${SERVICE}.service";then
-                SERVICE_TO_BE_RESTARTED+=" $SERVICE"
+                # Also check if the service is active
+                if systemctl is-active --quiet "$SERVICE";then
+                    SERVICE_TO_BE_RESTARTED+=" $SERVICE"
+                fi
             fi
         done
 
@@ -254,7 +274,7 @@ function checkPackagesBeforeUpdate
         echo -e "${YELLOW}No available package for update${RESET}\n"
 
         # Indicate that there is no need to execute apt/yum packages update
-        SOMETHING_TO_UPDATE="no"
+        SOMETHING_TO_UPDATE="false"
 
         return
     fi
@@ -270,7 +290,7 @@ function checkPackagesBeforeUpdate
     fi
 
     while read PACKAGE;do
-        # Packahe name
+        # Package name
         PKG_NAME=$(echo "$PACKAGE" | awk '{print $1}')
 
         # Package version update that is available and will be installed

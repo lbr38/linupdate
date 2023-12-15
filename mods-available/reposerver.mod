@@ -212,7 +212,6 @@ function mod_help
     echo -e "  --register                    → Register this host to reposerver"
     echo -e "  --unregister                  → Unregister this host from reposerver"
     echo -e "  --get-server-conf             → Get reposerver global configuration."
-    echo -e "  --get-profile-conf            → Get profile global configuration from reposerver."
     echo -e "  --get-profile-packages-conf   → Get profile packages excludes configurtion from reposerver."
     echo -e "  --get-profile-repos           → Get repos sources configuration from reposerver."
     echo -e "  --send-general-status         → Send host global informations to reposerver (OS, version, kernel..)"
@@ -293,7 +292,6 @@ function mod_configure
     FAILLEVEL=""
     GET_PROFILE_PKG_CONF_FROM_REPOSERVER=""
     GET_PROFILE_REPOS_FROM_REPOSERVER=""
-    GET_PROFILE_PARAMS_OVERWRITE=""
 
     # Variables de status
     UPDATE_REQUEST_TYPE=""
@@ -407,32 +405,17 @@ function mod_configure
                     sed -i "s/GET_PROFILE_REPOS_FROM_REPOSERVER=.*/GET_PROFILE_REPOS_FROM_REPOSERVER=\"$GET_PROFILE_REPOS_FROM_REPOSERVER\"/g" $MOD_CONF
                 fi
             ;;
-            --allow-overwrite)
-                if [ "$2" == "yes" ];then
-                    GET_PROFILE_PARAMS_OVERWRITE="true"
-                else
-                    GET_PROFILE_PARAMS_OVERWRITE="false"
-                fi
-                shift
-
-                # Ajout du paramètre dans le fichier de conf
-                if ! grep -q "^GET_PROFILE_PARAMS_OVERWRITE" $MOD_CONF;then
-                    sed -i "/^\[CLIENT\]/a GET_PROFILE_PARAMS_OVERWRITE=\"$GET_PROFILE_PARAMS_OVERWRITE\"" $MOD_CONF
-                else 
-                    sed -i "s/GET_PROFILE_PARAMS_OVERWRITE=.*/GET_PROFILE_PARAMS_OVERWRITE=\"$GET_PROFILE_PARAMS_OVERWRITE\"/g" $MOD_CONF
-                fi
-            ;;
             # Récupération de la configuration complète du serveur Repomanager distant
             --get-server-conf|--server-get-conf)
                 getModConf
                 getServerConf
                 clean_exit
             ;;
-            --get-profile-conf|--profile-get-conf)
-                getModConf
-                getProfileConf
-                clean_exit
-            ;;
+            # --get-profile-conf|--profile-get-conf)
+            #     getModConf
+            #     getProfileConf
+            #     clean_exit
+            # ;;
             --get-profile-packages-conf)
                 getModConf
                 getProfilePackagesConf
@@ -498,18 +481,14 @@ function mod_configure
 # Retourner 0 si tout est OK
 function mod_load
 {
-    # Patch 2.1.0:
-    # Changing params names and values
+    # Patch 2.2.12
     if [ -f "$MOD_CONF" ];then
-        if [ -f "$MOD_CONF" ];then
-            sed -i 's/REPOSERVER_ALLOW_CONFUPDATE/GET_PROFILE_PKG_CONF_FROM_REPOSERVER/g' "$MOD_CONF"
-            sed -i 's/REPOSERVER_ALLOW_REPOSFILES_UPDATE/GET_PROFILE_REPOS_FROM_REPOSERVER/g' "$MOD_CONF"
-            sed -i 's/REPOSERVER_ALLOW_OVERWRITE/GET_PROFILE_PARAMS_OVERWRITE/g' "$MOD_CONF"
-            sed -i 's/"yes"/"true"/g' "$MOD_CONF"
-            sed -i 's/"no"/"false"/g' "$MOD_CONF"
-            sed -i '/MANAGE_CLIENTS_CONF/d' "$MOD_CONF"
-            sed -i '/MANAGE_CLIENTS_REPOSCONF/d' "$MOD_CONF"
-        fi
+        # Remove REPOSERVER_MANAGE_CLIENT_CONF
+        sed -i '/REPOSERVER_MANAGE_CLIENT_CONF/d' "$MOD_CONF"
+        # Remove REPOSERVER_MANAGE_CLIENT_REPOS
+        sed -i '/REPOSERVER_MANAGE_CLIENT_REPOS/d' "$MOD_CONF"
+        # Remove GET_PROFILE_PARAMS_OVERWRITE
+        sed -i '/GET_PROFILE_PARAMS_OVERWRITE/d' "$MOD_CONF"
     fi
 
     echo -e "  - ${YELLOW}reposerver${RESET}"
@@ -557,12 +536,7 @@ function mod_load
     else
         grep "^GET_PROFILE_PKG_CONF_FROM_REPOSERVER=" "$MOD_CONF" >> "$TMP_MOD_CONF"
     fi
-    # Si le paramètre GET_PROFILE_PARAMS_OVERWRITE est manquant alors on l'ajoute avec une valeur par défaut
-    if ! grep -q "^GET_PROFILE_PARAMS_OVERWRITE=" "$MOD_CONF";then
-        echo "GET_PROFILE_PARAMS_OVERWRITE=\"false\"" >> "$TMP_MOD_CONF"
-    else
-        grep "^GET_PROFILE_PARAMS_OVERWRITE=" "$MOD_CONF" >> "$TMP_MOD_CONF"
-    fi
+
     # Si le paramètre GET_PROFILE_REPOS_FROM_REPOSERVER est manquant alors on l'ajoute avec une valeur par défaut
     if ! grep -q "^GET_PROFILE_REPOS_FROM_REPOSERVER=" "$MOD_CONF";then
         echo "GET_PROFILE_REPOS_FROM_REPOSERVER=\"false\"" >> "$TMP_MOD_CONF"
@@ -617,7 +591,6 @@ function getModConf
     TOKEN="$(grep "^TOKEN=" $MOD_CONF | cut -d'=' -f2 | sed 's/"//g')"
     GET_PROFILE_PKG_CONF_FROM_REPOSERVER="$(grep "^GET_PROFILE_PKG_CONF_FROM_REPOSERVER=" $MOD_CONF | cut -d'=' -f2 | sed 's/"//g')"
     GET_PROFILE_REPOS_FROM_REPOSERVER="$(grep "^GET_PROFILE_REPOS_FROM_REPOSERVER=" $MOD_CONF | cut -d'=' -f2 | sed 's/"//g')"
-    GET_PROFILE_PARAMS_OVERWRITE="$(grep "^GET_PROFILE_PARAMS_OVERWRITE=" $MOD_CONF | cut -d'=' -f2 | sed 's/"//g')"
 
     # Configuration serveur (section [REPOSERVER])
     REPOSERVER_URL="$(grep "^URL=" $MOD_CONF | cut -d'=' -f2 | sed 's/"//g')"
@@ -677,8 +650,6 @@ function getServerConf
         REPOSERVER_IP=$(_jq '.Ip')
         REPOSERVER_URL=$(_jq '.Url')
         REPOSERVER_PACKAGE_TYPE=$(_jq '.Package_type')
-        REPOSERVER_MANAGE_CLIENT_CONF=$(_jq '.Manage_client_conf')
-        REPOSERVER_MANAGE_CLIENT_REPOS=$(_jq '.Manage_client_repos')
     done
 
     # Retrieve the server IP address from the server URL
@@ -696,20 +667,6 @@ function getServerConf
             echo -e "  [$YELLOW ERROR $RESET] Unable to retrieve the IP address of the reposerver"
         fi
     done
-
-    # converting to boolean
-    if [ "$REPOSERVER_MANAGE_CLIENT_CONF" == "no" ];then
-        REPOSERVER_MANAGE_CLIENT_CONF="false"
-    fi
-    if [ "$REPOSERVER_MANAGE_CLIENT_CONF" == "yes" ];then
-        REPOSERVER_MANAGE_CLIENT_CONF="true"
-    fi
-    if [ "$REPOSERVER_MANAGE_CLIENT_REPOS" == "no" ];then
-        REPOSERVER_MANAGE_CLIENT_REPOS="false"
-    fi
-    if [ "$REPOSERVER_MANAGE_CLIENT_REPOS" == "yes" ];then
-        REPOSERVER_MANAGE_CLIENT_REPOS="true"
-    fi
 
     # Sauvegarde de la partie [MODULE]
     sed -n -e '/\[MODULE\]/,/^$/p' "$MOD_CONF" > "$TMP_FILE_MODULE"
@@ -763,66 +720,66 @@ function preCheck
 }
 
 # Get profile general configuration from reposerver
-function getProfileConf
-{
-    # Si le serveur reposerver ne gère pas les profils ou que le client refuse d'être mis à jour par son serveur de repo, on quitte la fonction
-    echo -ne "  → Getting ${YELLOW}${PROFILE}${RESET} profile configuration: "
+# function getProfileConf
+# {
+#     # Si le serveur reposerver ne gère pas les profils ou que le client refuse d'être mis à jour par son serveur de repo, on quitte la fonction
+#     echo -ne "  → Getting ${YELLOW}${PROFILE}${RESET} profile configuration: "
 
-    # Demande de la configuration des repos auprès du serveur de repos
-    # Ce dernier renverra la configuration au format JSON
-    CURL=$(curl -L --post301 -s -q -H "Authorization: Host $HOST_ID:$TOKEN" -X GET "${REPOSERVER_URL}/api/v2/profile/${PROFILE}" 2> /dev/null)
-    curl_result_parse
+#     # Demande de la configuration des repos auprès du serveur de repos
+#     # Ce dernier renverra la configuration au format JSON
+#     CURL=$(curl -L --post301 -s -q -H "Authorization: Host $HOST_ID:$TOKEN" -X GET "${REPOSERVER_URL}/api/v2/profile/${PROFILE}" 2> /dev/null)
+#     curl_result_parse
 
-    # Si il y a eu une erreur lors de la requête on quitte la fonction
-    if [ "$CURL_ERROR" != "0" ];then
-        return 2
-    fi
+#     # Si il y a eu une erreur lors de la requête on quitte la fonction
+#     if [ "$CURL_ERROR" != "0" ];then
+#         return 2
+#     fi
 
-    # Puis on récupère la configuration transmise par le serveur au format JSON
-    # On parcourt chaque configuration et on récupère le nom du fichier à créer, la description et le contenu à insérer
-    # On remplace à la volée l'environnement dans le contenu récupéré
-    for ROW in $(echo "${CURL}" | jq -r '.results[] | @base64'); do
-        _jq() {
-            echo ${ROW} | base64 --decode | jq -r ${1}
-        }
+#     # Puis on récupère la configuration transmise par le serveur au format JSON
+#     # On parcourt chaque configuration et on récupère le nom du fichier à créer, la description et le contenu à insérer
+#     # On remplace à la volée l'environnement dans le contenu récupéré
+#     for ROW in $(echo "${CURL}" | jq -r '.results[] | @base64'); do
+#         _jq() {
+#             echo ${ROW} | base64 --decode | jq -r ${1}
+#         }
 
-        GET_PROFILE_PKG_CONF_FROM_REPOSERVER=$(_jq '.Linupdate_get_pkg_conf')
-        GET_PROFILE_REPOS_FROM_REPOSERVER=$(_jq '.Linupdate_get_repos_conf')
-    done
+#         GET_PROFILE_PKG_CONF_FROM_REPOSERVER=$(_jq '.Linupdate_get_pkg_conf')
+#         GET_PROFILE_REPOS_FROM_REPOSERVER=$(_jq '.Linupdate_get_repos_conf')
+#     done
 
-    if [ "$GET_PROFILE_PKG_CONF_FROM_REPOSERVER" == "null" ];then
-        echo -e "[$YELLOW ERROR $RESET] Server sent ${YELLOW}null${RESET} data"
-        return 2
-    fi
+#     if [ "$GET_PROFILE_PKG_CONF_FROM_REPOSERVER" == "null" ];then
+#         echo -e "[$YELLOW ERROR $RESET] Server sent ${YELLOW}null${RESET} data"
+#         return 2
+#     fi
 
-    if [ "$GET_PROFILE_REPOS_FROM_REPOSERVER" == "null" ];then
-        echo -e "[$YELLOW ERROR $RESET] Server sent ${YELLOW}null${RESET} data"
-        return 2
-    fi
+#     if [ "$GET_PROFILE_REPOS_FROM_REPOSERVER" == "null" ];then
+#         echo -e "[$YELLOW ERROR $RESET] Server sent ${YELLOW}null${RESET} data"
+#         return 2
+#     fi
 
-    # converting to boolean
-    if [ "$GET_PROFILE_PKG_CONF_FROM_REPOSERVER" == "no" ];then
-        GET_PROFILE_PKG_CONF_FROM_REPOSERVER="false"
-    fi
-    if [ "$GET_PROFILE_PKG_CONF_FROM_REPOSERVER" == "yes" ];then
-        GET_PROFILE_PKG_CONF_FROM_REPOSERVER="true"
-    fi
-    if [ "$GET_PROFILE_REPOS_FROM_REPOSERVER" == "no" ];then
-        GET_PROFILE_REPOS_FROM_REPOSERVER="false"
-    fi
-    if [ "$GET_PROFILE_REPOS_FROM_REPOSERVER" == "yes" ];then
-        GET_PROFILE_REPOS_FROM_REPOSERVER="true"
-    fi
+#     # converting to boolean
+#     if [ "$GET_PROFILE_PKG_CONF_FROM_REPOSERVER" == "no" ];then
+#         GET_PROFILE_PKG_CONF_FROM_REPOSERVER="false"
+#     fi
+#     if [ "$GET_PROFILE_PKG_CONF_FROM_REPOSERVER" == "yes" ];then
+#         GET_PROFILE_PKG_CONF_FROM_REPOSERVER="true"
+#     fi
+#     if [ "$GET_PROFILE_REPOS_FROM_REPOSERVER" == "no" ];then
+#         GET_PROFILE_REPOS_FROM_REPOSERVER="false"
+#     fi
+#     if [ "$GET_PROFILE_REPOS_FROM_REPOSERVER" == "yes" ];then
+#         GET_PROFILE_REPOS_FROM_REPOSERVER="true"
+#     fi
 
-    # On applique la nouvelle configuration récupérée
-    sed -i "s/GET_PROFILE_PKG_CONF_FROM_REPOSERVER.*/GET_PROFILE_PKG_CONF_FROM_REPOSERVER=\"$GET_PROFILE_PKG_CONF_FROM_REPOSERVER\"/g" "$MOD_CONF"
-    sed -i "s/GET_PROFILE_REPOS_FROM_REPOSERVER.*/GET_PROFILE_REPOS_FROM_REPOSERVER=\"$GET_PROFILE_REPOS_FROM_REPOSERVER\"/g" "$MOD_CONF"
+#     # On applique la nouvelle configuration récupérée
+#     sed -i "s/GET_PROFILE_PKG_CONF_FROM_REPOSERVER.*/GET_PROFILE_PKG_CONF_FROM_REPOSERVER=\"$GET_PROFILE_PKG_CONF_FROM_REPOSERVER\"/g" "$MOD_CONF"
+#     sed -i "s/GET_PROFILE_REPOS_FROM_REPOSERVER.*/GET_PROFILE_REPOS_FROM_REPOSERVER=\"$GET_PROFILE_REPOS_FROM_REPOSERVER\"/g" "$MOD_CONF"
 
-    echo -e "[${GREEN} OK ${RESET}]"
+#     echo -e "[${GREEN} OK ${RESET}]"
 
-    # Enfin on applique la nouvelle conf en récupérant de nouveau les paramètres du fichier de conf :
-    getConf
-}
+#     # Enfin on applique la nouvelle conf en récupérant de nouveau les paramètres du fichier de conf :
+#     getConf
+# }
 
 # Get profile packages configuratin (packages excludes)
 function getProfilePackagesConf
@@ -839,15 +796,9 @@ function getProfilePackagesConf
         return 2
     fi
 
-    if [ "$REPOSERVER_MANAGE_CLIENT_CONF" == "false" ] || [ "$GET_PROFILE_PKG_CONF_FROM_REPOSERVER" == "false" ];then
-        if [ "$REPOSERVER_MANAGE_CLIENT_CONF" == "false" ];then
-            echo -e "${YELLOW}Disabled (not handled by reposerver)${RESET}"
-            return 1
-        fi
-        if [ "$GET_PROFILE_PKG_CONF_FROM_REPOSERVER" == "false" ];then
-            echo -e "${YELLOW}Disabled by profile configuration${RESET}"
-            return 1
-        fi
+    if [ "$GET_PROFILE_PKG_CONF_FROM_REPOSERVER" == "false" ];then
+        echo -e "${YELLOW}Disabled${RESET}"
+        return 1
     fi
 
     # Puis on récupère la configuration transmise par le serveur au format JSON
@@ -860,7 +811,7 @@ function getProfilePackagesConf
 
         EXCLUDE_MAJOR=$(_jq '.Package_exclude_major')
         EXCLUDE=$(_jq '.Package_exclude')
-        NEED_RESTART=$(_jq '.Service_restart')
+        SERVICE_RESTART=$(_jq '.Service_restart')
     done
 
     # Si la valeur des paramètres == null alors cela signifie qu'il n'y a aucune exclusion de paquet
@@ -870,8 +821,8 @@ function getProfilePackagesConf
     if [ "$EXCLUDE" == "null" ];then
         EXCLUDE=""
     fi
-    if [ "$NEED_RESTART" == "null" ];then
-        NEED_RESTART=""
+    if [ "$SERVICE_RESTART" == "null" ];then
+        SERVICE_RESTART=""
     fi
 
     # On applique la nouvelle configuration récupérée
@@ -879,7 +830,7 @@ function getProfilePackagesConf
     sed -i '/^\[SOFTWARE CONFIGURATION\]/,$d' "$CONF" &&
 
     # Puis on injecte la nouvelle conf récupérée
-    echo -e "[SOFTWARE CONFIGURATION]\nEXCLUDE_MAJOR=\"${EXCLUDE_MAJOR}\"\nEXCLUDE=\"${EXCLUDE}\"\nNEED_RESTART=\"${NEED_RESTART}\"" >> "$CONF"
+    echo -e "[SOFTWARE CONFIGURATION]\nEXCLUDE_MAJOR=\"${EXCLUDE_MAJOR}\"\nEXCLUDE=\"${EXCLUDE}\"\nSERVICE_RESTART=\"${SERVICE_RESTART}\"" >> "$CONF"
 
     echo -e "[${GREEN} OK ${RESET}]"
 
@@ -912,15 +863,9 @@ function getProfileRepos
         return 2
     fi
 
-    if [ "$REPOSERVER_MANAGE_CLIENT_REPOS" == "false" ] || [ "$GET_PROFILE_REPOS_FROM_REPOSERVER" == "false" ];then
-        if [ "$REPOSERVER_MANAGE_CLIENT_REPOS" != "true" ];then
-            echo -e "${YELLOW}Disabled (not handled by reposerver)${RESET}"
-            return 1
-        fi
-        if [ "$GET_PROFILE_REPOS_FROM_REPOSERVER" != "true" ];then
-            echo -e "${YELLOW}Disabled by profile configuration${RESET}"
-            return 1
-        fi
+    if [ "$GET_PROFILE_REPOS_FROM_REPOSERVER" == "false" ];then
+        echo -e "${YELLOW}Disabled${RESET}"
+        return 1
     fi
 
     # Si le paramètre existe alors on peut continuer le traitement
@@ -944,7 +889,7 @@ function getProfileRepos
 
         FILENAME=$(_jq '.filename')
         DESCRIPTION=$(_jq '.description')
-        CONTENT=$(_jq '.content' | sed "s/__ENV__/${SERVER_ENV}/g")
+        CONTENT=$(_jq '.content' | sed "s/__ENV__/${ENV}/g")
 
         if [ "$OS_FAMILY" == "Redhat" ];then
             FILENAME_PATH="/etc/yum.repos.d/$FILENAME"
@@ -1020,10 +965,10 @@ function pre
     if [ "$FAILLEVEL" -eq "2" ] && [ "$RESULT" -ge "2" ];then (( MOD_ERROR++ )); clean_exit;fi
 
     # On met à jour notre configuration à partir du serveur de repo (profils), si cela est autorisé des deux côtés
-    getProfileConf
-    RESULT="$?"
-    if [ "$FAILLEVEL" -eq "1" ] && [ "$RESULT" -gt "0" ];then (( MOD_ERROR++ )); clean_exit;fi
-    if [ "$FAILLEVEL" -eq "2" ] && [ "$RESULT" -ge "2" ];then (( MOD_ERROR++ )); clean_exit;fi
+    # getProfileConf
+    # RESULT="$?"
+    # if [ "$FAILLEVEL" -eq "1" ] && [ "$RESULT" -gt "0" ];then (( MOD_ERROR++ )); clean_exit;fi
+    # if [ "$FAILLEVEL" -eq "2" ] && [ "$RESULT" -ge "2" ];then (( MOD_ERROR++ )); clean_exit;fi
 
     getProfilePackagesConf
     RESULT="$?"
@@ -1057,7 +1002,7 @@ function post
     update_request_status
 
     # Si il y a eu des paquets à mettre à jour lors de cette exécution alors on exécute les actions suivantes
-    if [ "$SOMETHING_TO_UPDATE" == "yes" ];then
+    if [ "$SOMETHING_TO_UPDATE" == "true" ];then
         # Généralement les paquets "*-release" sur Redhat/CentOS remettent en place des fichiers .repo. Si un paquet de ce type a été mis à jour alors on remets à jour la configuration des repos à partir du serveurs de repo (profils), si cela est autorisé des deux côtés
         if echo "${PACKAGES[*]}" | grep -q "-release";then
             getProfileRepos
@@ -1186,8 +1131,8 @@ function send_general_status
     if [ ! -z "$PROFILE" ];then
         CURL_PARAMS+="\"profile\":\"$PROFILE\","
     fi
-    if [ ! -z "$SERVER_ENV" ];then
-        CURL_PARAMS+="\"env\":\"$SERVER_ENV\","
+    if [ ! -z "$ENV" ];then
+        CURL_PARAMS+="\"env\":\"$ENV\","
     fi
     if [ ! -z "$AGENT_STATUS" ];then
         CURL_PARAMS+="\"agent_status\":\"$AGENT_STATUS\","

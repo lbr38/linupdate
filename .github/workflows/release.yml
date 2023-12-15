@@ -163,9 +163,9 @@ jobs:
           tag_name: ${{ env.VERSION }}
           release_name: ${{ env.VERSION }}
           body: |
-            **Changes**:
+            **Features**:
 
-            - Update API authentication method
+            - Restart a service after a specific package update 
           draft: false
           prerelease: false
 

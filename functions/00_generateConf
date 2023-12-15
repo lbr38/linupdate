@@ -11,11 +11,11 @@ function generateConf
     echo '[CONFIGURATION]' > "$CONF"
     echo 'PROFILE="Bare-metal"' >> "$CONF"
     echo 'ENV="prod"' >> "$CONF"
-    echo 'MAIL_ENABLED="no"' >> "$CONF"
+    echo 'MAIL_ENABLED="false"' >> "$CONF"
     echo 'MAIL_RECIPIENT=""' >> "$CONF"
 
     echo -e '\n[SOFTWARE CONFIGURATION]' >> "$CONF"
     echo 'EXCLUDE_MAJOR=""' >> "$CONF"
     echo 'EXCLUDE=""' >> "$CONF"
-    echo 'NEED_RESTART=""' >> "$CONF"
+    echo 'SERVICE_RESTART=""' >> "$CONF"
 }

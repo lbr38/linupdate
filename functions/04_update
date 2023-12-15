@@ -4,7 +4,7 @@ function update
 {
     # Si la vérification des paquets n'a trouvé aucun paquet à mettre à jour alors il est inutile d'exécuter les mises à jour
     # On sort de la fonction
-    if [ "$SOMETHING_TO_UPDATE" == "no" ];then
+    if [ "$SOMETHING_TO_UPDATE" == "false" ];then
         return
     fi
 

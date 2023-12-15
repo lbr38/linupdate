@@ -2,7 +2,7 @@
 
 function sendMail
 {
-    if [ "$MAIL_ENABLED" == "yes" ];then
+    if [ "$MAIL_ENABLED" == "true" ];then
         # Remove ANSI color codes before sending mail:
         sed 's,\x1B[[(][0-9;]*[a-zA-Z],,g' "$LOG" > "$LOG_REPORT_MAIL"
 
