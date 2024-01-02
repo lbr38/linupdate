@@ -554,6 +554,14 @@ function mod_load
         grep "^URL=" "$MOD_CONF" >> "$TMP_MOD_CONF"
     fi
 
+    if grep -q "^IP=" "$MOD_CONF";then
+        grep "^IP=" "$MOD_CONF" >> "$TMP_MOD_CONF"
+    fi
+
+    if grep -q "^PACKAGE_TYPE=" "$MOD_CONF";then
+        grep "^PACKAGE_TYPE=" "$MOD_CONF" >> "$TMP_MOD_CONF"
+    fi
+
     # Section [AGENT]
     echo -e "\n[AGENT]" >> "$TMP_MOD_CONF"
     if ! grep -q "^WATCH_FOR_REQUEST=" "$MOD_CONF";then
@@ -567,9 +575,9 @@ function mod_load
         grep "^WATCH_INTERFACE=" "$MOD_CONF" >> "$TMP_MOD_CONF"
     fi
 
-	# Remplacement du fichier de conf par le fichier précédemment construit
-	cat "$TMP_MOD_CONF" > "$MOD_CONF"
-	rm -f "$TMP_MOD_CONF"
+    # Remplacement du fichier de conf par le fichier précédemment construit
+    cat "$TMP_MOD_CONF" > "$MOD_CONF"
+    rm -f "$TMP_MOD_CONF"
 
     # Si l'URL du serveur de repo n'est pas renseignée alors on ne charge pas le module
     if [ -z $(grep "^URL=" $MOD_CONF | cut -d'=' -f2 | sed 's/"//g') ];then
@@ -679,14 +687,14 @@ function getServerConf
     echo "" >> "$TMP_FILE_CLIENT"
 
     # Sauvegarde de la partie [AGENT] si existe
-	sed -n -e '/\[AGENT\]/,/^$/p' "$MOD_CONF" > "$TMP_FILE_AGENT"
+    sed -n -e '/\[AGENT\]/,/^$/p' "$MOD_CONF" > "$TMP_FILE_AGENT"
     # Ajout d'un saut de ligne car chaque section doit être correctement séparée
     echo "" >> "$TMP_FILE_AGENT"
 
     # Nouvelle conf [REPOSERVER]
     echo "[REPOSERVER]" >> "$TMP_FILE_REPOSERVER"
-    echo "IP=\"$REPOSERVER_IP\"" >> "$TMP_FILE_REPOSERVER"
     echo "URL=\"$REPOSERVER_URL\"" >> "$TMP_FILE_REPOSERVER"
+    echo "IP=\"$REPOSERVER_IP\"" >> "$TMP_FILE_REPOSERVER"
     echo "PACKAGE_TYPE=\"$REPOSERVER_PACKAGE_TYPE\"" >> "$TMP_FILE_REPOSERVER"
     echo "" >> "$TMP_FILE_REPOSERVER"
 
@@ -700,7 +708,7 @@ function getServerConf
     sed -i '/^$/N;/^\n$/D' "$MOD_CONF"
 
     # Suppression des fichiers temporaires
-	rm "$TMP_FILE_MODULE" -f
+    rm "$TMP_FILE_MODULE" -f
     rm "$TMP_FILE_CLIENT" -f
     rm "$TMP_FILE_AGENT" -f
     rm "$TMP_FILE_REPOSERVER" -f

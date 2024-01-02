@@ -12,6 +12,11 @@ fi
 # Create a symlink to main script
 ln -sf /opt/linupdate/linupdate /usr/bin/linupdate
 
+# Delete old 'functions' directory if exists
+if [ -d "$DATA_DIR/functions" ];then
+    rm -rf "$DATA_DIR/functions"
+fi
+
 # Install en_US.UTF-8 locale if not present
 if ! locale -a | grep -q "en_US.UTF-8";then
     apt-get install locales-all -y > /dev/null

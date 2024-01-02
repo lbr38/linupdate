@@ -12,7 +12,7 @@ DATE_FULL=$(date +%d-%m-%Y_%Hh%M)                   # Today date in 'DD-MM-YYYY_
 TIME=$(date +%H:%M)                                 # Time in '00:00' format
 TIME_FULL=$(date +%Hh%Mm%Ss)                        # Time in '00h00m00s' format
 LINUPDATE="${BASE_DIR}/linupdate"                   # Main program
-FUNCTIONS="${BASE_DIR}/functions"                   # Functions directory
+SRC_DIR="${BASE_DIR}/.src"                          # Source code directory
 LOGS_DIR="/var/log/linupdate"                       # Logs directory
 ETC_DIR="/etc/linupdate"                            # Configuration files directory
 CONF="${ETC_DIR}/linupdate.conf"                    # Main configuration file
@@ -112,15 +112,15 @@ mkdir -p "$MODULES_ENABLED_DIR"
 mkdir -p "$AGENTS_ENABLED_DIR"
 mkdir -p "$SERVICE_DIR"
 
-# If functions dir does not exist then quit
-if [ ! -d "$FUNCTIONS" ];then
+# If source code dir does not exist then quit
+if [ ! -d "$SRC_DIR" ];then
     echo -e "[$YELLOW ERROR $RESET] Some linupdate core files are missing. You might reinstall linupdate."
     exit 1
 fi
 
-# Sourcing all files inside functions dir
-for FUNCTION_FILE in $(ls -A1 "$FUNCTIONS");do
-    source "$FUNCTIONS/$FUNCTION_FILE"
+# Sourcing all files inside src dir
+for SRC_FILE in $(ls -A1 "$SRC_DIR");do
+    source "$SRC_DIR/$SRC_FILE"
 done
 
 # Check that system is valid before continue

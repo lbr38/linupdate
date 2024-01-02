@@ -29,7 +29,7 @@ jobs:
           mkdir -p /tmp/linupdate-build/DEBIAN
           mkdir -p /tmp/linupdate-build/etc/linupdate/modules
           mkdir -p /tmp/linupdate-build/opt/linupdate
-          mkdir -p /tmp/linupdate-build/opt/linupdate/functions/
+          mkdir -p /tmp/linupdate-build/opt/linupdate/.src/
           mkdir -p /tmp/linupdate-build/opt/linupdate/mods-available/
           mkdir -p /tmp/linupdate-build/opt/linupdate/mods-enabled/
           mkdir -p /tmp/linupdate-build/opt/linupdate/agents-available/
@@ -38,7 +38,7 @@ jobs:
 
       - name: Copy files to include in the build
         run: |
-          cp -r ${GITHUB_WORKSPACE}/functions/* /tmp/linupdate-build/opt/linupdate/functions/
+          cp -r ${GITHUB_WORKSPACE}/src/* /tmp/linupdate-build/opt/linupdate/.src/
           cp -r ${GITHUB_WORKSPACE}/mods-available/* /tmp/linupdate-build/opt/linupdate/mods-available/
           cp -r ${GITHUB_WORKSPACE}/service/* /tmp/linupdate-build/opt/linupdate/service/
           cp ${GITHUB_WORKSPACE}/linupdate /tmp/linupdate-build/opt/linupdate/linupdate
@@ -60,13 +60,13 @@ jobs:
         run: |
           cd /tmp
           dpkg-deb --build linupdate-build
-          mv /tmp/linupdate-build.deb /tmp/linupdate-test-build_${{ env.VERSION }}.deb
+          mv /tmp/linupdate-build.deb /tmp/linupdate-test-build_${{ env.VERSION }}_all.deb
 
       - name: Upload artifact
         uses: actions/upload-artifact@v3
         with:
-          name: linupdate-test-build_${{ env.VERSION }}.deb
-          path: /tmp/linupdate-test-build_${{ env.VERSION }}.deb
+          name: linupdate-test-build_${{ env.VERSION }}_all.deb
+          path: /tmp/linupdate-test-build_${{ env.VERSION }}_all.deb
           retention-days: 1
 
   # Try to install package on Debian 10
@@ -89,12 +89,12 @@ jobs:
       - name: Download artifact
         uses: actions/download-artifact@v3
         with:
-          name: linupdate-test-build_${{ env.VERSION }}.deb
+          name: linupdate-test-build_${{ env.VERSION }}_all.deb
 
       - name: Install package
         run: |
           apt-get update -y
-          apt-get install -y ./linupdate-test-build_${{ env.VERSION }}.deb
+          apt-get install -y ./linupdate-test-build_${{ env.VERSION }}_all.deb
 
   # Try to install package on Debian 11
   install-debian-11:
@@ -116,12 +116,12 @@ jobs:
       - name: Download artifact
         uses: actions/download-artifact@v3
         with:
-          name: linupdate-test-build_${{ env.VERSION }}.deb
+          name: linupdate-test-build_${{ env.VERSION }}_all.deb
 
       - name: Install package
         run: |
           apt-get update -y
-          apt-get install -y ./linupdate-test-build_${{ env.VERSION }}.deb
+          apt-get install -y ./linupdate-test-build_${{ env.VERSION }}_all.deb
 
   # Try to install package on Ubuntu (latest)
   install-ubuntu:
@@ -140,9 +140,9 @@ jobs:
       - name: Download artifact
         uses: actions/download-artifact@v3
         with:
-          name: linupdate-test-build_${{ env.VERSION }}.deb
+          name: linupdate-test-build_${{ env.VERSION }}_all.deb
 
       - name: Install package
         run: |
           sudo apt-get update -y
-          sudo apt-get install -y ./linupdate-test-build_${{ env.VERSION }}.deb
+          sudo apt-get install -y ./linupdate-test-build_${{ env.VERSION }}_all.deb
