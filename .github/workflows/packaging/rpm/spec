@@ -54,6 +54,11 @@ if [ -f "/tmp/linupdate.conf.rpmsave" ];then
     mv /tmp/linupdate.conf.rpmsave /etc/linupdate/linupdate.conf
 fi
 
+# Delete old 'functions' directory if exists
+if [ -d "$DATA_DIR/functions" ];then
+    rm -rf "$DATA_DIR/functions"
+fi
+
 # Create a symlink to main script
 ln -sf /opt/linupdate/linupdate /usr/bin/linupdate
 
@@ -79,8 +84,8 @@ if [ -f "/usr/bin/systemctl" ];then
 fi
 
 %files
-/opt/linupdate/*
-/etc/linupdate/*
+/opt/linupdate/
+/etc/linupdate/
 /lib/systemd/system/linupdate.service
 
 %changelog

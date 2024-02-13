@@ -33,7 +33,7 @@ jobs:
           mkdir -p $HOME/rpmbuild/SPECS
           mkdir -p /etc/linupdate/modules
           mkdir -p /opt/linupdate
-          mkdir -p /opt/linupdate/functions/
+          mkdir -p /opt/linupdate/.src/
           mkdir -p /opt/linupdate/mods-available/
           mkdir -p /opt/linupdate/mods-enabled/
           mkdir -p /opt/linupdate/agents-available/
@@ -43,7 +43,7 @@ jobs:
 
       - name: Copy files to include in the build
         run: |
-          cp -r ${GITHUB_WORKSPACE}/functions/* /opt/linupdate/functions/
+          cp -r ${GITHUB_WORKSPACE}/src/* /opt/linupdate/.src/
           cp -r ${GITHUB_WORKSPACE}/mods-available/* /opt/linupdate/mods-available/
           cp -r ${GITHUB_WORKSPACE}/service/* /opt/linupdate/service/
           cp ${GITHUB_WORKSPACE}/linupdate /opt/linupdate/linupdate
