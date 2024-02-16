@@ -1,7 +1,0 @@
-#!/usr/bin/env bash
-
-function enableAgent
-{
-    systemctl enable --quiet linupdate &&
-    echo -e "${YELLOW}linupdate${RESET} agent enabled on boot"
-}

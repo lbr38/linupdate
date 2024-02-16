@@ -1,0 +1,312 @@
+name: Build and test rpm package for linupdate
+
+on:
+  push:
+    branches: [ python ]
+  pull_request:
+    push:
+      branches: [ main ]
+
+jobs:
+  build-rpm:
+    name: Build rpm package
+    runs-on: ubuntu-latest
+    container:
+      image: centos:8
+      options: --user root
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Get linupdate version
+        run: echo "VERSION=$(cat ${GITHUB_WORKSPACE}/version)" >> $GITHUB_ENV
+
+      - name: Install CentOS8 archive repositories
+        run: |
+          rm /etc/yum.repos.d/* -f
+
+          echo "[os]
+          name=os repo
+          baseurl=https://vault.centos.org/8-stream/BaseOS/x86_64/os/
+          enabled=1
+          gpgkey=https://www.centos.org/keys/RPM-GPG-KEY-CentOS-Official-SHA256
+          gpgcheck=1" > /etc/yum.repos.d/os.repo
+
+          echo "[appstream]
+          name=updates repo
+          baseurl=https://vault.centos.org/8-stream/AppStream/x86_64/os/
+          enabled=1
+          gpgkey=https://www.centos.org/keys/RPM-GPG-KEY-CentOS-Official-SHA256
+          gpgcheck=1" > /etc/yum.repos.d/appstream.repo
+
+          echo "[extras]
+          name=extras repo
+          baseurl=https://vault.centos.org/8-stream/extras/x86_64/extras-common/
+          enabled=1
+          gpgkey=https://www.centos.org/keys/RPM-GPG-KEY-CentOS-Official-SHA256
+          gpgcheck=1" > /etc/yum.repos.d/extras.repo
+
+          dnf clean all
+
+      - name: Install dependencies packages
+        run: dnf install rpmdevtools rpmlint -y
+
+      - name: Create build environment
+        run: |
+          mkdir -p $HOME/rpmbuild/BUILD
+          mkdir -p $HOME/rpmbuild/BUILDROOT
+          mkdir -p $HOME/rpmbuild/RPMS
+          mkdir -p $HOME/rpmbuild/SOURCES
+          mkdir -p $HOME/rpmbuild/SPECS
+          mkdir -p /etc/linupdate/modules
+          mkdir -p /opt/linupdate
+          mkdir -p /opt/linupdate/src/
+          mkdir -p /opt/linupdate/templates/
+          mkdir -p /lib/systemd/system/
+
+      - name: Copy files to include in the build
+        run: |
+          cp -r ${GITHUB_WORKSPACE}/src/* /opt/linupdate/src/
+          cp -r ${GITHUB_WORKSPACE}/templates/* /opt/linupdate/templates/
+          cp ${GITHUB_WORKSPACE}/linupdate.py /opt/linupdate/linupdate.py
+          cp ${GITHUB_WORKSPACE}/service.py /opt/linupdate/service.py
+          cp ${GITHUB_WORKSPACE}/version /opt/linupdate/version
+          cp -r ${GITHUB_WORKSPACE}/service/linupdate.systemd.template /lib/systemd/system/linupdate.service
+
+      - name: Copy spec file
+        run: |
+          cp ${GITHUB_WORKSPACE}/.github/workflows/packaging/rpm/spec $HOME/rpmbuild/SPECS/linupdate.spec
+          sed -i "s/__VERSION__/${{ env.VERSION }}/g" $HOME/rpmbuild/SPECS/linupdate.spec
+
+      - name: Build package
+        run: |
+          cd $HOME/rpmbuild/SPECS
+          rpmbuild --target noarch -bb linupdate.spec
+          mv $HOME/rpmbuild/RPMS/noarch/linupdate-${{ env.VERSION }}-stable.noarch.rpm /tmp/linupdate-test-build-${{ env.VERSION }}.noarch.rpm
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: linupdate-test-build-${{ env.VERSION }}.noarch.rpm
+          path: /tmp/linupdate-test-build-${{ env.VERSION }}.noarch.rpm
+          retention-days: 1
+
+  # Try to install package on CentOS8
+  install-centos8:
+    name: Install on CentOS8
+    needs:
+      build-rpm
+    runs-on: ubuntu-latest
+    container:
+      image: centos:8
+      options: --user root
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Get linupdate version
+        run: echo "VERSION=$(cat ${GITHUB_WORKSPACE}/version)" >> $GITHUB_ENV
+
+      - name: Install CentOS8 archive repositories
+        run: |
+          cat > /etc/yum.repos.d/CentOS-Linux-AppStream.repo << EOF
+          [appstream]
+          name=CentOS Linux \$releasever - AppStream
+          baseurl=http://vault.centos.org/\$contentdir/\$releasever/AppStream/\$basearch/os/
+          gpgcheck=1
+          enabled=1
+          gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-centosofficial
+          EOF
+
+          cat > /etc/yum.repos.d/CentOS-Linux-BaseOS.repo << EOF
+          [baseos]
+          name=CentOS Linux \$releasever - BaseOS
+          baseurl=http://vault.centos.org/\$contentdir/\$releasever/BaseOS/\$basearch/os/
+          gpgcheck=1
+          enabled=1
+          gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-centosofficial
+          EOF
+
+          cat > /etc/yum.repos.d/CentOS-Linux-Extras.repo << EOF
+          [extras]
+          name=CentOS Linux \$releasever - Extras
+          baseurl=http://vault.centos.org/\$contentdir/\$releasever/extras/\$basearch/os/
+          gpgcheck=1
+          enabled=1
+          gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-centosofficial
+          EOF
+
+          dnf install epel-release -y
+
+          dnf clean all
+
+      - name: Update system
+        run: dnf update -y --exclude=centos-release
+
+      # Download builded rpm package artifact
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: linupdate-test-build-${{ env.VERSION }}.noarch.rpm
+
+      - name: Install package
+        run: dnf --nogpgcheck localinstall -y ./linupdate-test-build-${{ env.VERSION }}.noarch.rpm
+
+      - name: Launch linupdate
+        run: python3 /opt/linupdate/linupdate.py --check-updates
+
+      # Tests some params
+      - name: "Run test: print help"
+        run: python3 /opt/linupdate/linupdate.py --help
+
+      - name: "Run test: print configuration"
+        run: python3 /opt/linupdate/linupdate.py --show-config
+
+      - name: "Run test: print version"
+        run: python3 /opt/linupdate/linupdate.py --version
+
+      - name: "Run test: switch profile"
+        run: python3 /opt/linupdate/linupdate.py --profile container
+
+      - name: "Run test: switch environment"
+        run: python3 /opt/linupdate/linupdate.py --env test
+
+      - name: "Run test: disable mail"
+        run: python3 /opt/linupdate/linupdate.py --mail-enable false
+
+      - name: "Run test: set mail recipient"
+        run: python3 /opt/linupdate/linupdate.py --set-mail-recipient test@mail.com,test2@mail.com
+
+      - name: "Run test: set package exclusions"
+        run: python3 /opt/linupdate/linupdate.py --exclude "kernel.*"
+
+      - name: "Run test: get package exclusions"
+        run: python3 /opt/linupdate/linupdate.py --get-exclude
+
+      - name: "Run test: set package exclusions on major update"
+        run: python3 /opt/linupdate/linupdate.py --exclude-major "apache2,mysql.*"
+
+      - name: "Run test: get package exclusions on major update"
+        run: python3 /opt/linupdate/linupdate.py --get-exclude-major
+
+      - name: "Run test: set services to restart after update"
+        run: python3 /opt/linupdate/linupdate.py --service-restart "apache2,mysql"
+
+      - name: "Run test: get services to restart after update"
+        run: python3 /opt/linupdate/linupdate.py --get-service-restart
+
+      - name: "Run test: check updates"
+        run: python3 /opt/linupdate/linupdate.py --check-updates
+
+      - name: "Run test: list available modules"
+        run: python3 /opt/linupdate/linupdate.py --mod-list
+
+      - name: "Run test: enable reposerver module"
+        run: python3 /opt/linupdate/linupdate.py --mod-enable reposerver
+
+      - name: "Run test: configure reposerver module"
+        run: python3 /opt/linupdate/linupdate.py --mod-configure reposerver --url https://packages.bespin.ovh
+
+      - name: "Run test: register to reposerver"
+        run: python3 /opt/linupdate/linupdate.py --mod-configure reposerver --api-key ${{ secrets.REPOSITORY_TOKEN }} --register
+
+      - name: "Run test: send all informations to reposerver"
+        run: python3 /opt/linupdate/linupdate.py --mod-configure reposerver --send-all-info
+
+      - name: "Run test: unregister from reposerver"
+        run: python3 /opt/linupdate/linupdate.py --mod-configure reposerver --unregister
+
+  # Try to install package on Rocky Linux 9
+  install-rockylinux9:
+    name: Install on Rocky Linux 9
+    needs:
+      build-rpm
+    runs-on: ubuntu-latest
+    container:
+      image: rockylinux/rockylinux:9
+      options: --user root
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Get linupdate version
+        run: echo "VERSION=$(cat ${GITHUB_WORKSPACE}/version)" >> $GITHUB_ENV
+
+      - name: Install EPEL repositories
+        run: dnf install epel-release -y
+
+      - name: Update system
+        run: dnf update -y
+
+      # Download builded rpm package artifact
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: linupdate-test-build-${{ env.VERSION }}.noarch.rpm
+
+      - name: Install package
+        run: dnf --nogpgcheck localinstall -y ./linupdate-test-build-${{ env.VERSION }}.noarch.rpm
+
+      - name: Launch linupdate
+        run: python3 /opt/linupdate/linupdate.py --check-updates
+
+      # Tests some params
+      - name: "Run test: print help"
+        run: python3 /opt/linupdate/linupdate.py --help
+
+      - name: "Run test: print configuration"
+        run: python3 /opt/linupdate/linupdate.py --show-config
+
+      - name: "Run test: print version"
+        run: python3 /opt/linupdate/linupdate.py --version
+
+      - name: "Run test: switch profile"
+        run: python3 /opt/linupdate/linupdate.py --profile container
+
+      - name: "Run test: switch environment"
+        run: python3 /opt/linupdate/linupdate.py --env test
+
+      - name: "Run test: disable mail"
+        run: python3 /opt/linupdate/linupdate.py --mail-enable false
+
+      - name: "Run test: set mail recipient"
+        run: python3 /opt/linupdate/linupdate.py --set-mail-recipient test@mail.com,test2@mail.com
+
+      - name: "Run test: set package exclusions"
+        run: python3 /opt/linupdate/linupdate.py --exclude "kernel.*"
+
+      - name: "Run test: get package exclusions"
+        run: python3 /opt/linupdate/linupdate.py --get-exclude
+
+      - name: "Run test: set package exclusions on major update"
+        run: python3 /opt/linupdate/linupdate.py --exclude-major "apache2,mysql.*"
+
+      - name: "Run test: get package exclusions on major update"
+        run: python3 /opt/linupdate/linupdate.py --get-exclude-major
+
+      - name: "Run test: set services to restart after update"
+        run: python3 /opt/linupdate/linupdate.py --service-restart "apache2,mysql"
+
+      - name: "Run test: get services to restart after update"
+        run: python3 /opt/linupdate/linupdate.py --get-service-restart
+
+      - name: "Run test: check updates"
+        run: python3 /opt/linupdate/linupdate.py --check-updates
+
+      - name: "Run test: list available modules"
+        run: python3 /opt/linupdate/linupdate.py --mod-list
+
+      - name: "Run test: enable reposerver module"
+        run: python3 /opt/linupdate/linupdate.py --mod-enable reposerver
+
+      - name: "Run test: configure reposerver module"
+        run: python3 /opt/linupdate/linupdate.py --mod-configure reposerver --url https://packages.bespin.ovh
+
+      - name: "Run test: register to reposerver"
+        run: python3 /opt/linupdate/linupdate.py --mod-configure reposerver --api-key ${{ secrets.REPOSITORY_TOKEN }} --register
+
+      - name: "Run test: send all informations to reposerver"
+        run: python3 /opt/linupdate/linupdate.py --mod-configure reposerver --send-all-info
+
+      - name: "Run test: unregister from reposerver"
+        run: python3 /opt/linupdate/linupdate.py --mod-configure reposerver --unregister

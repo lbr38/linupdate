@@ -1,21 +1,27 @@
 #!/bin/bash
 
-DATA_DIR="/opt/linupdate"
-SERVICE="$DATA_DIR/service/linupdate-agent"
+SERVICE="/opt/linupdate/service.py"
 
-# Restore configuration file if exists
-if [ -f "/tmp/linupdate.conf.debsave" ];then
-    rm -f /etc/linupdate/linupdate.conf
-    mv /tmp/linupdate.conf.debsave /etc/linupdate/linupdate.conf
+# Restore configuration files if exists
+if [ -f "/tmp/linupdate.yml.debsave" ];then
+    rm -f /etc/linupdate/linupdate.yml
+    mv /tmp/linupdate.yml.debsave /etc/linupdate/linupdate.yml
+fi
+if [ -f "/tmp/update.yml.debsave" ];then
+    rm -f /etc/linupdate/update.yml
+    mv /tmp/update.yml.debsave /etc/linupdate/update.yml
+fi
+
+# If no configuration files exists, copy default
+if [ ! -f "/etc/linupdate/linupdate.yml" ];then
+    cp /opt/linupdate/templates/linupdate.template.yml /etc/linupdate/linupdate.yml
+fi
+if [ ! -f "/etc/linupdate/update.yml" ];then
+    cp /opt/linupdate/templates/update.template.yml /etc/linupdate/update.yml
 fi
 
 # Create a symlink to main script
-ln -sf /opt/linupdate/linupdate /usr/bin/linupdate
-
-# Delete old 'functions' directory if exists
-if [ -d "$DATA_DIR/functions" ];then
-    rm -rf "$DATA_DIR/functions"
-fi
+ln -sf /opt/linupdate/linupdate.py /usr/bin/linupdate
 
 # Install en_US.UTF-8 locale if not present
 if ! locale -a | grep -q "en_US.UTF-8";then
@@ -28,12 +34,27 @@ chmod 750 /opt/linupdate
 
 # Only if systemd is installed (not the case on github runners)
 if [ -f "/usr/bin/systemctl" ];then
+    # Copy systemd unit file if not exists
+    if [ ! -f "/lib/systemd/system/linupdate.service" ];then
+        cp /opt/linupdate/service/linupdate.systemd.template /etc/systemd/system/linupdate.service
+    fi
 
-    # Enable service script by creating a symlink
-    ln -sf /lib/systemd/system/linupdate.service /etc/systemd/system/linupdate.service
+    # Enable service script by creating a symlink if not exists
+    if [ ! -L "/etc/systemd/system/linupdate.service" ];then
+        # Delete file in case it is a file and not a symlink
+        rm -f /etc/systemd/system/linupdate.service
+        ln -sf /lib/systemd/system/linupdate.service /etc/systemd/system/linupdate.service
+    fi
+
     chmod 550 "$SERVICE"
     chown root:root "$SERVICE"
 
+    # Clean old directories
+    rm /opt/linupdate/agents-enabled -rf
+    rm /opt/linupdate/mods-enabled -rf
+    rm /opt/linupdate/mods-available -rf
+
+    /usr/bin/systemctl enable linupdate
     /usr/bin/systemctl --quiet daemon-reload
 
     # Start service

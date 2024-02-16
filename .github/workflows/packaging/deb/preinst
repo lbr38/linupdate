@@ -1,8 +1,11 @@
 #!/bin/bash
 
-# Save current configuration file if exists
-if [ -f "/etc/linupdate/linupdate.conf" ];then
-    cp /etc/linupdate/linupdate.conf /tmp/linupdate.conf.debsave
+# Save current configuration files if exists
+if [ -f "/etc/linupdate/linupdate.yml" ];then
+    cp /etc/linupdate/linupdate.yml /tmp/linupdate.yml.debsave
+fi
+if [ -f "/etc/linupdate/update.yml" ];then
+    cp /etc/linupdate/update.yml /tmp/update.yml.debsave
 fi
 
 # Only if systemd is installed (not the case on github runners)

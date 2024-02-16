@@ -2,8 +2,7 @@
 *.swp
 *.bak
 TODO
-linuxautoupdate.conf
-# ignoré car pas fini :
+__pycache__
 
 
 # Compiled source #

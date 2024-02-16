@@ -1,30 +1,37 @@
 Name:           linupdate
 Version:        __VERSION__
 Release:        stable
-Summary:        Linupdate package updater - Repomanager client side agent
+Summary:        Linupdate 3 (python version) - Packages updater and Repomanager client side agent
 
 BuildArch:      noarch
 License:        GPL-3.0
 URL:            https://github.com/lbr38/linupdate
 
-Requires: curl
-Requires: git
-Requires: mutt
-Requires: ngrep
-Requires: inotify-tools
-Requires: jq
 Requires: virt-what
 Requires: net-tools
 Requires: bind-utils
-Requires: yum-utils
+Requires: python3
+Requires: python3-tabulate
+Requires: python3-colorama
+Requires: python3-dateutil
+Requires: python3-yaml
+Requires: python3-dateutil
+Requires: python3-simplejson
+Requires: python3-distro
+Requires: python3-requests
+Requires: python3-inotify
+Requires: python3-websocket-client
 
 %description
-Linupdate package updater - Repomanager client side agent
+Linupdate 3 (python version) - Packages updater and Repomanager client side agent
 
 %prep
-# Save current configuration file if exists
-if [ -f "/etc/linupdate/linupdate.conf" ];then
-    cp /etc/linupdate/linupdate.conf /tmp/linupdate.conf.rpmsave
+# Save current configuration files if exists
+if [ -f "/etc/linupdate/linupdate.yml" ];then
+    cp /etc/linupdate/linupdate.yml /tmp/linupdate.yml.rpmsave
+fi
+if [ -f "/etc/linupdate/update.yml" ];then
+    cp /etc/linupdate/update.yml /tmp/update.yml.rpmsave
 fi
 
 # Only if systemd is installed (not the case on github runners)
@@ -45,22 +52,28 @@ cp -r /etc/linupdate $RPM_BUILD_ROOT/etc/
 cp /lib/systemd/system/linupdate.service $RPM_BUILD_ROOT/lib/systemd/system/linupdate.service
 
 %post
-DATA_DIR="/opt/linupdate"
-SERVICE="$DATA_DIR/service/linupdate-agent"
+SERVICE="/opt/linupdate/service.py"
 
-# Restore configuration file if exists
-if [ -f "/tmp/linupdate.conf.rpmsave" ];then
-    rm -f /etc/linupdate/linupdate.conf
-    mv /tmp/linupdate.conf.rpmsave /etc/linupdate/linupdate.conf
+# Restore configuration files if exists
+if [ -f "/tmp/linupdate.yml.rpmsave" ];then
+    rm -f /etc/linupdate/linupdate.yml
+    mv /tmp/linupdate.yml.rpmsave /etc/linupdate/linupdate.yml
+fi
+if [ -f "/tmp/update.yml.rpmsave" ];then
+    rm -f /etc/linupdate/update.yml
+    mv /tmp/update.yml.rpmsave /etc/linupdate/update.yml
 fi
 
-# Delete old 'functions' directory if exists
-if [ -d "$DATA_DIR/functions" ];then
-    rm -rf "$DATA_DIR/functions"
+# If no configuration files exists, copy default
+if [ ! -f "/etc/linupdate/linupdate.yml" ];then
+    cp /opt/linupdate/templates/linupdate.template.yml /etc/linupdate/linupdate.yml
+fi
+if [ ! -f "/etc/linupdate/update.yml" ];then
+    cp /opt/linupdate/templates/update.template.yml /etc/linupdate/update.yml
 fi
 
 # Create a symlink to main script
-ln -sf /opt/linupdate/linupdate /usr/bin/linupdate
+ln -sf /opt/linupdate/linupdate.py /usr/bin/linupdate
 
 # Set permissions
 chmod 750 /etc/linupdate
@@ -68,11 +81,27 @@ chmod 750 /opt/linupdate
 
 # Only if systemd is installed (not the case on github runners)
 if [ -f "/usr/bin/systemctl" ];then
+    # Copy systemd unit file if not exists
+    if [ ! -f "/lib/systemd/system/linupdate.service" ];then
+        cp /opt/linupdate/service/linupdate.systemd.template /etc/systemd/system/linupdate.service
+    fi
+
     # Enable service script by creating a symlink
-    ln -sf /lib/systemd/system/linupdate.service /etc/systemd/system/linupdate.service
+    if [ ! -L "/etc/systemd/system/linupdate.service" ];then
+        # Delete file in case it is a file and not a symlink
+        rm -f /etc/systemd/system/linupdate.service
+        ln -sf /lib/systemd/system/linupdate.service /etc/systemd/system/linupdate.service
+    fi
+
     chmod 550 "$SERVICE"
     chown root:root "$SERVICE"
 
+    # Clean old directories
+    rm /opt/linupdate/agents-enabled -rf
+    rm /opt/linupdate/mods-enabled -rf
+    rm /opt/linupdate/mods-available -rf
+
+    /usr/bin/systemctl enable linupdate
     /usr/bin/systemctl --quiet daemon-reload
 
     # Start service

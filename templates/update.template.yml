@@ -1,0 +1,10 @@
+update:
+  exit_on_package_update_error: true
+  method: one_by_one
+  packages:
+    exclude:
+      always: []
+      on_major_update: []
+post_update:
+  services:
+    restart: []

@@ -1,0 +1,15 @@
+agent:
+  enabled: false
+  listen:
+    enabled: true
+client:
+  auth:
+    id: ''
+    token: ''
+  get_packages_conf_from_reposerver:
+    enabled: true
+  get_repos_from_reposerver:
+    enabled: true
+    remove_existing_repos: true
+reposerver:
+  url: ''
