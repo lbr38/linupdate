@@ -1,0 +1,8 @@
+main:
+  environment: prod
+  mail:
+    enabled: false
+    recipient: []
+  profile: Host
+modules:
+  enabled: []

@@ -1,7 +1,0 @@
-#!/usr/bin/env bash
-
-function stopAgent
-{
-    systemctl stop linupdate &&
-    echo -e "${YELLOW}linupdate${RESET} agent stopped"
-}

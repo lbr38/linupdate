@@ -1,7 +1,0 @@
-#!/usr/bin/env bash
-
-function restartAgent
-{
-    systemctl restart linupdate &&
-    echo -e " ${YELLOW}linupdate${RESET} agent restarted"
-}

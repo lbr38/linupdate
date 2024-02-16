@@ -1,0 +1,417 @@
+# coding: utf-8
+
+# Import libraries
+from colorama import Fore, Style
+from tabulate import tabulate
+import argparse
+
+# Import classes
+from src.controllers.Exit import Exit
+from src.controllers.Module.Reposerver.Config import Config
+from src.controllers.Module.Reposerver.Register import Register
+from src.controllers.Module.Reposerver.Status import Status
+from src.controllers.Module.Reposerver.Agent import Agent
+
+class Args:
+    def __init__(self):
+        self.exitController        = Exit()
+        self.configController      = Config()
+        self.registerController    = Register()
+        self.statusController      = Status()
+        self.agentController       = Agent()
+
+    #-------------------------------------------------------------------------------------------------------------------
+    #
+    #   Parse arguments
+    #
+    #-------------------------------------------------------------------------------------------------------------------
+    def parse(self, module_args):
+        try:
+            # Parse arguments
+            parser = argparse.ArgumentParser(add_help=False)
+
+            # Define valid arguments
+            # Help
+            parser.add_argument("--help", "-h", action="store_true", default="null")
+            # URL
+            parser.add_argument("--url", action="store", nargs='?', default="null")
+            # API key
+            parser.add_argument("--api-key", action="store", nargs='?', default="null")
+            # IP
+            parser.add_argument("--ip", action="store", nargs='?', default="null")
+        
+            # Allow configuration update
+            parser.add_argument("--get-packages-conf-from-reposerver", action="store", nargs='?', default="null")
+            # Allow repos update
+            parser.add_argument("--get-repos-from-reposerver", action="store", nargs='?', default="null")
+
+            # Agent enable
+            parser.add_argument("--agent-enable", action="store", nargs='?', default="null")
+            # Agent listen enable
+            parser.add_argument("--agent-listen-enable", action="store", nargs='?', default="null")
+            # Agent listen interface
+            parser.add_argument("--agent-listen-int", action="store", nargs='?', default="null")
+
+            # Register to reposerver
+            parser.add_argument("--register", action="store_true", default="null")
+            # Unregister from server
+            parser.add_argument("--unregister", action="store_true", default="null")
+
+            # Retrieve reposerver main configuration
+            parser.add_argument("--get-reposerver-conf", action="store_true", default="null")
+            # Retrieve profile packages configuration from reposerver
+            parser.add_argument("--get-profile-packages-conf", action="store_true", default="null")
+            # Retrieve profile repositories from reposerver
+            parser.add_argument("--get-profile-repos", action="store_true", default="null")
+            
+            # Send status
+            parser.add_argument("--send-general-status", action="store_true", default="null")
+            # Send packages status
+            parser.add_argument("--send-packages-status", action="store_true", default="null")
+            # Send full history
+            parser.add_argument("--send-full-history", action="store_true", default="null")
+            # Send full status
+            parser.add_argument("--send-full-status", action="store_true", default="null")
+
+            # If no arguments are passed, print help
+            if not module_args:
+                self.help()
+                self.exitController.clean_exit(0, False)
+
+            # Else, parse arguments
+            args = parser.parse_args(module_args)
+            
+        except Exception as e:
+            raise Exception('error while parsing arguments: ' + str(e))
+
+        try:
+            #
+            # If --url param has been set
+            #
+            if args.url != "null":
+                # If a URL is set (not 'None'), change the app URL
+                if args.url:
+                    # Set new URL
+                    self.configController.setUrl(args.url)
+
+                    # Print URL change
+                    print(' Reposerver URL set to ' + Fore.YELLOW + args.url + Style.RESET_ALL)
+                # Else print the current URL
+                else:
+                    print(' Current Reposerver URL: ' + Fore.YELLOW + self.configController.getUrl() + Style.RESET_ALL)
+                self.exitController.clean_exit(0, False)
+
+            #
+            # If --api-key param has been set
+            #
+            if args.api_key != "null":
+                Args.api_key = args.api_key
+
+            #
+            # If --ip param has been set
+            #
+            if args.ip != "null":
+                Args.ip = args.ip
+
+            #
+            # If --agent-enable param has been set
+            #
+            if args.agent_enable != "null":
+                if args.agent_enable == 'true':
+                    self.agentController.setEnable(True)
+                else:
+                    self.agentController.setEnable(False)
+
+                self.exitController.clean_exit(0, False)
+
+            # 
+            # If --agent-listen-enable param has been set
+            #
+            if args.agent_listen_enable != "null":
+                if args.agent_listen_enable == 'true':
+                    self.agentController.setListenEnable(True)
+                else:
+                    self.agentController.setListenEnable(False)
+
+                self.exitController.clean_exit(0, False)
+
+            #
+            # If --agent-listen-int param has been set
+            #
+            if args.agent_listen_int != "null":
+                # If an interface is set (not 'None'), change the agent interface
+                if args.agent_listen_int:
+                    # Set new interface
+                    self.agentController.setListenInterface(args.agent_listen_int)
+
+                # Else print the current interface
+                else:
+                    print(' Current interface: ' + self.agentController.getListenInterface())
+
+                self.exitController.clean_exit(0, False)
+
+            #
+            # If --get-packages-conf-from-reposerver param has been set
+            #
+            if args.get_packages_conf_from_reposerver != "null":
+                if args.get_packages_conf_from_reposerver == 'true':
+                    self.configController.set_get_packages_conf_from_reposerver(True)
+                else:
+                    self.configController.set_get_packages_conf_from_reposerver(False)
+                self.exitController.clean_exit(0, False)
+        
+            #
+            # If --get-repos-from-reposerver param has been set
+            #
+            if args.get_repos_from_reposerver != "null":
+                if args.get_repos_from_reposerver == 'true':
+                    self.configController.set_get_repos_from_reposerver(True)
+                else:
+                    self.configController.set_get_repos_from_reposerver(False)
+                self.exitController.clean_exit(0, False)
+
+            #
+            # If --register param has been set
+            #
+            if args.register != "null" and args.register:
+                # Register to the URL with the API key and IP (could be "null" if not set)
+                self.registerController.register(args.api_key, args.ip)
+                self.exitController.clean_exit(0, False)
+
+            #
+            # If --unregister param has been set
+            #
+            if args.unregister != "null" and args.unregister:
+                # Unregister from the reposerver
+                self.registerController.unregister()
+                self.exitController.clean_exit(0, False)
+
+            #
+            # If --get-server-conf param has been set
+            #
+            if args.get_reposerver_conf != "null" and args.get_reposerver_conf:
+                # Get server configuration
+                self.configController.get_reposerver_conf()
+                self.exitController.clean_exit(0, False)
+
+            #
+            # If --get-profile-packages-conf param has been set
+            #
+            if args.get_profile_packages_conf != "null" and args.get_profile_packages_conf:
+                # Get profile packages configuration
+                self.configController.get_profile_packages_conf()
+                self.exitController.clean_exit(0, False)
+
+            #
+            # If --get-profile-repos param has been set
+            #
+            if args.get_profile_repos != "null" and args.get_profile_repos:
+                # Get profile repositories
+                self.configController.get_profile_repos()
+                self.exitController.clean_exit(0, False)
+
+            #
+            # If --send-general-status param has been set
+            #
+            if args.send_general_status != "null" and args.send_general_status:
+                # Send general status
+                self.statusController.sendGeneralStatus()
+                self.exitController.clean_exit(0, False)
+
+            #
+            # If --send-packages-status param has been set
+            #
+            if args.send_packages_status != "null" and args.send_packages_status:
+                self.statusController.sendPackagesStatus()
+                self.exitController.clean_exit(0, False)
+
+            # 
+            # If --send-full-history param has been set
+            #
+            if args.send_full_history != "null" and args.send_full_history:
+                # Send full history
+                self.statusController.sendFullHistory()
+                self.exitController.clean_exit(0, False)
+
+            #
+            # If --send-full-status param has been set
+            #
+            if args.send_full_status != "null" and args.send_full_status:
+                # Send full status including general status, available packages status, installed packages status and full history
+                self.statusController.sendGeneralStatus()
+                self.statusController.sendPackagesStatus()
+                self.exitController.clean_exit(0, False)
+    
+        except Exception as e:
+            raise Exception(str(e))
+
+    #-------------------------------------------------------------------------------------------------------------------
+    #
+    #   Print help
+    #
+    #-------------------------------------------------------------------------------------------------------------------
+    def help(self):
+        table = []
+        options = [
+            {
+                'args': [
+                    '--help',
+                    '-h'
+                ],
+                'description': 'Show reposerver module help',
+            },
+            {
+                'args': [
+                    'Configuring reposerver:',
+                ],
+                'description': ''
+            },
+            {
+                'args': [
+                    '--url',
+                ],
+                'option': 'URL',
+                'description': 'Specify target reposerver URL',
+            },
+            {
+                'args': [
+                    '--api-key',
+                ],
+                'option': 'APIKEY',
+                'description': 'Specify API key to authenticate to the reposerver',
+            },
+            {
+                'args': [
+                    '--ip',
+                ],
+                'option': 'IP',
+                'description': 'Specify an alternative local IP address to use to authenticate to the reposerver (default: will use the public IP address)',
+            },
+            {
+                'args': [
+                    '--register',
+                ],
+                'description': 'Register this host to the reposerver (--api-key required)'
+            },
+            {
+                'args': [
+                    '--unregister',
+                ],
+                'description': 'Unregister this host from the reposerver'
+            },
+            {
+                'args': [
+                    'Configuration retrieval from reposerver (using configured profile):',
+                ],
+                'description': ''
+            },
+            {
+                'args': [
+                    '--get-packages-conf-from-reposerver',
+                ],
+                'option': 'true|false',
+                'description': 'If enabled, packages exclusions will be retrieved from the reposerver',
+            },
+            {
+                'args': [
+                    '--get-repos-from-reposerver',
+                ],
+                'option': 'true|false',
+                'description': 'If enabled, repositories configuration will be retrieved from the reposerver',
+            },
+            {
+                'args': [
+                    'Retrieving data from reposerver:',
+                ],
+                'description': ''
+            },
+            {
+                'args': [
+                    '--get-reposerver-conf',
+                ],
+                'description': 'Get reposerver global configuration'
+            },
+            {
+                'args': [
+                    '--get-profile-packages-conf',
+                ],
+                'description': 'Get profile packages configuration from reposerver'
+            },
+            {
+                'args': [
+                    '--get-profile-repos',
+                ],
+                'description': 'Get profile repositories from reposerver'
+            },
+            {
+                'args': [
+                    'Sending data to reposerver:',
+                ],
+                'description': ''
+            },
+            {
+                'args': [
+                    '--send-general-status',
+                ],
+                'description': 'Send host global informations (OS, version, kernel..) to the reposerver'
+            },
+            {
+                'args': [
+                    '--send-packages-status',
+                ],
+                'description': 'Send this host packages informations to the reposerver (available package updates, installed packages)'
+            },
+            {
+                'args': [
+                    '--send-full-history',
+                ],
+                'description': 'Send host packages events history (updates, downgrades, uninstallations...) to the reposerver'
+            },
+            {
+                'args': [
+                    '--send-full-status',
+                ],
+                'description': 'Send all of the previous informations to the reposerver'
+            },
+            {
+                'args': [
+                    '--agent-enable',
+                ],
+                'option': 'true|false',
+                'description': 'Enable reposerver module agent. This agent will regularly send informations about this host to reposerver (global informations, packages informations...)',
+            },
+            {
+                'args': [
+                    '--agent-listen-enable',
+                ],
+                'option': 'true|false',
+                'description': 'Enable or disable agent listening for requests coming from the reposerver',
+            },
+            {
+                'args': [
+                    '--agent-listen-int',
+                ],
+                'option': 'INTERFACE',
+                'description': 'Specify the local network interface to use to listen for requests coming from the reposerver',
+            }
+        ]
+
+        # Add options to table
+        for option in options:
+            if len(option['args']) > 1:
+                args_str = ', '.join(option['args'])
+            else:
+                args_str = option['args'][0]
+
+            if 'option' in option:
+                args_str += Style.DIM + ' [' + option['option'] + ']' + Style.RESET_ALL
+
+            table.append(['', args_str, option['description']])
+
+
+        print(' Available options:', end='\n\n')
+
+        # Print table
+        print(tabulate(table, headers=["", "Name", "Description"], tablefmt="simple"), end='\n\n')
+
+        print(' Usage: linupdate --mod-configure reposerver [OPTIONS]', end='\n\n')

@@ -1,7 +1,0 @@
-#!/usr/bin/env bash
-
-function disableAgent
-{
-    systemctl disable --quiet linupdate &&
-    echo -e "${YELLOW}linupdate${RESET} agent disabled on boot"
-}
