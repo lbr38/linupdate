@@ -3,16 +3,21 @@
 
 # Import constants
 from constant import *
+
+# Import libraries
 from colorama import Fore, Back, Style
 
+# Import classes
 from src.controllers.App import App
 from src.controllers.System import System
-from src.controllers.Module import Module
+from src.controllers.Module.Module import Module
+from src.controllers.Package.Package import Package
 
 # Instaciate classes
-myApp = App()
-mySystem = System()
-myModule = Module()
+myApp     = App()
+mySystem  = System()
+myModule  = Module()
+myPackage = Package()
 
 # Exit if the user is not root
 # if not System.isRoot():
@@ -46,30 +51,20 @@ myApp.generateConf()
 # Writing everything happening to the log file
 # exec &> >(tee -a "$LOG")
 
-# Detect virtualization type
-# if [ -f "/usr/sbin/virt-what" ];then
-#     VIRT_TYPE=$(/usr/sbin/virt-what | tr '\n' ' ')
-#     if [ -z "$VIRT_TYPE" ];then
-#         VIRT_TYPE="Bare metal"
-#     fi
-# fi
+# Print system & app summary
+myApp.printSummary()
 
-# Reading configuration file
-# App.getConf()
-
-# Loading modules
-# loadModules
+# Load modules
+myModule.load()
 
 # Execute pre-update modules
 # execPreModules
 
-myApp.printSummary()
+# Check if some packages need to be excluded
+myPackage.exclude()
 
-# Load modules
-# myModule.load()
-
-
-
+# Execute packages update
+# myPackage.update
 
 
 

@@ -50,7 +50,7 @@ class System:
             return 'Debian'
             
         if (distro.name() in ['Centos', 'Fedora', 'Alma Linux', 'Rocky Linux']):
-            return 'RedHat'
+            return 'Redhat'
 
 
     #-------------------------------------------------------------------------------------------------------------------

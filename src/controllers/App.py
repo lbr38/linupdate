@@ -1,11 +1,17 @@
 # coding: utf-8
 
+# Import constants
 from constant import *
+
+# Import libraries
+from datetime import datetime
 from pathlib import Path
 from colorama import Fore, Back, Style
 import socket
 import yaml
+import getpass
 
+# Import classes
 from src.controllers.System import System
 
 class App:
@@ -102,19 +108,32 @@ class App:
         # Quit if the config file already exists
         if Path(CONF).is_file():
             return
-        
-        # Generate the config file
-        file = open(CONF, 'w')
-        file.write('[CONFIGURATION]\n')
-        file.write('PROFILE="Bare-metal\n')
-        file.write('ENV="prod"\n')
-        file.write('MAIL_ENABLED="false"\n')
-        file.write('MAIL_RECIPIENT=""\n\n')
-        file.write('[SOFTWARE CONFIGURATION]\n')
-        file.write('EXCLUDE_MAJOR=""\n')
-        file.write('EXCLUDE=""\n')
-        file.write('SERVICE_RESTART=""')
-        file.close()
+
+        # Minimal config file
+        data = {
+            'main': {
+                'profile': 'PC',
+                'environment': 'prod',
+
+                'mail_alert': {
+                    'enabled': 'false',
+                    'recipient': ''
+                }
+            },
+            'packages': {
+                'exclude': {
+                    'always': [],
+                    'on_major_update': []
+                }
+            },
+            'services': {
+                'restart': ''
+            }
+        }
+
+        # Write config file
+        with open(CONF, 'w') as file:
+            yaml.dump(data, file, default_flow_style=False, sort_keys=False)
 
 
     #-------------------------------------------------------------------------------------------------------------------
@@ -182,8 +201,8 @@ class App:
         print(' Virtualization:      ' + Fore.YELLOW + mySystem.getVirtualization() + Style.RESET_ALL)
         print(' Profile:             ' + Fore.YELLOW + self.getProfile() + Style.RESET_ALL)
         print(' Environment:         ' + Fore.YELLOW + self.getEnvironment() + Style.RESET_ALL)
-        # echo -e " Executed on:                  ${YELLOW}${DATE_DMY} ${TIME}${RESET}"
-        # echo -ne " Executed by:                 ${YELLOW} "; whoami; echo -ne "${RESET}"
+        print(' Executed on:         ' + Fore.YELLOW + datetime.now().strftime('%Y-%m-%d %H:%M:%S') + Style.RESET_ALL)
+        print(' Executed by:         ' + Fore.YELLOW + getpass.getuser() + Style.RESET_ALL)
         # echo -ne " Execution method: "
         # if [ "$FROM_AGENT" == "1" ];then
         #     echo -e "            ${YELLOW}from linupdate agent${RESET}"

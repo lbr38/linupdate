@@ -1,4 +1,4 @@
-ROOT                = '/home/lbrun/github/linupdate'
+ROOT                = '/opt/linupdate'
 ETC_DIR             = '/etc/linupdate'
 LOGS_DIR            = '/var/log/linupdate'
 
@@ -13,4 +13,4 @@ MODULES_CONF_DIR    = ETC_DIR + '/modules'
 
 
 DATE_DMY  = '%d-%m-%Y'
-
+TIME      = '%H:%M:%S'
