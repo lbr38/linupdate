@@ -2,7 +2,6 @@
 
 # https://github.com/excid3/python-apt/blob/master/doc/examples/inst.py
 
-
 # Import libraries
 import os
 
@@ -17,63 +16,53 @@ class Package:
 
         # If Debian, import apt
         if (self.system.getOsFamily() == 'Debian'):
-            import apt
-
-            # Create an instance of the apt cache
-            self.aptcache = apt.Cache()
-            self.aptcache.open(None)
+            from src.controllers.Package.Apt import Apt as PackageManager
 
         # If Redhat, import yum
         if (self.system.getOsFamily() == 'Redhat'):
-            import yum
+            from src.controllers.Package.Yum import Yum
 
-            # Create an instance of the yum base
-            self.yumbase = yum.YumBase()
-
+        self.myPackageManager = PackageManager()
 
 
+    #-------------------------------------------------------------------------------------------------------------------
+    #
+    #   Check for package exclusions
+    #
+    #-------------------------------------------------------------------------------------------------------------------
     def exclude(self):
         print(' Checking for package exclusions')
 
-        # Clear package manager cache
-        self.clearCache()
+        try:
+            # Clear package manager cache
+            self.myPackageManager.clearCache()
 
-        # Get list of available packages
-        self.getAvailablePackages()
+            # Get list of available packages
+            packagesToUpdateList = self.myPackageManager.getAvailablePackages()
+            packagesToUpdateCount = len(packagesToUpdateList)
 
-        # Quit if there are no packages to update
-        if (self.packagesToUpdateCount == 0):
-            print(' No packages to update')
+            # Quit if there are no packages to update
+            if (packagesToUpdateCount == 0):
+                print(' No packages to update')
+                return
+            
+            # Print the number of packages to update
+            print(str(packagesToUpdateCount) + ' Packages to update:')
+
+            # Print the list of packages to update
+            for package in packagesToUpdateList:
+                print(package.shortname)
+
+        except Exception as e:
+            print('Error: ' + str(e))
             return
-        
-        # Print the number of packages to update
-        print(str(self.packagesToUpdateCount) + ' Packages to update:')
-
-        # Print the list of packages to update
-        for package in self.packagesToUpdateList:
-            print(package.shortname)
-        
 
 
 
 
-    def getAvailablePackages(self):
-        if (self.system.getOsFamily() == 'Debian'):
-            # Get list of packages to update sorted by name
-            self.packagesToUpdateList = sorted(self.aptcache.get_changes())
-
-            # Count the number of packages to update
-            self.packagesToUpdateCount = len(self.packagesToUpdateList)
 
       
 
             
     
-    def clearCache(self):
-        if (self.system.getOsFamily() == 'Debian'):
-            self.aptcache.upgrade()
-            return
-
-        if (self.system.getOsFamily() == 'Redhat'):
-            os.system('yum clean all')
-            return
+   

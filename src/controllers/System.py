@@ -88,8 +88,8 @@ class System:
     def getVirtualization(self):
         # Detect virtualization type
         if os.path.isfile("/usr/sbin/virt-what"):
-            VIRT_TYPE = os.popen('/usr/sbin/virt-what').read().replace('\n', ' ')
-            if not VIRT_TYPE:
-                VIRT_TYPE = "Bare metal"
+            virt = os.popen('/usr/sbin/virt-what').read().replace('\n', ' ')
+            if not virt:
+                virt = "No virtualization (bare-metal)"
 
-        return VIRT_TYPE
+        return virt
