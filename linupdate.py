@@ -60,11 +60,9 @@ myModule.load()
 # Execute pre-update modules
 # execPreModules
 
-# Check if some packages need to be excluded
-myPackage.exclude()
-
 # Execute packages update
-# myPackage.update
+myPackage.update()
+
 
 
 

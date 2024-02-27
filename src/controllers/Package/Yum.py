@@ -15,7 +15,6 @@ class Yum:
         self.yumbase = yum.YumBase()
 
 
-
     #-------------------------------------------------------------------------------------------------------------------
     #
     #   Return list of available yum packages, sorted by name
@@ -23,6 +22,7 @@ class Yum:
     #-------------------------------------------------------------------------------------------------------------------
     def getAvailablePackages(self):
         # Get list of packages to update sorted by name
+        # TODO
         return 
 
 
@@ -33,5 +33,6 @@ class Yum:
     #
     #-------------------------------------------------------------------------------------------------------------------
     def clearCache(self):
+        # TODO
         os.system('yum clean all')
         return
