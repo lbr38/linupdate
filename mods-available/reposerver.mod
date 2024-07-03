@@ -1011,10 +1011,8 @@ function post
 
     # Si il y a eu des paquets à mettre à jour lors de cette exécution alors on exécute les actions suivantes
     if [ "$SOMETHING_TO_UPDATE" == "true" ];then
-        # Généralement les paquets "*-release" sur Redhat/CentOS remettent en place des fichiers .repo. Si un paquet de ce type a été mis à jour alors on remets à jour la configuration des repos à partir du serveurs de repo (profils), si cela est autorisé des deux côtés
-        if echo "${PACKAGES[*]}" | grep -q "-release";then
-            getProfileRepos
-        fi
+        # Généralement les paquets "*-release" sur Redhat/CentOS remettent en place des fichiers .repo. Du coup on remet à jour la configuration des repos à partir du serveurs de repo (profils), si cela est autorisé des deux côtés
+        getProfileRepos
 
         # On renvoie les 4 derniers historique d'évènements au serveur reposerver
         /opt/linupdate/linupdate --mod-configure reposerver --from-agent --send-full-history 4

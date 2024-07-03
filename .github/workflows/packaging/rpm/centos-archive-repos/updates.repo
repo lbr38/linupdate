@@ -1,0 +1,7 @@
+[updates]
+name=updates repo
+comment=updates repo
+baseurl=https://vault.centos.org/7.9.2009/updates/x86_64/
+enabled=1
+gpgkey=https://vault.centos.org/RPM-GPG-KEY-CentOS-7
+gpgcheck=1
