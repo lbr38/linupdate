@@ -79,6 +79,12 @@ jobs:
       - name: Get linupdate version
         run: echo "VERSION=$(cat ${GITHUB_WORKSPACE}/version)" >> $GITHUB_ENV
 
+      - name: Install CentOS7 archive repositories
+        run: |
+          rm -f /etc/yum.repos.d/*.repo
+          cp ${GITHUB_WORKSPACE}/.github/workflows/packaging/rpm/centos-archive-repos/*.repo /etc/yum.repos.d/
+          yum clean all      
+
       - name: Install dependencies packages
         run: yum install rpmdevtools rpmlint -y
 
@@ -163,9 +169,9 @@ jobs:
           tag_name: ${{ env.VERSION }}
           release_name: ${{ env.VERSION }}
           body: |
-            **Fixes**:
+            **Changes**:
 
-            - **reposerver** module: fixed missing reposerver IP address in the configuration file
+            - Added compatibility for Oracle Linux OS (@Starbix #53)
           draft: false
           prerelease: false
 
