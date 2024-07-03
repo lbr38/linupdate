@@ -70,7 +70,7 @@ jobs:
     name: Build rpm package
     runs-on: ubuntu-latest
     container:
-      image: centos:7
+      image: rockylinux:9.3
       options: --user root
     steps:
       - name: Checkout
@@ -79,14 +79,10 @@ jobs:
       - name: Get linupdate version
         run: echo "VERSION=$(cat ${GITHUB_WORKSPACE}/version)" >> $GITHUB_ENV
 
-      - name: Install CentOS7 archive repositories
-        run: |
-          rm -f /etc/yum.repos.d/*.repo
-          cp ${GITHUB_WORKSPACE}/.github/workflows/packaging/rpm/centos-archive-repos/*.repo /etc/yum.repos.d/
-          yum clean all      
-
       - name: Install dependencies packages
-        run: yum install rpmdevtools rpmlint -y
+        run: |
+          yum update -y
+          yum install rpmdevtools rpmlint -y
 
       - name: Create build environment
         run: |

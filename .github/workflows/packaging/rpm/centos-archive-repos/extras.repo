@@ -1,7 +1,0 @@
-[extras]
-name=extras repo
-comment=extras repo
-baseurl=https://vault.centos.org/7.9.2009/extras/x86_64/
-enabled=1
-gpgkey=https://vault.centos.org/RPM-GPG-KEY-CentOS-7
-gpgcheck=1
