@@ -8,11 +8,17 @@ on:
       branches: [ main ]
 
 jobs:
+  # Build rpm package
+  # Even it is build on CentOS7, package should be installable on RHEL7/8/9 based systems
   build-rpm:
     name: Build rpm package
     runs-on: ubuntu-latest
+    env:
+      # Force to use node16 (for actions/checkout@v3)
+      ACTIONS_RUNNER_FORCE_ACTIONS_NODE_VERSION: node16
+      ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
     container:
-      image: rockylinux:9.3
+      image: centos:7
       options: --user root
     steps:
       - name: Checkout
@@ -21,10 +27,35 @@ jobs:
       - name: Get linupdate version
         run: echo "VERSION=$(cat ${GITHUB_WORKSPACE}/version)" >> $GITHUB_ENV
 
-      - name: Install dependencies packages
+      - name: Install CentOS7 archive repositories
         run: |
-          yum update -y
-          yum install rpmdevtools rpmlint -y
+          rm /etc/yum.repos.d/* -f
+
+          echo "[os]
+          name=os repo
+          baseurl=https://vault.centos.org/7.9.2009/os/x86_64/
+          enabled=1
+          gpgkey=https://vault.centos.org/RPM-GPG-KEY-CentOS-7
+          gpgcheck=1" > /etc/yum.repos.d/os.repo
+
+          echo "[extras]
+          name=extras repo
+          baseurl=https://vault.centos.org/7.9.2009/extras/x86_64/
+          enabled=1
+          gpgkey=https://vault.centos.org/RPM-GPG-KEY-CentOS-7
+          gpgcheck=1" > /etc/yum.repos.d/extras.repo
+
+          echo "[updates]
+          name=updates repo
+          baseurl=https://vault.centos.org/7.9.2009/updates/x86_64/
+          enabled=1
+          gpgkey=https://vault.centos.org/RPM-GPG-KEY-CentOS-7
+          gpgcheck=1" > /etc/yum.repos.d/updates.repo
+
+          yum clean all
+
+      - name: Install dependencies packages
+        run: yum install rpmdevtools rpmlint -y
 
       - name: Create build environment
         run: |
@@ -70,14 +101,15 @@ jobs:
           path: /tmp/linupdate-test-build-${{ env.VERSION }}.noarch.rpm
           retention-days: 1
 
-  # Try to install package on Fedora 37
+
+  # Try to install packages on latest Fedora
   install-fedora:
-    name: Install on Fedora 37
+    name: Install on latest Fedora
     needs:
       build-rpm
     runs-on: ubuntu-latest
     container:
-      image: fedora:37
+      image: fedora:latest
       options: --user root
     steps:
       - name: Checkout
@@ -95,6 +127,5 @@ jobs:
       - name: Install package
         run: |
           dnf update -y
-          yum clean all
-          yum --nogpgcheck localinstall -y ./linupdate-test-build-${{ env.VERSION }}.noarch.rpm
-  
+          dnf clean all
+          dnf --nogpgcheck localinstall -y ./linupdate-test-build-${{ env.VERSION }}.noarch.rpm
