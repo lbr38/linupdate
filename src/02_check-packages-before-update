@@ -14,15 +14,17 @@ function checkPackagesBeforeUpdate
         apt-get clean && apt-get -qq --allow-releaseinfo-change update
     fi
 
+    echo -e "\n Generating packages list..."
+
     # Temporary file to work with
     CHECK_UPDATE_TMP="/tmp/linupdate_check-update.tmp"
 
     # List packages available for update
     if [ "$OS_FAMILY" == "Redhat" ];then
         if [ -f "/usr/bin/dnf" ];then
-            repoquery -q -a --qf="%{name} %{version}-%{release}.%{arch} %{repoid}" --upgrades >> "$CHECK_UPDATE_TMP"
+            dnf repoquery -q --upgrades --latest-limit 1 -a --qf="%{name} %{version}-%{release}.%{arch} %{repoid}" --upgrades >> "$CHECK_UPDATE_TMP"
         else
-            repoquery -q -a --qf="%{name} %{version}-%{release}.%{arch} %{repoid}" --pkgnarrow=updates > "$CHECK_UPDATE_TMP"
+            repoquery -a --qf="%{name} %{version}-%{release}.%{arch} %{repoid}" --pkgnarrow=updates > "$CHECK_UPDATE_TMP"
         fi
     fi
     if [ "$OS_FAMILY" == "Debian" ];then

@@ -213,10 +213,6 @@ while [ $# -ge 1 ];do
             fi
             clean_exit
         ;;
-        --list-modules|--list-mod|-m)
-            listModules
-            clean_exit
-        ;;
         --ignore-exclude|-ie)
             IGNORE_EXCLUDE=1
         ;;

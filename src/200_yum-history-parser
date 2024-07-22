@@ -49,6 +49,12 @@ function yumHistoryParser
 
         if echo "$LINE" | egrep -q "^ +Install ";then
             PACKAGE_NAME=$(echo "$LINE" | awk '{print $2}' | sed 's/-[0-9].*//g')
+
+            # If package name starts with '@', ignore it as it's a group
+            if echo "$PACKAGE_NAME" | grep -q "^@";then
+                continue
+            fi
+
             PACKAGE_VERSION=$(echo "$LINE" | awk '{print $2}' | sed "s/$PACKAGE_NAME//g" | sed 's/^-//g')
             REPO=$(echo "$LINE" | awk '{print $3}')
             PACKAGES_INSTALLED_JSON+="{\"name\":\"$PACKAGE_NAME\",\"version\":\"$PACKAGE_VERSION\",\"repo\":\"$REPO\"},"
@@ -56,6 +62,12 @@ function yumHistoryParser
 
         if echo "$LINE" | egrep -q "^ +Dep-Install ";then
             PACKAGE_NAME=$(echo "$LINE" | awk '{print $2}' | sed 's/-[0-9].*//g')
+
+            # If package name starts with '@', ignore it as it's a group
+            if echo "$PACKAGE_NAME" | grep -q "^@";then
+                continue
+            fi
+
             PACKAGE_VERSION=$(echo "$LINE" | awk '{print $2}' | sed "s/$PACKAGE_NAME//g" | sed 's/^-//g')
             REPO=$(echo "$LINE" | awk '{print $3}')
             DEPENDENCIES_INSTALLED_JSON+="{\"name\":\"$PACKAGE_NAME\",\"version\":\"$PACKAGE_VERSION\",\"repo\":\"$REPO\"},"
@@ -66,6 +78,12 @@ function yumHistoryParser
             # Sinon on ignore cette ligne
             if grep -A1 "^${LINE}" "$TMP_EVENT_FILE" | grep -v "$LINE" | awk '{print $2}' | grep -q "^[0-9]";then
                 PACKAGE_NAME=$(echo "$LINE" | awk '{print $2}' | sed 's/-[0-9].*//g')
+
+                # If package name starts with '@', ignore it as it's a group
+                if echo "$PACKAGE_NAME" | grep -q "^@";then
+                    continue
+                fi
+
                 PACKAGE_VERSION=$(grep -A1 "^${LINE}" "$TMP_EVENT_FILE" | grep -v "$LINE" | awk '{print $2}')
                 REPO=$(grep -A1 "^${LINE}" "$TMP_EVENT_FILE" | grep -v "$LINE" | awk '{print $3}')
                 PACKAGES_UPGRADED_JSON+="{\"name\":\"$PACKAGE_NAME\",\"version\":\"$PACKAGE_VERSION\",\"repo\":\"$REPO\"},"
@@ -74,18 +92,36 @@ function yumHistoryParser
 
         if echo "$LINE" | egrep -q "^ +Erase ";then
             PACKAGE_NAME=$(echo "$LINE" | awk '{print $2}' | sed 's/-[0-9].*//g')
+
+            # If package name starts with '@', ignore it as it's a group
+            if echo "$PACKAGE_NAME" | grep -q "^@";then
+                continue
+            fi
+
             PACKAGE_VERSION=$(echo "$LINE" | awk '{print $2}' | sed "s/$PACKAGE_NAME//g" | sed 's/^-//g')
             PACKAGES_REMOVED_JSON+="{\"name\":\"$PACKAGE_NAME\",\"version\":\"$PACKAGE_VERSION\"},"
         fi
 
         if echo "$LINE" | egrep -q "^ +Downgrade ";then
             PACKAGE_NAME=$(echo "$LINE" | awk '{print $2}' | sed 's/-[0-9].*//g')
+
+            # If package name starts with '@', ignore it as it's a group
+            if echo "$PACKAGE_NAME" | grep -q "^@";then
+                continue
+            fi
+
             PACKAGE_VERSION=$(echo "$LINE" | awk '{print $2}' | sed "s/$PACKAGE_NAME//g" | sed 's/^-//g')
             PACKAGES_DOWNGRADED_JSON+="{\"name\":\"$PACKAGE_NAME\",\"version\":\"$PACKAGE_VERSION\"},"
         fi
 
         if echo "$LINE" | egrep -q "^ +Reinstall ";then
             PACKAGE_NAME=$(echo "$LINE" | awk '{print $2}' | sed 's/-[0-9].*//g')
+
+            # If package name starts with '@', ignore it as it's a group
+            if echo "$PACKAGE_NAME" | grep -q "^@";then
+                continue
+            fi
+
             PACKAGE_VERSION=$(echo "$LINE" | awk '{print $2}' | sed "s/$PACKAGE_NAME//g" | sed 's/^-//g')
             REPO=$(echo "$LINE" | awk '{print $3}')
             PACKAGES_REINSTALLED_JSON+="{\"name\":\"$PACKAGE_NAME\",\"version\":\"$PACKAGE_VERSION\",\"repo\":\"$REPO\"},"

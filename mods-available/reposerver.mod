@@ -216,7 +216,7 @@ function mod_help
     echo -e "  --get-profile-repos           → Get repos sources configuration from reposerver."
     echo -e "  --send-general-status         → Send host global informations to reposerver (OS, version, kernel..)"
     echo -e "  --send-full-history           → Send host packages events history to reposerver (installation, update, uninstallation...)"
-    echo -e "  --send-packages-status        → Send host packages informations (installed, available...) to resposerver"
+    echo -e "  --send-packages-status        → Send host packages informations (installed, available) to reposerver"
     echo -e "  --send-full-status            → Execute the tree previous parameters"
     echo -e ""
     echo -e " Agent:"
@@ -375,7 +375,7 @@ function mod_configure
                     sed -i "s/FAILLEVEL=.*/FAILLEVEL=\"$FAILLEVEL\"/g" $MOD_CONF
                 fi
             ;;
-            --allow-conf-update)
+            --allow-conf-update|--get-packages-conf-from-reposerver)
                 if [ "$2" == "yes" ];then
                     GET_PROFILE_PKG_CONF_FROM_REPOSERVER="true"
                 else
@@ -390,7 +390,7 @@ function mod_configure
                     sed -i "s/GET_PROFILE_PKG_CONF_FROM_REPOSERVER=.*/GET_PROFILE_PKG_CONF_FROM_REPOSERVER=\"$GET_PROFILE_PKG_CONF_FROM_REPOSERVER\"/g" $MOD_CONF
                 fi
             ;;
-            --allow-repos-update)
+            --allow-repos-update|--get-repos-from-reposerver)
                 if [ "$2" == "yes" ];then
                     GET_PROFILE_REPOS_FROM_REPOSERVER="true"
                 else
@@ -602,7 +602,6 @@ function getModConf
 
     # Configuration serveur (section [REPOSERVER])
     REPOSERVER_URL="$(grep "^URL=" $MOD_CONF | cut -d'=' -f2 | sed 's/"//g')"
-    REPOSERVER_PACKAGE_TYPE="$(grep "^PACKAGE_TYPE=" $MOD_CONF | cut -d'=' -f2 | sed 's/"//g')"
 
     # Récupération du FAILLEVEL pour ce module
     FAILLEVEL=$(grep "^FAILLEVEL=" "$MOD_CONF" | cut -d'=' -f2 | sed 's/"//g')
@@ -657,7 +656,6 @@ function getServerConf
 
         REPOSERVER_IP=$(_jq '.Ip')
         REPOSERVER_URL=$(_jq '.Url')
-        REPOSERVER_PACKAGE_TYPE=$(_jq '.Package_type')
     done
 
     # Retrieve the server IP address from the server URL
@@ -695,7 +693,7 @@ function getServerConf
     echo "[REPOSERVER]" >> "$TMP_FILE_REPOSERVER"
     echo "URL=\"$REPOSERVER_URL\"" >> "$TMP_FILE_REPOSERVER"
     echo "IP=\"$REPOSERVER_IP\"" >> "$TMP_FILE_REPOSERVER"
-    echo "PACKAGE_TYPE=\"$REPOSERVER_PACKAGE_TYPE\"" >> "$TMP_FILE_REPOSERVER"
+    echo "PACKAGE_TYPE=\"\"" >> "$TMP_FILE_REPOSERVER"
     echo "" >> "$TMP_FILE_REPOSERVER"
 
     # On reconstruit le fichier de configuration
@@ -720,11 +718,7 @@ function getServerConf
 # Fonction exécutée pre-mise à jour
 function preCheck
 {
-    # Vérification que le serveur Repomanager gère le même type de paquet que cet hôte
-    if ! echo "$REPOSERVER_PACKAGE_TYPE" | grep -q "$PKG_TYPE";then
-        echo -e "  [${YELLOW} ERROR ${RESET}] reposerver do not handle the same package type as this host. Reposerver: $REPOSERVER_PACKAGE_TYPE / Host: $PKG_TYPE"
-        return 2
-    fi
+    return
 }
 
 # Get profile general configuration from reposerver
@@ -1220,7 +1214,11 @@ function send_installed_packages_status
     # Construction de la liste des paquets
     # Cas Redhat
     if [ "$OS_FAMILY" == "Redhat" ];then
-        repoquery -a --installed --qf="%{name} %{epoch}:%{version}-%{release}.%{arch}" > "$INSTALLED_PACKAGES_TMP"
+        if [ -f "/usr/bin/dnf" ];then
+            dnf repoquery -q -a --installed --qf="%{name} %{epoch}:%{version}-%{release}.%{arch}" > "$INSTALLED_PACKAGES_TMP"
+        else
+            repoquery -a --installed --qf="%{name} %{epoch}:%{version}-%{release}.%{arch}" > "$INSTALLED_PACKAGES_TMP"
+        fi
     fi
     # Cas Debian
     if [ "$OS_FAMILY" == "Debian" ];then
@@ -1290,7 +1288,11 @@ function send_available_packages_status
     # Cas Redhat
     if [ "$OS_FAMILY" == "Redhat" ];then
         # Récupération des paquets disponibles pour mise à jour
-        repoquery -q -a --qf="%{name} %{epoch}:%{version}-%{release}.%{arch}" --pkgnarrow=updates > "$AVAILABLE_PACKAGES_TMP"
+        if [ -f "/usr/bin/dnf" ];then
+            dnf repoquery -q --upgrades --latest-limit 1 -a --qf="%{name} %{epoch}:%{version}-%{release}.%{arch}" --upgrades > "$AVAILABLE_PACKAGES_TMP"
+        else
+            repoquery -a --qf="%{name} %{epoch}:%{version}-%{release}.%{arch}" --pkgnarrow=updates > "$AVAILABLE_PACKAGES_TMP"
+        fi
     fi
     # Cas Debian
     if [ "$OS_FAMILY" == "Debian" ];then
@@ -1389,10 +1391,18 @@ function genFullHistory
 
         # Récupération de tous les ID d'évènements dans la base de données de yum
         if [ "$HISTORY_START" == "newest" ];then
-            YUM_HISTORY_IDS=$(yum history list all | tail -n +4 | awk '{print $1}' | grep -v "history")
+            if [ -f "/usr/bin/dnf" ];then
+                YUM_HISTORY_IDS=$(dnf history list | tail -n +3 | awk '{print $1}' | grep -v "history")
+            else
+                YUM_HISTORY_IDS=$(yum history list all | tail -n +4 | awk '{print $1}' | grep -v "history")
+            fi
         fi
         if [ "$HISTORY_START" == "oldest" ];then
-            YUM_HISTORY_IDS=$(yum history list all | tail -n +4 | awk '{print $1}' | grep -v "history" | tac)
+            if [ -f "/usr/bin/dnf" ];then
+                YUM_HISTORY_IDS=$(dnf history list | tail -n +3 | awk '{print $1}' | grep -v "history" | tac)
+            else
+                YUM_HISTORY_IDS=$(yum history list all | tail -n +4 | awk '{print $1}' | grep -v "history" | tac)
+            fi
         fi
 
         # Pour chaque évènement on peut récupérer la date et l'heure de début et la date et l'heure de fin
