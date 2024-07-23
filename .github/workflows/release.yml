@@ -198,7 +198,7 @@ jobs:
           release_name: ${{ env.VERSION }}
           body: |
             **Changes**:
-
+              - Added support for RHEL 8/9 based OS
           draft: false
           prerelease: false
 

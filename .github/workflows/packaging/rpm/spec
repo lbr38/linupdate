@@ -8,7 +8,6 @@ License:        GPL-3.0
 URL:            https://github.com/lbr38/linupdate
 
 Requires: curl
-Requires: git
 Requires: mutt
 Requires: ngrep
 Requires: inotify-tools

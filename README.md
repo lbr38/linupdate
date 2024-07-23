@@ -60,7 +60,6 @@ It should help you **installing** and starting using linupdate.
   --ignore-exclude|-ie                         → Ignore all packages minor or major release update exclusions
 
  Modules
-  --list-modules|--list-mod|-m                 → List available modules
   --mod-enable|-mod-enable|-me MODULE          → Enable specified module
   --mod-disable|-mod-disable|-md MODULE        → Disable specified module
   --mod-configure|-mc|--mod-exec MODULE        → Configure specified module (using module commands, see module help or documentation)

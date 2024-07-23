@@ -3,7 +3,7 @@ Version: __VERSION__
 Section: main
 Priority: optional
 Architecture: all
-Depends: curl, git, apt-transport-https, aptitude, mutt, locales, ngrep, inotify-tools, jq, virt-what, net-tools, dnsutils, locales-all
+Depends: curl, apt-transport-https, aptitude, mutt, locales, ngrep, inotify-tools, jq, virt-what, net-tools, dnsutils, locales-all
 Maintainer: Ludovic <repomanager@protonmail.com>
 Description: Linupdate package updater - Repomanager client side agent
 Homepage: https://github.com/lbr38/linupdate
