@@ -19,11 +19,11 @@ from src.controllers.Service.Service import Service
 from src.controllers.Exit import Exit
 from src.controllers.ArgsException import ArgsException
 
-#-------------------------------------------------------------------------------------------------------------------
+#---------------------------------------------------------------------------------------------------
 #
 #   Main function
 #
-#-------------------------------------------------------------------------------------------------------------------
+#---------------------------------------------------------------------------------------------------
 def main():
     exit_code = 0
     send_mail = True
@@ -60,7 +60,7 @@ def main():
         # Create log file with correct permissions
         Path(logsdir + '/' + logfile).touch()
         Path(logsdir + '/' + logfile).chmod(0o640)
-    
+
         # Log everything to the log file
         with Log(logsdir + '/' + logfile):
             # Print Logo
@@ -99,7 +99,11 @@ def main():
             my_module.pre()
 
             # Execute packages update
-            my_package.update(my_args.assume_yes, my_args.ignore_exclude, my_args.check_updates, my_args.dist_upgrade, my_args.keep_oldconf)
+            my_package.update(my_args.assume_yes,
+                              my_args.ignore_exclude,
+                              my_args.check_updates,
+                              my_args.dist_upgrade,
+                              my_args.keep_oldconf)
 
             # Execute post-update modules functions
             my_module.post(my_package.summary)
