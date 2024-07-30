@@ -163,6 +163,8 @@ class Agent:
             watch_manager = pyinotify.WatchManager()
             # watch_manager.add_watch(self.log_file, pyinotify.IN_MODIFY, self.on_inotify_change)
             # quiet=False => raise Exception
+            # watch_manager.add_watch(self.log_file, pyinotify.IN_CLOSE_WRITE, self.on_inotify_change, quiet=False)
+            # TODO debug
             watch_manager.add_watch('/tmp/toto', pyinotify.IN_CLOSE_WRITE, self.on_inotify_change, quiet=False)
             notifier = pyinotify.Notifier(watch_manager)
             notifier.loop()

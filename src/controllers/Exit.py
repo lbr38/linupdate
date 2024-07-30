@@ -14,7 +14,7 @@ class Exit:
     #   Clean and exit
     #
     #-------------------------------------------------------------------------------------------------------------------
-    def clean_exit(self, exit_code = 0, send_mail: bool = True, logfile: str = None):
+    def clean_exit(self, exit_code = 0, send_mail: bool = False, logfile: str = None):
         my_app = App()
         my_config = Config()
         my_mail = Mail()

@@ -342,6 +342,53 @@ class Config:
 
     #-------------------------------------------------------------------------------------------------------------------
     #
+    #   Get update method
+    #
+    #-------------------------------------------------------------------------------------------------------------------
+    def get_update_method(self):
+        # Get current configuration
+        configuration = self.get_conf()
+
+        return configuration['update']['method']
+
+
+    #-------------------------------------------------------------------------------------------------------------------
+    #
+    #   Set update method
+    #
+    #-------------------------------------------------------------------------------------------------------------------
+    def set_update_method(self, method: str):
+        if method not in ['one_by_one', 'global']:
+            raise Exception('Invalid update method: ' + method)
+
+        # Get current configuration
+        configuration = self.get_conf()
+
+        # Set method
+        configuration['update']['method'] = method
+
+        # Write config file
+        self.write_conf(configuration)
+
+
+    #-------------------------------------------------------------------------------------------------------------------
+    #
+    #   Set exit on package update error
+    #
+    #-------------------------------------------------------------------------------------------------------------------
+    def set_exit_on_package_update_error(self, exit_on_package_update_error: bool):
+        # Get current configuration
+        configuration = self.get_conf()
+
+        # Set method
+        configuration['update']['exit_on_package_update_error'] = exit_on_package_update_error
+
+        # Write config file
+        self.write_conf(configuration)
+
+
+    #-------------------------------------------------------------------------------------------------------------------
+    #
     #   Return linupdate packages exclude list from config file
     #
     #-------------------------------------------------------------------------------------------------------------------

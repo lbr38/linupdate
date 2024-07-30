@@ -17,6 +17,7 @@ from src.controllers.Module.Module import Module
 from src.controllers.Package.Package import Package
 from src.controllers.Service.Service import Service
 from src.controllers.Exit import Exit
+from src.controllers.ArgsException import ArgsException
 
 #-------------------------------------------------------------------------------------------------------------------
 #
@@ -25,6 +26,7 @@ from src.controllers.Exit import Exit
 #-------------------------------------------------------------------------------------------------------------------
 def main():
     exit_code = 0
+    send_mail = True
 
     try:
         # Get current date and time
@@ -58,7 +60,7 @@ def main():
         # Create log file with correct permissions
         Path(logsdir + '/' + logfile).touch()
         Path(logsdir + '/' + logfile).chmod(0o640)
-
+    
         # Log everything to the log file
         with Log(logsdir + '/' + logfile):
             # Print Logo
@@ -109,12 +111,19 @@ def main():
             if my_system.reboot_required() is True:
                 print(' ' + Fore.YELLOW + 'Reboot is required' + Style.RESET_ALL)
 
+    # If an ArgsException is raised, print the error message and do not send an email
+    except ArgsException as e:
+        print('\n' + Fore.RED + ' ✕ ' + Style.RESET_ALL + 'Argument error: ' + str(e) + '\n')
+        send_mail = False
+        exit_code = 1
+
+    # If an exception is raised, print the error message and send an email
     except Exception as e:
         print('\n' + Fore.RED + ' ✕ ' + Style.RESET_ALL + str(e) + '\n')
         exit_code = 1
 
     # Exit with exit code and logfile for email report
-    my_exit.clean_exit(exit_code, True, logsdir + '/' + logfile)
+    my_exit.clean_exit(exit_code, send_mail, logsdir + '/' + logfile)
 
 # Run main function
 main()

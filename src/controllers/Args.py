@@ -11,6 +11,7 @@ from src.controllers.App.App import App
 from src.controllers.App.Config import Config
 from src.controllers.Module.Module import Module
 from src.controllers.Exit import Exit
+from src.controllers.ArgsException import ArgsException
 
 class Args:
 
@@ -79,6 +80,12 @@ class Args:
             parser.add_argument("--check-updates", "-cu", action="store_true", default="null")
             # Ignore exclude
             parser.add_argument("--ignore-exclude", "-ie", action="store_true", default="null")
+            # Get update method
+            parser.add_argument("--get-update-method", action="store", nargs='?', default="null")
+            # Set Update method
+            parser.add_argument("--set-update-method", action="store", nargs='?', default="null")
+            # Exit on package update error
+            parser.add_argument("--exit-on-package-update-error", action="store", nargs='?', default="null")
 
             # Get excluded packages
             parser.add_argument("--get-exclude", action="store", nargs='?', default="null")
@@ -113,7 +120,7 @@ class Args:
 
                     # If no arguments are passed after --mod-configure, print an error
                     if not mod_args:
-                        raise Exception('--mod-configure requires additional arguments')
+                        raise ArgsException('--mod-configure requires additional arguments')
 
                     # Else, pass the arguments to the module
                     else:
@@ -125,19 +132,23 @@ class Args:
 
                         # Check if module exists
                         if not myModule.exists(mod_name):
-                            raise Exception('Module ' + mod_name + ' does not exist')
+                            raise ArgsException('Module ' + mod_name + ' does not exist')
                         
                         # Configure module
                         try:
                             myModule.configure(mod_name, mod_args)
-                            myExit.clean_exit()
+                            myExit.clean_exit(0, False)
                         except Exception as e:
-                            raise Exception('Could not configure ' + mod_name + ' module: ' + str(e))
+                            raise ArgsException('Could not configure ' + mod_name + ' module: ' + str(e))
                 else:
-                    raise Exception('Unknown argument(s): ' + str(remaining_args))
+                    raise ArgsException('Unknown argument(s): ' + str(remaining_args))
 
+        # Catch exceptions
+        # Either ArgsException or Exception, it will always raise an ArgsException to the main script, this to avoid sending an email when an argument error occurs
+        except ArgsException as e:
+            raise ArgsException(str(e))
         except Exception as e:
-            raise Exception(str(e))
+            raise ArgsException(str(e))
 
         try:
             #
@@ -184,7 +195,7 @@ class Args:
                     myExit.clean_exit(0, False)
 
                 except Exception as e:
-                    raise Exception('could not switch profile: ' + str(e))
+                    raise ArgsException('could not switch profile: ' + str(e))
 
             #
             # If --env param has been set
@@ -208,7 +219,7 @@ class Args:
                     myExit.clean_exit(0, False)
 
                 except Exception as e:
-                    raise Exception('could not switch environment: ' + str(e))
+                    raise ArgsException('could not switch environment: ' + str(e))
 
             #
             # If --mail-enable param has been set
@@ -224,7 +235,7 @@ class Args:
 
                     myExit.clean_exit(0, False)
                 except Exception as e:
-                    raise Exception('Could not configure mail: ' + str(e))
+                    raise ArgsException('Could not configure mail: ' + str(e))
 
             #
             # If --get-mail-recipient param has been set
@@ -246,7 +257,7 @@ class Args:
                 
                     myExit.clean_exit(0, False)
                 except Exception as e:
-                    raise Exception('Could not get mail recipient(s): ' + str(e))
+                    raise ArgsException('Could not get mail recipient(s): ' + str(e))
 
             #
             # If --set-mail-recipient param has been set
@@ -257,7 +268,7 @@ class Args:
                     print(' Mail recipient set to ' + Fore.YELLOW + args.set_mail_recipient + Style.RESET_ALL)
                     myExit.clean_exit(0, False)
                 except Exception as e:
-                    raise Exception('Could not set mail recipient(s): ' + str(e))
+                    raise ArgsException('Could not set mail recipient(s): ' + str(e))
 
             #
             # If --ignore-exclude param has been set
@@ -290,6 +301,47 @@ class Args:
                 Args.assume_yes = True
 
             #
+            # If --get-update-method param has been set
+            #
+            if args.get_update_method != "null":
+                try:
+                    update_method = myAppConfig.get_update_method()
+
+                    print(' Current update method: ' + Fore.YELLOW + update_method + Style.RESET_ALL)
+
+                    myExit.clean_exit(0, False)
+                except Exception as e:
+                    raise ArgsException('Could not get update method: ' + str(e))
+
+            #
+            # If --set-update-method param has been set
+            #
+            if args.set_update_method != "null":
+                try:
+                    myAppConfig.set_update_method(args.set_update_method)
+                    print(' Update method set to ' + Fore.YELLOW + args.set_update_method + Style.RESET_ALL)
+
+                    myExit.clean_exit(0, False)
+                except Exception as e:
+                    raise ArgsException('Could not set update method: ' + str(e))
+                
+            #
+            # If --exit-on-package-update-error param has been set
+            #
+            if args.exit_on_package_update_error != "null":
+                try:
+                    if args.exit_on_package_update_error == 'true':
+                        myAppConfig.set_exit_on_package_update_error(True)
+                        print(' Exit on package update error ' + Fore.GREEN + 'enabled' + Style.RESET_ALL)
+                    else:
+                        myAppConfig.set_exit_on_package_update_error(False)
+                        print(' Exit on package update error ' + Fore.YELLOW  + 'disabled' + Style.RESET_ALL)
+
+                    myExit.clean_exit(0, False)
+                except Exception as e:
+                    raise ArgsException('Could not configure exit on package update error: ' + str(e))
+
+            #
             # If --get-exclude param has been set
             #
             if args.get_exclude != "null":
@@ -309,7 +361,7 @@ class Args:
 
                     myExit.clean_exit(0, False)
                 except Exception as e:
-                    raise Exception('Could not get excluded packages: ' + str(e))
+                    raise ArgsException('Could not get excluded packages: ' + str(e))
 
             #
             # If --get-exclude-major param has been set
@@ -331,7 +383,7 @@ class Args:
 
                     myExit.clean_exit(0, False)
                 except Exception as e:
-                    raise Exception('Could not get excluded packages on major update: ' + str(e))
+                    raise ArgsException('Could not get excluded packages on major update: ' + str(e))
 
             #
             # If --get-service-restart param has been set
@@ -353,7 +405,7 @@ class Args:
 
                     myExit.clean_exit(0, False)
                 except Exception as e:
-                    raise Exception('Could not get services to restart: ' + str(e))
+                    raise ArgsException('Could not get services to restart: ' + str(e))
 
             #
             # If --exclude param has been set
@@ -379,7 +431,7 @@ class Args:
 
                     myExit.clean_exit(0, False)
                 except Exception as e:
-                    raise Exception('Could not exclude packages: ' + str(e))
+                    raise ArgsException('Could not exclude packages: ' + str(e))
 
             #
             # If --exclude-major param has been set
@@ -405,7 +457,7 @@ class Args:
 
                     myExit.clean_exit(0, False)
                 except Exception as e:
-                    raise Exception('Could not exclude packages on major update: ' + str(e))
+                    raise ArgsException('Could not exclude packages on major update: ' + str(e))
 
             #
             # If --service-restart param has been set
@@ -431,7 +483,7 @@ class Args:
 
                     myExit.clean_exit(0, False)
                 except Exception as e:
-                    raise Exception('Could not set services to restart after package update: ' + str(e))
+                    raise ArgsException('Could not set services to restart after package update: ' + str(e))
             
             #
             # If --mod-list param has been set
@@ -451,9 +503,9 @@ class Args:
                         myModule.enable(args.mod_enable)
                         myExit.clean_exit(0, False)
                     except Exception as e:
-                        raise Exception('Could not enable module: ' + str(e))
+                        raise ArgsException('Could not enable module: ' + str(e))
                 else:
-                    raise Exception('Module name is required')
+                    raise ArgsException('Module name is required')
 
             #
             # If --mod-disable param has been set
@@ -466,12 +518,16 @@ class Args:
                         myModule.disable(args.mod_disable)
                         myExit.clean_exit(0, False)
                     except Exception as e:
-                        raise Exception('Could not disable module: ' + str(e))
+                        raise ArgsException('Could not disable module: ' + str(e))
                 else:
-                    raise Exception('Module name is required')
+                    raise ArgsException('Module name is required')
 
+        # Catch exceptions
+        # Either ArgsException or Exception, it will always raise an ArgsException to the main script, this to avoid sending an email when an argument error occurs
+        except ArgsException as e:
+            raise ArgsException(str(e))
         except Exception as e:
-            raise Exception(str(e))
+            raise ArgsException(str(e))
 
 
     #-------------------------------------------------------------------------------------------------------------------
@@ -480,169 +536,197 @@ class Args:
     #
     #-------------------------------------------------------------------------------------------------------------------
     def help(self):
-        table = []
-        options = [
-            {
-                'args': [
-                    '--help',
-                    '-h'
-                ],
-                'description': 'Show help',
-            },
-            {
-                'args': [
-                    '--version',
-                    '-v'
-                ],
-                'description': 'Show version',
-            },
-            {
-                'args': [
-                    '--profile',
-                    '-p'
-                ],
-                'option': 'PROFILE',
-                'description': 'Print current profile or set profile'
-            },
-            {
-                'args': [
-                    '--env',
-                    '-e'
-                ],
-                'option': 'ENVIRONMENT',
-                'description': 'Print current environment or set environment'
-            },
-            {
-                'args': [
-                    '--mail-enable'
-                ],
-                'option': 'true|false',
-                'description': 'Enable or disable mail reports'
-            },
-            {
-                'args': [
-                    '--get-mail-recipient'
-                ],
-                'description': 'Get current mail recipient(s)'
-            },
-            {
-                'args': [
-                    '--set-mail-recipient'
-                ],
-                'option': 'EMAIL',
-                'description': 'Set mail recipient(s) (separated by commas)'
-            },
-            {
-                'args': [
-                    '--dist-upgrade',
-                    '-du'
-                ],
-                'description': 'Enable distribution upgrade when updating packages (Debian based OS only)'
-            },
-            {
-                'args': [
-                    '--keep-oldconf'
-                ],
-                'description': 'Keep old configuration files when updating packages (Debian based OS only)'
-            },
-            {
-                'args': [
-                    '--assume-yes',
-                    '-y'
-                ],
-                'description': 'Answer yes to all questions'
-            },
-            {
-                'args': [
-                    '--check-updates',
-                    '-cu'
-                ],
-                'description': 'Only check for updates and exit'
-            },
-            {
-                'args': [
-                    '--ignore-exclude',
-                    '-ie'
-                ],
-                'description': 'Ignore all package exclusions'
-            },
-            {
-                'args': [
-                    '--get-exclude'
-                ],
-                'description': 'Get the list of packages to exclude from update'
-            },
-            {
-                'args': [
-                    '--get-exclude-major'
-                ],
-                'description': 'Get the list of packages to exclude from update (if package has a major version update)'
-            },
-            {
-                'args': [
-                    '--get-service-restart'
-                ],
-                'description': 'Get the list of services to restart after package update'
-            },
-            {
-                'args': [
-                    '--exclude'
-                ],
-                'option': 'PACKAGE',
-                'description': 'Set packages to exclude from update (separated by commas)'
-            },
-            {
-                'args': [
-                    '--exclude-major'
-                ],
-                'option': 'PACKAGE',
-                'description': 'Set packages to exclude from update (if package has a major version update) (separated by commas)'
-            },
-            {
-                'args': [
-                    '--service-restart'
-                ],
-                'option': 'SERVICE',
-                'description': 'Set services to restart after package update (separated by commas)'
-            },
-            {
-                'args': [
-                    '--mod-list'
-                ],
-                'description': 'List available modules'
-            },
-            {
-                'args': [
-                    '--mod-enable'
-                ],
-                'option': 'MODULE',
-                'description': 'Enable a module'
-            },
-            {
-                'args': [
-                    '--mod-disable'
-                ],
-                'option': 'MODULE',
-                'description': 'Disable a module'
-            },
-        ]
+        try:
+            table = []
+            options = [
+                {
+                    'args': [
+                        '--help',
+                        '-h'
+                    ],
+                    'description': 'Show help',
+                },
+                {
+                    'args': [
+                        '--version',
+                        '-v'
+                    ],
+                    'description': 'Show version',
+                },
+                {
+                    'args': [
+                        '--profile',
+                        '-p'
+                    ],
+                    'option': 'PROFILE',
+                    'description': 'Print current profile or set profile'
+                },
+                {
+                    'args': [
+                        '--env',
+                        '-e'
+                    ],
+                    'option': 'ENVIRONMENT',
+                    'description': 'Print current environment or set environment'
+                },
+                {
+                    'args': [
+                        '--mail-enable'
+                    ],
+                    'option': 'true|false',
+                    'description': 'Enable or disable mail reports'
+                },
+                {
+                    'args': [
+                        '--get-mail-recipient'
+                    ],
+                    'description': 'Get current mail recipient(s)'
+                },
+                {
+                    'args': [
+                        '--set-mail-recipient'
+                    ],
+                    'option': 'EMAIL',
+                    'description': 'Set mail recipient(s) (separated by commas)'
+                },
+                {
+                    'args': [
+                        '--dist-upgrade',
+                        '-du'
+                    ],
+                    'description': 'Enable distribution upgrade when updating packages (Debian based OS only)'
+                },
+                {
+                    'args': [
+                        '--keep-oldconf'
+                    ],
+                    'description': 'Keep old configuration files when updating packages (Debian based OS only)'
+                },
+                {
+                    'args': [
+                        '--assume-yes',
+                        '-y'
+                    ],
+                    'description': 'Answer yes to all questions'
+                },
+                {
+                    'args': [
+                        '--check-updates',
+                        '-cu'
+                    ],
+                    'description': 'Only check for updates and exit'
+                },
+                {
+                    'args': [
+                        '--ignore-exclude',
+                        '-ie'
+                    ],
+                    'description': 'Ignore all package exclusions'
+                },
+                {
+                    'args': [
+                        '--get-update-method',
+                    ],
+                    'description': 'Get current update method'
+                },
+                {
+                    'args': [
+                        '--set-update-method',
+                    ],
+                    'option': 'one_by_one|global',
+                    'description': 'Set update method: one_by_one (update packages one by one, one apt command executed for each package) or global (update all packages at once, one single apt command executed for all packages)'
+                },
+                {
+                    'args': [
+                        '--exit-on-package-update-error',
+                    ],
+                    'option': 'true|false',
+                    'description': 'When update method is one_by_one, immediately exit if an error occurs during package update and do not update the remaining packages'
+                },
+                {
+                    'args': [
+                        '--get-exclude'
+                    ],
+                    'description': 'Get the list of packages to exclude from update'
+                },
+                {
+                    'args': [
+                        '--get-exclude-major'
+                    ],
+                    'description': 'Get the list of packages to exclude from update (if package has a major version update)'
+                },
+                {
+                    'args': [
+                        '--get-service-restart'
+                    ],
+                    'description': 'Get the list of services to restart after package update'
+                },
+                {
+                    'args': [
+                        '--exclude'
+                    ],
+                    'option': 'PACKAGE',
+                    'description': 'Set packages to exclude from update (separated by commas)'
+                },
+                {
+                    'args': [
+                        '--exclude-major'
+                    ],
+                    'option': 'PACKAGE',
+                    'description': 'Set packages to exclude from update (if package has a major version update) (separated by commas)'
+                },
+                {
+                    'args': [
+                        '--service-restart'
+                    ],
+                    'option': 'SERVICE',
+                    'description': 'Set services to restart after package update (separated by commas)'
+                },
+                {
+                    'args': [
+                        '--mod-list'
+                    ],
+                    'description': 'List available modules'
+                },
+                {
+                    'args': [
+                        '--mod-enable'
+                    ],
+                    'option': 'MODULE',
+                    'description': 'Enable a module'
+                },
+                {
+                    'args': [
+                        '--mod-disable'
+                    ],
+                    'option': 'MODULE',
+                    'description': 'Disable a module'
+                },
+            ]
 
-        # Add options to table
-        for option in options:
-            if len(option['args']) > 1:
-                args_str = ', '.join(option['args'])
-            else:
-                args_str = option['args'][0]
+            # Add options to table
+            for option in options:
+                if len(option['args']) > 1:
+                    args_str = ', '.join(option['args'])
+                else:
+                    args_str = option['args'][0]
 
-            if 'option' in option:
-                args_str += Style.DIM + ' [' + option['option'] + ']' + Style.RESET_ALL
+                if 'option' in option:
+                    args_str += Style.DIM + ' [' + option['option'] + ']' + Style.RESET_ALL
 
-            table.append(['', args_str, option['description']])
+                table.append(['', args_str, option['description']])
 
 
-        print(' Available options:', end='\n\n')
+            print(' Available options:', end='\n\n')
 
-        # Print table
-        print(tabulate(table, headers=["", "Name", "Description"], tablefmt="simple"), end='\n\n')
+            # Print table
+            print(tabulate(table, headers=["", "Name", "Description"], tablefmt="simple"), end='\n\n')
 
-        print(' Usage: linupdate [OPTIONS]', end='\n\n')
+            print(' Usage: linupdate [OPTIONS]', end='\n\n')
+        
+        # Catch exceptions
+        # Either ArgsException or Exception, it will always raise an ArgsException to the main script, this to avoid sending an email when an argument error occurs
+        except ArgsException as e:
+            raise ArgsException('Printing help error: ' + str(e))
+        except Exception as e:
+            raise ArgsException('Printing help error: ' + str(e))

@@ -254,6 +254,24 @@ class Config:
 
     #-------------------------------------------------------------------------------------------------------------------
     #
+    #   Set remove existing repositories
+    #
+    #-------------------------------------------------------------------------------------------------------------------
+    def set_remove_existing_repos(self, value: bool):
+        # Get current configuration
+        configuration = self.get_conf()
+
+        # Set remove_existing_repos
+        configuration['client']['get_repos_from_reposerver']['remove_existing_repos'] = value
+
+        # Write config file
+        self.write_conf(configuration)
+
+        print(' Remove existing repositories set to ' + str(value))
+
+
+    #-------------------------------------------------------------------------------------------------------------------
+    #
     #   Get authentication id
     #
     #-------------------------------------------------------------------------------------------------------------------

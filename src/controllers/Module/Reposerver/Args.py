@@ -11,6 +11,7 @@ from src.controllers.Module.Reposerver.Config import Config
 from src.controllers.Module.Reposerver.Register import Register
 from src.controllers.Module.Reposerver.Status import Status
 from src.controllers.Module.Reposerver.Agent import Agent
+from src.controllers.ArgsException import ArgsException
 
 class Args:
     def __init__(self):
@@ -40,10 +41,12 @@ class Args:
             # IP
             parser.add_argument("--ip", action="store", nargs='?', default="null")
         
-            # Allow configuration update
+            # Enable or disable packages configuration update
             parser.add_argument("--get-packages-conf-from-reposerver", action="store", nargs='?', default="null")
-            # Allow repos update
+            # Enable or disable repos update
             parser.add_argument("--get-repos-from-reposerver", action="store", nargs='?', default="null")
+            # Enable or disable the removing of existing repos
+            parser.add_argument("--remove-existing-repos", action="store", nargs='?', default="null")
 
             # Agent enable
             parser.add_argument("--agent-enable", action="store", nargs='?', default="null")
@@ -81,8 +84,12 @@ class Args:
             # Else, parse arguments
             args = parser.parse_args(module_args)
             
+        # Catch exceptions
+        # Either ArgsException or Exception, it will always raise an ArgsException to the main script, this to avoid sending an email when an argument error occurs
+        except ArgsException as e:
+            raise ArgsException(str(e))
         except Exception as e:
-            raise Exception('error while parsing arguments: ' + str(e))
+            raise ArgsException(str(e))
 
         try:
             #
@@ -171,6 +178,16 @@ class Args:
                 self.exitController.clean_exit(0, False)
 
             #
+            # If --remove-existing-repos param has been set
+            #
+            if args.remove_existing_repos != "null":
+                if args.remove_existing_repos == 'true':
+                    self.configController.set_remove_existing_repos(True)
+                else:
+                    self.configController.set_remove_existing_repos(False)
+                self.exitController.clean_exit(0, False)
+
+            #
             # If --register param has been set
             #
             if args.register != "null" and args.register:
@@ -242,8 +259,12 @@ class Args:
                 self.statusController.sendPackagesStatus()
                 self.exitController.clean_exit(0, False)
     
+        # Catch exceptions
+        # Either ArgsException or Exception, it will always raise an ArgsException to the main script, this to avoid sending an email when an argument error occurs
+        except ArgsException as e:
+            raise ArgsException(str(e))
         except Exception as e:
-            raise Exception(str(e))
+            raise ArgsException(str(e))
 
     #-------------------------------------------------------------------------------------------------------------------
     #
@@ -251,167 +272,181 @@ class Args:
     #
     #-------------------------------------------------------------------------------------------------------------------
     def help(self):
-        table = []
-        options = [
-            {
-                'args': [
-                    '--help',
-                    '-h'
-                ],
-                'description': 'Show reposerver module help',
-            },
-            {
-                'args': [
-                    'Configuring reposerver:',
-                ],
-                'description': ''
-            },
-            {
-                'args': [
-                    '--url',
-                ],
-                'option': 'URL',
-                'description': 'Specify target reposerver URL',
-            },
-            {
-                'args': [
-                    '--api-key',
-                ],
-                'option': 'APIKEY',
-                'description': 'Specify API key to authenticate to the reposerver',
-            },
-            {
-                'args': [
-                    '--ip',
-                ],
-                'option': 'IP',
-                'description': 'Specify an alternative local IP address to use to authenticate to the reposerver (default: will use the public IP address)',
-            },
-            {
-                'args': [
-                    '--register',
-                ],
-                'description': 'Register this host to the reposerver (--api-key required)'
-            },
-            {
-                'args': [
-                    '--unregister',
-                ],
-                'description': 'Unregister this host from the reposerver'
-            },
-            {
-                'args': [
-                    'Configuration retrieval from reposerver (using configured profile):',
-                ],
-                'description': ''
-            },
-            {
-                'args': [
-                    '--get-packages-conf-from-reposerver',
-                ],
-                'option': 'true|false',
-                'description': 'If enabled, packages exclusions will be retrieved from the reposerver',
-            },
-            {
-                'args': [
-                    '--get-repos-from-reposerver',
-                ],
-                'option': 'true|false',
-                'description': 'If enabled, repositories configuration will be retrieved from the reposerver',
-            },
-            {
-                'args': [
-                    'Retrieving data from reposerver:',
-                ],
-                'description': ''
-            },
-            {
-                'args': [
-                    '--get-reposerver-conf',
-                ],
-                'description': 'Get reposerver global configuration'
-            },
-            {
-                'args': [
-                    '--get-profile-packages-conf',
-                ],
-                'description': 'Get profile packages configuration from reposerver'
-            },
-            {
-                'args': [
-                    '--get-profile-repos',
-                ],
-                'description': 'Get profile repositories from reposerver'
-            },
-            {
-                'args': [
-                    'Sending data to reposerver:',
-                ],
-                'description': ''
-            },
-            {
-                'args': [
-                    '--send-general-status',
-                ],
-                'description': 'Send host global informations (OS, version, kernel..) to the reposerver'
-            },
-            {
-                'args': [
-                    '--send-packages-status',
-                ],
-                'description': 'Send this host packages informations to the reposerver (available package updates, installed packages)'
-            },
-            {
-                'args': [
-                    '--send-full-history',
-                ],
-                'description': 'Send host packages events history (updates, downgrades, uninstallations...) to the reposerver'
-            },
-            {
-                'args': [
-                    '--send-full-status',
-                ],
-                'description': 'Send all of the previous informations to the reposerver'
-            },
-            {
-                'args': [
-                    '--agent-enable',
-                ],
-                'option': 'true|false',
-                'description': 'Enable reposerver module agent. This agent will regularly send informations about this host to reposerver (global informations, packages informations...)',
-            },
-            {
-                'args': [
-                    '--agent-listen-enable',
-                ],
-                'option': 'true|false',
-                'description': 'Enable or disable agent listening for requests coming from the reposerver',
-            },
-            {
-                'args': [
-                    '--agent-listen-int',
-                ],
-                'option': 'INTERFACE',
-                'description': 'Specify the local network interface to use to listen for requests coming from the reposerver',
-            }
-        ]
+        try:
+            table = []
+            options = [
+                {
+                    'args': [
+                        '--help',
+                        '-h'
+                    ],
+                    'description': 'Show reposerver module help',
+                },
+                {
+                    'args': [
+                        'Configuring reposerver:',
+                    ],
+                    'description': ''
+                },
+                {
+                    'args': [
+                        '--url',
+                    ],
+                    'option': 'URL',
+                    'description': 'Specify target reposerver URL',
+                },
+                {
+                    'args': [
+                        '--api-key',
+                    ],
+                    'option': 'APIKEY',
+                    'description': 'Specify API key to authenticate to the reposerver',
+                },
+                {
+                    'args': [
+                        '--ip',
+                    ],
+                    'option': 'IP',
+                    'description': 'Specify an alternative local IP address to use to authenticate to the reposerver (default: will use the public IP address)',
+                },
+                {
+                    'args': [
+                        '--register',
+                    ],
+                    'description': 'Register this host to the reposerver (--api-key required)'
+                },
+                {
+                    'args': [
+                        '--unregister',
+                    ],
+                    'description': 'Unregister this host from the reposerver'
+                },
+                {
+                    'args': [
+                        'Configuration retrieval from reposerver (using configured profile):',
+                    ],
+                    'description': ''
+                },
+                {
+                    'args': [
+                        '--get-packages-conf-from-reposerver',
+                    ],
+                    'option': 'true|false',
+                    'description': 'If enabled, packages exclusions will be retrieved from the reposerver',
+                },
+                {
+                    'args': [
+                        '--get-repos-from-reposerver',
+                    ],
+                    'option': 'true|false',
+                    'description': 'If enabled, repositories configuration will be retrieved from the reposerver',
+                },
+                {
+                    'args': [
+                        '--remove-existing-repos',
+                    ],
+                    'option': 'true|false',
+                    'description': 'If enabled, existing repositories will be removed before adding the new ones',
+                },
+                {
+                    'args': [
+                        'Retrieving data from reposerver:',
+                    ],
+                    'description': ''
+                },
+                {
+                    'args': [
+                        '--get-reposerver-conf',
+                    ],
+                    'description': 'Get reposerver global configuration'
+                },
+                {
+                    'args': [
+                        '--get-profile-packages-conf',
+                    ],
+                    'description': 'Get profile packages configuration from reposerver'
+                },
+                {
+                    'args': [
+                        '--get-profile-repos',
+                    ],
+                    'description': 'Get profile repositories from reposerver'
+                },
+                {
+                    'args': [
+                        'Sending data to reposerver:',
+                    ],
+                    'description': ''
+                },
+                {
+                    'args': [
+                        '--send-general-status',
+                    ],
+                    'description': 'Send host global informations (OS, version, kernel..) to the reposerver'
+                },
+                {
+                    'args': [
+                        '--send-packages-status',
+                    ],
+                    'description': 'Send this host packages informations to the reposerver (available package updates, installed packages)'
+                },
+                {
+                    'args': [
+                        '--send-full-history',
+                    ],
+                    'description': 'Send host packages events history (updates, downgrades, uninstallations...) to the reposerver'
+                },
+                {
+                    'args': [
+                        '--send-full-status',
+                    ],
+                    'description': 'Send all of the previous informations to the reposerver'
+                },
+                {
+                    'args': [
+                        '--agent-enable',
+                    ],
+                    'option': 'true|false',
+                    'description': 'Enable reposerver module agent. This agent will regularly send informations about this host to reposerver (global informations, packages informations...)',
+                },
+                {
+                    'args': [
+                        '--agent-listen-enable',
+                    ],
+                    'option': 'true|false',
+                    'description': 'Enable or disable agent listening for requests coming from the reposerver',
+                },
+                {
+                    'args': [
+                        '--agent-listen-int',
+                    ],
+                    'option': 'INTERFACE',
+                    'description': 'Specify the local network interface to use to listen for requests coming from the reposerver',
+                }
+            ]
 
-        # Add options to table
-        for option in options:
-            if len(option['args']) > 1:
-                args_str = ', '.join(option['args'])
-            else:
-                args_str = option['args'][0]
+            # Add options to table
+            for option in options:
+                if len(option['args']) > 1:
+                    args_str = ', '.join(option['args'])
+                else:
+                    args_str = option['args'][0]
 
-            if 'option' in option:
-                args_str += Style.DIM + ' [' + option['option'] + ']' + Style.RESET_ALL
+                if 'option' in option:
+                    args_str += Style.DIM + ' [' + option['option'] + ']' + Style.RESET_ALL
 
-            table.append(['', args_str, option['description']])
+                table.append(['', args_str, option['description']])
 
 
-        print(' Available options:', end='\n\n')
+            print(' Available options:', end='\n\n')
 
-        # Print table
-        print(tabulate(table, headers=["", "Name", "Description"], tablefmt="simple"), end='\n\n')
+            # Print table
+            print(tabulate(table, headers=["", "Name", "Description"], tablefmt="simple"), end='\n\n')
 
-        print(' Usage: linupdate --mod-configure reposerver [OPTIONS]', end='\n\n')
+            print(' Usage: linupdate --mod-configure reposerver [OPTIONS]', end='\n\n')
+        # Catch exceptions
+        # Either ArgsException or Exception, it will always raise an ArgsException to the main script, this to avoid sending an email when an argument error occurs
+        except ArgsException as e:
+            raise ArgsException('Printing help error: ' + str(e))
+        except Exception as e:
+            raise ArgsException('Printing help error: ' + str(e))
