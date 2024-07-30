@@ -12,15 +12,17 @@ class HttpRequest:
     def __init__(self):
         self.quiet = False
 
-    #---------------------------------------------------------------------------------------------------
+    #-----------------------------------------------------------------------------------------------
     #
     #   GET request
     #
-    #---------------------------------------------------------------------------------------------------
+    #-----------------------------------------------------------------------------------------------
     def get(self, url: str, id: str, token: str, connectionTimeout: int = 5, readTimeout: int = 3):
         # If an Id and a token are provided, add them to the URL
         if id != "" and token != "":
-            response = requests.get(url, headers = {'Authorization': 'Host ' + id + ':' + token}, timeout = (connectionTimeout, readTimeout))
+            response = requests.get(url,
+                                    headers = {'Authorization': 'Host ' + id + ':' + token},
+                                    timeout = (connectionTimeout, readTimeout))
         else:
             response = requests.get(url, timeout = (connectionTimeout, readTimeout))
 
@@ -28,50 +30,58 @@ class HttpRequest:
         return self.request_parse_result(response)
 
 
-    #---------------------------------------------------------------------------------------------------
+    #-----------------------------------------------------------------------------------------------
     #
     #   POST request with API key
     #
-    #---------------------------------------------------------------------------------------------------
+    #-----------------------------------------------------------------------------------------------
     def post_token(self, url: str, apiKey: str, data, connectionTimeout: int = 5, readTimeout: int = 3):
         # Send POST request to URL with API key
-        response = requests.post(url, data = json.dumps(data), headers = {'Authorization': 'Bearer ' + apiKey, 'Content-Type': 'application/json'}, timeout = (connectionTimeout, readTimeout))
+        response = requests.post(url,
+                                 data = json.dumps(data),
+                                 headers = {'Authorization': 'Bearer ' + apiKey, 'Content-Type': 'application/json'},
+                                 timeout = (connectionTimeout, readTimeout))
 
         # Parse response and return results if 200
         return self.request_parse_result(response)
-    
 
-    #---------------------------------------------------------------------------------------------------
+
+    #-----------------------------------------------------------------------------------------------
     #
     #   PUT request with Id and token
     #
-    #---------------------------------------------------------------------------------------------------
+    #-----------------------------------------------------------------------------------------------
     def put(self, url: str, id: str, token: str, data, connectionTimeout: int = 5, readTimeout: int = 3):
         # Send PUT request to URL with Id and token
-        response = requests.put(url, data = json.dumps(data), headers = {'Authorization': 'Host ' + id + ':' + token}, timeout = (connectionTimeout, readTimeout))
+        response = requests.put(url,
+                                data = json.dumps(data),
+                                headers = {'Authorization': 'Host ' + id + ':' + token},
+                                timeout = (connectionTimeout, readTimeout))
 
         # Parse response and return results if 200
         return self.request_parse_result(response)
 
 
-    #---------------------------------------------------------------------------------------------------
+    #-----------------------------------------------------------------------------------------------
     #
     #   DELETE request with Id and token
     #
-    #---------------------------------------------------------------------------------------------------
+    #-----------------------------------------------------------------------------------------------
     def delete(self, url: str, id: str, token: str, connectionTimeout: int = 5, readTimeout: int = 3):
         # Send DELETE request to URL with Id and token
-        response = requests.delete(url, headers = {'Authorization': 'Host ' + id + ':' + token}, timeout = (connectionTimeout, readTimeout))
+        response = requests.delete(url,
+                                   headers = {'Authorization': 'Host ' + id + ':' + token},
+                                   timeout = (connectionTimeout, readTimeout))
 
         # Parse response and return results if 200
         return self.request_parse_result(response)
 
 
-    #---------------------------------------------------------------------------------------------------
+    #-----------------------------------------------------------------------------------------------
     #
     #   Parse request result
     #
-    #---------------------------------------------------------------------------------------------------
+    #-----------------------------------------------------------------------------------------------
     def request_parse_result(self, response):
         myUtils = Utils()
 

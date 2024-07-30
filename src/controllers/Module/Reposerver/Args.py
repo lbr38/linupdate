@@ -21,11 +21,11 @@ class Args:
         self.statusController      = Status()
         self.agentController       = Agent()
 
-    #---------------------------------------------------------------------------------------------------
+    #-----------------------------------------------------------------------------------------------
     #
     #   Parse arguments
     #
-    #---------------------------------------------------------------------------------------------------
+    #-----------------------------------------------------------------------------------------------
     def parse(self, module_args):
         try:
             # Parse arguments
@@ -82,7 +82,12 @@ class Args:
                 self.exitController.clean_exit(0, False)
 
             # Else, parse arguments
-            args = parser.parse_args(module_args)
+            args, remaining_args = parser.parse_known_args(module_args)
+
+            # If there are remaining arguments, print help and raise an exception
+            if remaining_args:
+                self.help()
+                raise ArgsException('Unknown argument(s): ' + str(remaining_args))
             
         # Catch exceptions
         # Either ArgsException or Exception, it will always raise an ArgsException to the main script, this to avoid sending an email when an argument error occurs
@@ -266,11 +271,11 @@ class Args:
         except Exception as e:
             raise ArgsException(str(e))
 
-    #---------------------------------------------------------------------------------------------------
+    #-----------------------------------------------------------------------------------------------
     #
     #   Print help
     #
-    #---------------------------------------------------------------------------------------------------
+    #-----------------------------------------------------------------------------------------------
     def help(self):
         try:
             table = []

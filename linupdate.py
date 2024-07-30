@@ -2,10 +2,10 @@
 # coding: utf-8
 
 # Import libraries
-from colorama import Fore, Style
+import socket
 from pathlib import Path
 from datetime import datetime
-import socket
+from colorama import Fore, Style
 
 # Import classes
 from src.controllers.Log import Log
@@ -19,11 +19,11 @@ from src.controllers.Service.Service import Service
 from src.controllers.Exit import Exit
 from src.controllers.ArgsException import ArgsException
 
-#---------------------------------------------------------------------------------------------------
+#-----------------------------------------------------------------------------------------------
 #
 #   Main function
 #
-#---------------------------------------------------------------------------------------------------
+#-----------------------------------------------------------------------------------------------
 def main():
     exit_code = 0
     send_mail = True
@@ -117,7 +117,7 @@ def main():
 
     # If an ArgsException is raised, print the error message and do not send an email
     except ArgsException as e:
-        print('\n' + Fore.RED + ' ✕ ' + Style.RESET_ALL + 'Argument error: ' + str(e) + '\n')
+        print('\n' + Fore.RED + ' ✕ ' + Style.RESET_ALL + str(e) + '\n')
         send_mail = False
         exit_code = 1
 

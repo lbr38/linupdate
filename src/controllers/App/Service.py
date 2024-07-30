@@ -23,11 +23,11 @@ class Service:
         self.moduleController = Module()
 
 
-    #---------------------------------------------------------------------------------------------------
+    #-----------------------------------------------------------------------------------------------
     #
     #   Service main function
     #
-    #---------------------------------------------------------------------------------------------------
+    #-----------------------------------------------------------------------------------------------
     def main(self):
         try:
             print("[linupdate] Hi, I'm linupdate service. I will start all enabled module agents and let them run in background. Stop me and I will stop all module agents.")
@@ -44,7 +44,7 @@ class Service:
                         if retcode != 0:
                             print('[' + child['agent'] + '-agent] Terminated with return code ' + str(retcode) + ' :(')
                             print("[" + child['agent'] + "-agent] I'm dead for now but I will be resurrected soon, please wait or restart main service")
-                        
+
                         # Remove child process from list
                         self.child_processes.remove(child)
 
@@ -103,7 +103,7 @@ class Service:
                     # Add child process start timestamp to list, first remove it if it already exists (from a previous start)
                     if any(agent['agent'] == module for agent in self.child_processes_started):
                         self.child_processes_started = [agent for agent in self.child_processes_started if agent['agent'] != module]
-                    
+
                     # Add the new start timestamp
                     self.child_processes_started.append({
                         'agent': module,
@@ -116,12 +116,12 @@ class Service:
             print('[linupdate] General error: ' + str(e))
             exit(1)
 
-    
-    #---------------------------------------------------------------------------------------------------
+
+    #-----------------------------------------------------------------------------------------------
     #
     #   Run a module agent as a child process
     #
-    #---------------------------------------------------------------------------------------------------
+    #-----------------------------------------------------------------------------------------------
     def run_agent(self, module_name):
         try:
             # Convert module name to uppercase first letter
@@ -141,11 +141,11 @@ class Service:
             exit(1)
 
 
-    #---------------------------------------------------------------------------------------------------
+    #-----------------------------------------------------------------------------------------------
     #
     #   Stop all child processes
     #
-    #---------------------------------------------------------------------------------------------------
+    #-----------------------------------------------------------------------------------------------
     def stop_child_processes(self):
         if not self.child_processes:
             return
@@ -169,12 +169,12 @@ class Service:
             print('Stopped ' + child['agent'] + ' module agent')
 
 
-    #---------------------------------------------------------------------------------------------------
+    #-----------------------------------------------------------------------------------------------
     #
     #   Signal handler
     #   This function is called when the service receives a SIGTERM or SIGINT signal
     #
-    #---------------------------------------------------------------------------------------------------
+    #-----------------------------------------------------------------------------------------------
     def signal_handler(self, sig, frame):
         print('Linupdate service received signal ' + str(sig) + '. Stopping all child processes...')
 

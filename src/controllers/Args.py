@@ -15,11 +15,11 @@ from src.controllers.ArgsException import ArgsException
 
 class Args:
 
-    #---------------------------------------------------------------------------------------------------
+    #-----------------------------------------------------------------------------------------------
     #
     #   Pre-parse arguments
     #
-    #---------------------------------------------------------------------------------------------------
+    #-----------------------------------------------------------------------------------------------
     def pre_parse(self):
         # Default values
         Args.from_agent = False
@@ -31,11 +31,11 @@ class Args:
             Args.from_agent = True
 
 
-    #---------------------------------------------------------------------------------------------------
+    #-----------------------------------------------------------------------------------------------
     #
     #   Parse arguments
     #
-    #---------------------------------------------------------------------------------------------------
+    #-----------------------------------------------------------------------------------------------
     def parse(self):
         # Default values
         Args.assume_yes = False
@@ -69,7 +69,7 @@ class Args:
             parser.add_argument("--get-mail-recipient", action="store_true", default="null")
             # Set mail recipient
             parser.add_argument("--set-mail-recipient", action="store", nargs='?', default="null")
-            
+
             # Dist upgrade
             parser.add_argument("--dist-upgrade", "-du", action="store_true", default="null")
             # Keep oldconf
@@ -124,7 +124,7 @@ class Args:
 
                     # Else, pass the arguments to the module
                     else:
-                        # Retrieve module name 
+                        # Retrieve module name
                         mod_name = mod_args[0]
 
                         # Retrieve all arguments after the module name
@@ -133,14 +133,17 @@ class Args:
                         # Check if module exists
                         if not myModule.exists(mod_name):
                             raise ArgsException('Module ' + mod_name + ' does not exist')
-                        
+
                         # Configure module
                         try:
                             myModule.configure(mod_name, mod_args)
                             myExit.clean_exit(0, False)
                         except Exception as e:
                             raise ArgsException('Could not configure ' + mod_name + ' module: ' + str(e))
+
+                # If there are remaining arguments, print help and raise an exception
                 else:
+                    self.help()
                     raise ArgsException('Unknown argument(s): ' + str(remaining_args))
 
         # Catch exceptions
@@ -191,7 +194,7 @@ class Args:
                     # Else print the current profile
                     else:
                         print(' Current profile: ' + Fore.YELLOW + myAppConfig.get_profile() + Style.RESET_ALL)
-                    
+
                     myExit.clean_exit(0, False)
 
                 except Exception as e:
@@ -254,7 +257,7 @@ class Args:
                         print('  ▪ None')
 
                     print(Style.RESET_ALL)
-                
+
                     myExit.clean_exit(0, False)
                 except Exception as e:
                     raise ArgsException('Could not get mail recipient(s): ' + str(e))
@@ -324,7 +327,7 @@ class Args:
                     myExit.clean_exit(0, False)
                 except Exception as e:
                     raise ArgsException('Could not set update method: ' + str(e))
-                
+
             #
             # If --exit-on-package-update-error param has been set
             #
@@ -352,7 +355,7 @@ class Args:
 
                     for package in packages:
                         print('  ▪ ' + package)
-                    
+
                     # If no package is excluded
                     if not packages:
                         print('  ▪ None')
@@ -419,7 +422,7 @@ class Args:
                     packages = myAppConfig.get_exclude()
 
                     print(' Excluding packages: ' + Fore.YELLOW)
-                    
+
                     for package in packages:
                         print('  ▪ ' + package)
 
@@ -484,7 +487,7 @@ class Args:
                     myExit.clean_exit(0, False)
                 except Exception as e:
                     raise ArgsException('Could not set services to restart after package update: ' + str(e))
-            
+
             #
             # If --mod-list param has been set
             #
@@ -530,11 +533,11 @@ class Args:
             raise ArgsException(str(e))
 
 
-    #---------------------------------------------------------------------------------------------------
+    #-----------------------------------------------------------------------------------------------
     #
     #   Print help
     #
-    #---------------------------------------------------------------------------------------------------
+    #-----------------------------------------------------------------------------------------------
     def help(self):
         try:
             table = []
@@ -723,7 +726,7 @@ class Args:
             print(tabulate(table, headers=["", "Name", "Description"], tablefmt="simple"), end='\n\n')
 
             print(' Usage: linupdate [OPTIONS]', end='\n\n')
-        
+
         # Catch exceptions
         # Either ArgsException or Exception, it will always raise an ArgsException to the main script, this to avoid sending an email when an argument error occurs
         except ArgsException as e:

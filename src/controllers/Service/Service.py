@@ -9,11 +9,11 @@ from colorama import Fore, Style
 from src.controllers.App.Config import Config
 
 class Service:
-    #---------------------------------------------------------------------------------------------------
+    #-----------------------------------------------------------------------------------------------
     #
     #   Restart services
     #
-    #---------------------------------------------------------------------------------------------------
+    #-----------------------------------------------------------------------------------------------
     def restart(self, update_summary: list):
         # Retrieve services to restart
         services = Config().get_service_to_restart()
@@ -59,7 +59,7 @@ class Service:
             # If service is unknown or inactive, skip it
             if result.returncode != 0:
                 print('service does not exist or is not active')
-                continue               
+                continue
 
             # Restart service
             result = subprocess.run(
