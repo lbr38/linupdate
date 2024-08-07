@@ -2,12 +2,12 @@
 
 # Import libraries
 from colorama import Fore, Style
-import subprocess
 import time
 import pyinotify
 import threading
 import websocket
 import json
+import sys
 from pathlib import Path
 
 # Import classes
@@ -82,7 +82,7 @@ class Agent:
         # Checking that reposerver module is enabled, if not quit (but with error 0 because it could have been disabled on purpose)
         if 'reposerver' not in enabled_modules:
             print('[reposerver-agent] Reposerver module is disabled, quitting.')
-            exit(0)
+            sys.exit(0)
 
         # Retrieving configuration
         self.configuration = self.configController.get_conf()
@@ -90,17 +90,17 @@ class Agent:
         # Checking that reposerver URL is set, if not quit
         if not self.configuration['reposerver']['url']:
             print('[reposerver-agent] Reposerver URL is not set. Quitting.')
-            exit(1)
+            sys.exit(1)
 
         # Check that this host has an auth id and token
         if not self.configuration['client']['auth']['id'] or not self.configuration['client']['auth']['token']:
             print('[reposerver-agent] No authentication id and token set, is this host registered on the Repomanager server? Quitting.')
-            exit(1)
+            sys.exit(1)
 
         # Checking that reposerver agent is enabled, if not quit (but with error 0 because it could have been disabled on purpose)
         if not self.configuration['agent']['enabled']:
             print('[reposerver-agent] Reposerver agent is disabled. Quitting.')
-            exit(0)
+            sys.exit(0)
         
         # Checking that a log file exists for yum/dnf or apt
         if Path('/var/log/yum.log').is_file():
@@ -159,8 +159,6 @@ class Agent:
     #
     #-----------------------------------------------------------------------------------------------
     def websocket_on_message(self, ws, message):
-        print('Message : ' + str(message))
-        
         # Decode JSON message
         message = json.loads(message)
 
@@ -168,12 +166,16 @@ class Agent:
         if 'request' in message:
             # Case the request is 'authenticate', then authenticate to the reposerver
             if message['request'] == 'authenticate':
-                # Send id and token to authenticate
+                print('[reposerver-agent] Authenticating to the reposerver')
+
                 id = self.configuration['client']['auth']['id']
                 token = self.configuration['client']['auth']['token']
+
+                # Send id and token to authenticate
                 self.websocket.send(json.dumps({'action': 'authenticate', 'id': id, 'token': token}))
 
             elif message['request'] == 'send-general-status':
+                print('[reposerver-agent] Reposerver requested general status')
                 self.reposerverStatusController.sendGeneralStatus()
             else:
                 print('[reposerver-agent] Unknown request from reposerver: ' + message['request'])
@@ -198,9 +200,7 @@ class Agent:
     #
     #-----------------------------------------------------------------------------------------------
     def websocket_on_close(self, ws, close_status_code, close_msg):
-        print("### closed ###")
-        print("Close status code: ", close_status_code)
-        print("Close message: ", close_msg)
+        print('[reposerver-agent] Reposerver websocket connection closed with status code: ' + str(close_status_code) + ' and message: ' + close_msg)
         raise Exception('reposerver websocket connection closed')
 
 
@@ -226,13 +226,17 @@ class Agent:
             # Set websocket process as running to prevent multiple processes from running
             self.websocket_is_running = True
 
-            websocket.enableTrace(True)
+            # Set to True for debugging
+            websocket.enableTrace(False)
+
+            # Open websocket connection
             self.websocket = websocket.WebSocketApp(reposerver_ws_url + '/ws',
                                         on_open=self.websocket_on_open,
                                         on_message=self.websocket_on_message,
                                         on_error=self.websocket_on_error,
                                         on_close=self.websocket_on_close)
 
+            # Run websocket
             self.websocket.on_open = self.websocket_on_open
             self.websocket.run_forever()
 
