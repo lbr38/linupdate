@@ -3,8 +3,8 @@
 # Import libraries
 from datetime import datetime
 from pathlib import Path
-from colorama import Fore, Style
 import sys, socket, getpass, subprocess
+from colorama import Fore, Style
 
 # Import classes
 from src.controllers.App.Config import Config

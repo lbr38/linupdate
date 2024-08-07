@@ -6,6 +6,8 @@ import subprocess
 import time
 import pyinotify
 import threading
+import websocket
+import json
 from pathlib import Path
 
 # Import classes
@@ -46,41 +48,6 @@ class Agent:
 
     #-----------------------------------------------------------------------------------------------
     #
-    #   Get current agent listening interface
-    #
-    #-----------------------------------------------------------------------------------------------
-    def getListenInterface(self):
-        # Get current configuration
-        configuration = self.configController.get_conf()
-
-        # Return watch_interface
-        return configuration['agent']['listen']['interface']
-
-
-    #-----------------------------------------------------------------------------------------------
-    #
-    #   Set agent listening interface
-    #
-    #-----------------------------------------------------------------------------------------------
-    def setListenInterface(self, value: str):
-        try:
-            # Get current configuration
-            configuration = self.configController.get_conf()
-
-            # Set listen interface
-            configuration['agent']['listen']['interface'] = value
-
-            # Write config file
-            self.configController.write_conf(configuration)
-        
-            print(' Agent listening interface set to ' + Fore.GREEN + value + Style.RESET_ALL)
-        
-        except Exception as e:
-            raise Exception('could not set agent listening interface to ' + value + ': ' + str(e))
-
-
-    #-----------------------------------------------------------------------------------------------
-    #
     #   Enable or disable agent listening
     #
     #-----------------------------------------------------------------------------------------------
@@ -116,15 +83,23 @@ class Agent:
         if 'reposerver' not in enabled_modules:
             print('[reposerver-agent] Reposerver module is disabled, quitting.')
             exit(0)
-        
-        # Checking that a configuration file exists for reposerver module
-        if not Path('/etc/linupdate/modules/reposerver.yml').is_file():
-            raise Exception('reposerver module configuration file /etc/linupdate/modules/reposerver.yml does not exist')
-        
+
+        # Retrieving configuration
+        self.configuration = self.configController.get_conf()
+
+        # Checking that reposerver URL is set, if not quit
+        if not self.configuration['reposerver']['url']:
+            print('[reposerver-agent] Reposerver URL is not set. Quitting.')
+            exit(1)
+
+        # Check that this host has an auth id and token
+        if not self.configuration['client']['auth']['id'] or not self.configuration['client']['auth']['token']:
+            print('[reposerver-agent] No authentication id and token set, is this host registered on the Repomanager server? Quitting.')
+            exit(1)
+
         # Checking that reposerver agent is enabled, if not quit (but with error 0 because it could have been disabled on purpose)
-        configuration = self.configController.get_conf()
-        if not configuration['agent']['enabled']:
-            print('[reposerver-agent] Reposerver agent is disabled, quitting.')
+        if not self.configuration['agent']['enabled']:
+            print('[reposerver-agent] Reposerver agent is disabled. Quitting.')
             exit(0)
         
         # Checking that a log file exists for yum/dnf or apt
@@ -161,11 +136,10 @@ class Agent:
             self.inotify_is_running = True
 
             watch_manager = pyinotify.WatchManager()
-            # watch_manager.add_watch(self.log_file, pyinotify.IN_MODIFY, self.on_inotify_change)
+            # TODO : to test
             # quiet=False => raise Exception
-            # watch_manager.add_watch(self.log_file, pyinotify.IN_CLOSE_WRITE, self.on_inotify_change, quiet=False)
-            # TODO debug
-            watch_manager.add_watch('/tmp/toto', pyinotify.IN_CLOSE_WRITE, self.on_inotify_change, quiet=False)
+            # watch_manager.add_watch(self.log_file, pyinotify.IN_MODIFY, self.on_inotify_change)
+            watch_manager.add_watch(self.log_file, pyinotify.IN_CLOSE_WRITE, self.on_inotify_change, quiet=False)
             notifier = pyinotify.Notifier(watch_manager)
             notifier.loop()
 
@@ -181,52 +155,111 @@ class Agent:
 
     #-----------------------------------------------------------------------------------------------
     #
+    #   On message received from the websocket
+    #
+    #-----------------------------------------------------------------------------------------------
+    def websocket_on_message(self, ws, message):
+        print('Message : ' + str(message))
+        
+        # Decode JSON message
+        message = json.loads(message)
+
+        # If the message contains 'request'
+        if 'request' in message:
+            # Case the request is 'authenticate', then authenticate to the reposerver
+            if message['request'] == 'authenticate':
+                # Send id and token to authenticate
+                id = self.configuration['client']['auth']['id']
+                token = self.configuration['client']['auth']['token']
+                self.websocket.send(json.dumps({'action': 'authenticate', 'id': id, 'token': token}))
+
+            elif message['request'] == 'send-general-status':
+                self.reposerverStatusController.sendGeneralStatus()
+            else:
+                print('[reposerver-agent] Unknown request from reposerver: ' + message['request'])
+
+        # If the message contains 'info'
+        if 'info' in message:
+            print('[reposerver-agent] Received message from reposerver: ' + message['info'])
+
+
+    #-----------------------------------------------------------------------------------------------
+    #
+    #   On error from the websocket
+    #
+    #-----------------------------------------------------------------------------------------------
+    def websocket_on_error(self, ws, error):
+        raise Exception('Error : ' + str(error))
+
+
+    #-----------------------------------------------------------------------------------------------
+    #
+    #   On websocket connection closed
+    #
+    #-----------------------------------------------------------------------------------------------
+    def websocket_on_close(self, ws, close_status_code, close_msg):
+        print("### closed ###")
+        print("Close status code: ", close_status_code)
+        print("Close message: ", close_msg)
+        raise Exception('reposerver websocket connection closed')
+
+
+    #-----------------------------------------------------------------------------------------------
+    #
+    #   On websocket connection opened
+    #
+    #-----------------------------------------------------------------------------------------------
+    def websocket_on_open(self, ws):
+        print('[reposerver-agent] Opening connection with reposerver')
+
+
+    #-----------------------------------------------------------------------------------------------
+    #
+    #   Start websocket client
+    #
+    #-----------------------------------------------------------------------------------------------
+    def websocket_client(self):
+        try:
+            # Replace http by ws, or https by wss
+            reposerver_ws_url = self.configuration['reposerver']['url'].replace('http', 'ws').replace('https', 'wss')
+
+            # Set websocket process as running to prevent multiple processes from running
+            self.websocket_is_running = True
+
+            websocket.enableTrace(True)
+            self.websocket = websocket.WebSocketApp(reposerver_ws_url + '/ws',
+                                        on_open=self.websocket_on_open,
+                                        on_message=self.websocket_on_message,
+                                        on_error=self.websocket_on_error,
+                                        on_close=self.websocket_on_close)
+
+            self.websocket.on_open = self.websocket_on_open
+            self.websocket.run_forever()
+
+        except KeyboardInterrupt:
+            self.websocket_is_running = False
+            self.websocket_exception = str(e)
+        except Exception as e:
+            self.websocket_is_running = False
+            self.websocket_exception = str(e)
+        
+
+    #-----------------------------------------------------------------------------------------------
+    #
     #   Reposerver agent main function
     #
     #-----------------------------------------------------------------------------------------------
     def main(self):
         counter = 0
-        self.ngrep_cmd = 'ngrep -q -t -W byline'
-        self.ngrep_interface = None
         self.child_processes = []
         self.child_processes_started = []
         self.inotify_is_running = False
         self.inotify_exception = None
+        self.websocket_is_running = False
+        self.websocket_exception = None
 
         # Checking that all the necessary elements are present for the agent execution
         self.run_general_checks()
-
-        # Get current configuration
-        configuration = self.configController.get_conf()
-
-        # Retrieving network interface to scan if specified
-        interface = configuration['agent']['listen']['interface']
-
-        # If network interface is specified with "auto" or is empty, then try to automatically retrieve default interface
-        if interface == 'auto' or not interface:
-            # Get default network interface
-            result = subprocess.run(
-                ["/usr/sbin/route | /usr/bin/grep '^default' | /usr/bin/grep -o '[^ ]*$'"],
-                stdout = subprocess.PIPE, # subprocess.PIPE & subprocess.PIPE are alias of 'capture_output = True'
-                stderr = subprocess.PIPE,
-                universal_newlines = True, # Alias of 'text = True'
-                shell = True
-            )
-
-            if result.returncode != 0:
-                raise Exception('could not determine default network interface on which to listen: ' + result.stderr)
-
-            interface = result.stdout.strip()
-
-            # Count the number of lines returned
-            lines = interface.split('\n')
-
-            # If more than one line is returned, then there is a problem
-            if len(lines) > 1:
-                raise Exception('could not determine default network interface on which to listen: multiple default interfaces have been detected')
-            
-        # Taking into account the network interface
-        self.ngrep_interface = interface
 
         # Executing regular tasks
         while True:
@@ -236,41 +269,41 @@ class Agent:
 
             # Regulary sending data to the Repomanager server (every hour)
             # 3600 / 5sec (sleep 5) = 720
-            if counter == 0 or counter == 720:
-                # Sending full status
-                print('[reposerver-agent] Periodically sending informations about this host to the repomanager server')
-                self.reposerverStatusController.sendGeneralStatus()
-                self.reposerverStatusController.sendPackagesStatus()
+            # if counter == 0 or counter == 720:
+            #     # Sending full status
+            #     print('[reposerver-agent] Periodically sending informations about this host to the repomanager server')
+            #     self.reposerverStatusController.sendGeneralStatus()
+            #     self.reposerverStatusController.sendPackagesStatus()
 
-                # Reset counter
-                counter = 0
+            #     # Reset counter
+            #     counter = 0
 
             # If no inotify process is running, then execute it in background
-            if not self.inotify_is_running:
-                try:
-                    # If there was an exception in the last inotify process, then raise it
-                    if self.inotify_exception:
-                        raise Exception(self.inotify_exception)
+            # if not self.inotify_is_running:
+            #     try:
+            #         # If there was an exception in the last inotify process, then raise it
+            #         if self.inotify_exception:
+            #             raise Exception(self.inotify_exception)
 
-                    thread = threading.Thread(target=self.run_inotify_package_event)
-                    thread.daemon = True
-                    thread.start()
-                except Exception as e:
-                    raise Exception('package event monitoring failed: ' + str(e))
+            #         thread = threading.Thread(target=self.run_inotify_package_event)
+            #         thread.daemon = True
+            #         thread.start()
+            #     except Exception as e:
+            #         raise Exception('package event monitoring failed: ' + str(e))
 
-            # If ngrep scans are enabled, then execute them in background
-            # if configuration['agent']['listen']['enabled']:
-                # Monitor general informations sending requests
-                # TODO
-                # ngrep_general_update_request
+            # If agent listening is enabled, open websocket
+            if self.configuration['agent']['listen']['enabled']:
+                if not self.websocket_is_running:
+                    try:
+                        # If there was an exception in the last websocket process, then raise it
+                        if self.websocket_exception:
+                            raise Exception(self.websocket_exception)
 
-                # Monitor packages informations sending requests
-                # TODO
-                # ngrep_packages_status_request
-
-                # Monitor package update requests
-                # TODO
-                # ngrep_packages_update_requested
+                        thread = threading.Thread(target=self.websocket_client)
+                        thread.daemon = True
+                        thread.start()
+                    except Exception as e:
+                        raise Exception('reposerver websocket connection failed: ' + str(e))
 
             time.sleep(5)
 

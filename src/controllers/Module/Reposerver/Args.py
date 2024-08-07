@@ -52,8 +52,6 @@ class Args:
             parser.add_argument("--agent-enable", action="store", nargs='?', default="null")
             # Agent listen enable
             parser.add_argument("--agent-listen-enable", action="store", nargs='?', default="null")
-            # Agent listen interface
-            parser.add_argument("--agent-listen-int", action="store", nargs='?', default="null")
 
             # Register to reposerver
             parser.add_argument("--register", action="store_true", default="null")
@@ -144,21 +142,6 @@ class Args:
                     self.agentController.setListenEnable(True)
                 else:
                     self.agentController.setListenEnable(False)
-
-                self.exitController.clean_exit(0, False)
-
-            #
-            # If --agent-listen-int param has been set
-            #
-            if args.agent_listen_int != "null":
-                # If an interface is set (not 'None'), change the agent interface
-                if args.agent_listen_int:
-                    # Set new interface
-                    self.agentController.setListenInterface(args.agent_listen_int)
-
-                # Else print the current interface
-                else:
-                    print(' Current interface: ' + self.agentController.getListenInterface())
 
                 self.exitController.clean_exit(0, False)
 
@@ -420,13 +403,6 @@ class Args:
                     ],
                     'option': 'true|false',
                     'description': 'Enable or disable agent listening for requests coming from the reposerver',
-                },
-                {
-                    'args': [
-                        '--agent-listen-int',
-                    ],
-                    'option': 'INTERFACE',
-                    'description': 'Specify the local network interface to use to listen for requests coming from the reposerver',
                 }
             ]
 

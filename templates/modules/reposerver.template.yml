@@ -2,7 +2,6 @@ agent:
   enabled: false
   listen:
     enabled: true
-    interface: auto
 client:
   auth:
     id: ''

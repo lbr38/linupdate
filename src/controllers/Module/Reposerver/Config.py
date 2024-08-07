@@ -91,6 +91,10 @@ class Config:
     #
     #-----------------------------------------------------------------------------------------------
     def get_conf(self):
+        # Checking that a configuration file exists for reposerver module
+        if not Path(self.config_file).is_file():
+            raise Exception('reposerver configuration file ' + self.config_file + ' does not exist')
+
         # Open YAML config file
         with open(self.config_file, 'r') as stream:
             try:
@@ -210,10 +214,6 @@ class Config:
         # Check if agent.listen.enabled is set (True or False)
         if configuration['agent']['listen']['enabled'] not in [True, False]:
             raise Exception('agent.listen.enabled key must be set to true or false')
-
-        # Check if agent.listen.interface is set
-        if 'interface' not in configuration['agent']['listen']:
-            raise Exception('agent.listen.interface key not found in ' + self.config_file)
             
 
     #-----------------------------------------------------------------------------------------------

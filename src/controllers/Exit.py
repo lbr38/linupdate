@@ -20,7 +20,8 @@ class Exit:
         my_mail = Mail()
 
         # Try to get mail settings
-        # It could fail if the config file is not found or if the mail section is not defined (e.g. first execution)
+        # It could fail if the config file is not found or if the 
+        # mail section is not defined (e.g. first execution)
         # So if it fails to retrieve configuration, just don't send the mail
         try:
             mail_enabled = my_config.get_mail_enabled()
@@ -30,7 +31,8 @@ class Exit:
             mail_enabled = False
             mail_recipient = None
 
-        # Send mail unless send_mail is False (in some case mail is not needed, like when exiting at update confirmation)
+        # Send mail unless send_mail is False 
+        # (in some case mail is not needed, like when exiting at update confirmation)
         if send_mail is True:
             # Check if mail is enabled and recipient is set
             if (mail_enabled and mail_recipient):

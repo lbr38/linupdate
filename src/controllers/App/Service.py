@@ -127,7 +127,7 @@ class Service:
             # Convert module name to uppercase first letter
             module_name_capitalize = module_name.capitalize()
 
-            print(" [" + module_name + "-agent] Hi, I'm " + Fore.GREEN + module_name + Style.RESET_ALL + ' module agent')
+            print("[" + module_name + "-agent] Hi, I'm " + Fore.GREEN + module_name + Style.RESET_ALL + ' module agent')
 
             # Import python module agent class
             module_import_path = importlib.import_module('src.controllers.Module.' + module_name_capitalize + '.Agent')

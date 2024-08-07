@@ -209,14 +209,13 @@ class Apt:
                 else:
                     cmd = ['apt-get', 'install', pkg['name'], '-y']
 
-                # popen = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, bufsize=1, universal_newlines=True)
-                popen = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True)
+                popen = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, bufsize=1, universal_newlines=True)
 
                 # TODO : une fois la solution trouvée, la reporter plus bas
                 # Print lines as they are read
                 for line in popen.stdout:
                     line = line.replace('\r', '')
-                    print(' | ' + line.strip(), end='')               
+                    print(' | ' + line.strip(), end='\n')               
 
                 # Wait for the command to finish
                 popen.wait()
