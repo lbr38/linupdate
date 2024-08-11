@@ -294,8 +294,6 @@ function mod_configure
     GET_PROFILE_REPOS_FROM_REPOSERVER=""
 
     # Variables de status
-    UPDATE_REQUEST_TYPE=""
-    UPDATE_REQUEST_STATUS=""
     SEND_GENERAL_STATUS="false"
     SEND_PACKAGES_STATUS="false"
     SEND_FULL_HISTORY="false"
@@ -983,26 +981,12 @@ function pre
     if [ "$FAILLEVEL" -eq "1" ] && [ "$RESULT" -gt "0" ];then (( MOD_ERROR++ )); clean_exit;fi
     if [ "$FAILLEVEL" -eq "2" ] && [ "$RESULT" -ge "2" ];then (( MOD_ERROR++ )); clean_exit;fi
 
-    # Aquittement du status auprès du serveur reposerver
-    UPDATE_REQUEST_TYPE="packages-update"
-    UPDATE_REQUEST_STATUS="running"
-    update_request_status
-
     return 0
 }
 
 # Exécution post-mise à jour des paquets
 function post
 {
-    # Aquittement du status auprès du serveur reposerver
-    UPDATE_REQUEST_TYPE="packages-update"
-    if [ "$UPDATE_ERROR" -gt "0" ];then
-        UPDATE_REQUEST_STATUS="error"
-    else 
-        UPDATE_REQUEST_STATUS="done"
-    fi
-    update_request_status
-
     # Si il y a eu des paquets à mettre à jour lors de cette exécution alors on exécute les actions suivantes
     if [ "$SOMETHING_TO_UPDATE" == "true" ];then
         # Généralement les paquets "*-release" sur Redhat/CentOS remettent en place des fichiers .repo. Du coup on remet à jour la configuration des repos à partir du serveurs de repo (profils), si cela est autorisé des deux côtés
@@ -1067,37 +1051,9 @@ function send_status
     clean_exit
 }
 
-# Mettre à jour le status d'une demande initialisée par le serveur repomanager
-function update_request_status
-{
-    if [ -z "$UPDATE_REQUEST_TYPE" ];then
-        return
-    fi
-    if [ -z "$UPDATE_REQUEST_STATUS" ];then
-        return
-    fi
-
-    if [ "$VERBOSE" -gt "0" ];then
-        echo -ne " Acknowledging reposerver request: "
-    fi
-
-    CURL_PARAMS="\"status\":\"$UPDATE_REQUEST_STATUS\""
-
-    CURL=$(curl -L --post301 -s -q -H "Authorization: Host $HOST_ID:$TOKEN" -H "Content-Type: application/json" -X PUT -d "{$CURL_PARAMS}" "${REPOSERVER_URL}/api/v2/host/request/$UPDATE_REQUEST_TYPE" 2> /dev/null)
-
-    # On n'affiche les message d'erreur et de succès uniquement si la verbosité est supérieur à 0
-    if [ "$VERBOSE" -gt "0" ];then
-        curl_result_parse
-    fi
-}
-
 # Envoi au serveur Repomanager l'état général de l'hôte (son os, version, profil, env)
 function send_general_status
 {
-    UPDATE_REQUEST_TYPE="general-status-update"
-    UPDATE_REQUEST_STATUS="running"
-    update_request_status
-
     UPDATE_MESSAGE_SUCCESS=""
     UPDATE_MESSAGE_ERROR=""
 
@@ -1155,14 +1111,6 @@ function send_general_status
 
     # Récupération et affichage des messages
     curl_result_parse
-
-    if [ "$CURL_ERROR" -eq "0" ];then
-        UPDATE_REQUEST_STATUS="done"
-    else 
-        UPDATE_REQUEST_STATUS="error"
-    fi
-
-    update_request_status
 }
 
 # Envoi du status des paquets (installés, disponibles)
@@ -1172,31 +1120,10 @@ function send_packages_status
     UPDATE_MESSAGE_SUCCESS=""
     UPDATE_MESSAGE_ERROR=""
 
-    UPDATE_REQUEST_TYPE="packages-status-update"
-    UPDATE_REQUEST_STATUS="running"
-    update_request_status
-
     # Exécution des différentes fonctions
-
-    # Sauf si il y a une erreur, le status sera done
-    UPDATE_REQUEST_STATUS="done"
-
     genFullHistory
-    if [ "$?" -ne "0" ];then
-        UPDATE_REQUEST_STATUS="error"
-    fi
-
     send_available_packages_status
-    if [ "$?" -ne "0" ];then
-        UPDATE_REQUEST_STATUS="error"
-    fi
-
     send_installed_packages_status
-    if [ "$?" -ne "0" ];then
-        UPDATE_REQUEST_STATUS="error"
-    fi
-
-    update_request_status
 }
 
 # Envoi au serveur Repomanager de la liste des paquets installés sur l'hôte
@@ -1264,11 +1191,9 @@ function send_installed_packages_status
     curl_result_parse
 
     if [ "$CURL_ERROR" -eq "0" ];then
-        UPDATE_REQUEST_STATUS="done"
         return 0
 
     else 
-        UPDATE_REQUEST_STATUS="error"
         return 1
     fi
 }
@@ -1344,11 +1269,9 @@ function send_available_packages_status
     curl_result_parse
 
     if [ "$CURL_ERROR" -eq "0" ];then
-        UPDATE_REQUEST_STATUS="done"
         return 0
 
     else 
-        UPDATE_REQUEST_STATUS="error"
         return 1
     fi
 }
@@ -1360,10 +1283,6 @@ function genFullHistory
     # Contiendra la liste de tous les évènements
     EVENTS_JSON=""
     IGNORE_EVENT=""
-
-    UPDATE_REQUEST_TYPE="full-history-update"
-    UPDATE_REQUEST_STATUS="running"
-    update_request_status
 
     # Le paramètre SEND_FULL_HISTORY_LIMIT défini le nb maximum d'évènements à envoyer, cela permet 
     # d'éviter d'envoyer inutilement l'historique complet du serveur dans certains cas.
@@ -1480,19 +1399,11 @@ function genFullHistory
     # Récupération et affichage des messages
     curl_result_parse
 
-    if [ "$CURL_ERROR" -eq "0" ];then
-        UPDATE_REQUEST_STATUS="done"
-    else 
-        UPDATE_REQUEST_STATUS="error"
-    fi
-
-    update_request_status
-
     rm "$JSON_FILE" -f
 
-    if [ "$UPDATE_REQUEST_STATUS" == "error" ];then
+    if [ "$CURL_ERROR" -eq "0" ];then
+        return 0
+    else 
         return 1
     fi
-
-    return 0
 }
