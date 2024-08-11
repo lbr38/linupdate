@@ -146,14 +146,8 @@ jobs:
           gpgkey=https://vault.centos.org/RPM-GPG-KEY-CentOS-7
           gpgcheck=1" > /etc/yum.repos.d/updates.repo
 
-          echo "[epel]
-          name=epel repo
-          baseurl=https://dl.fedoraproject.org/pub/epel/7/x86_64/
-          enabled=1
-          gpgkey=https://dl.fedoraproject.org/pub/epel/RPM-GPG-KEY-EPEL-7
-          gpgcheck=1" > /etc/yum.repos.d/epel.repo
-
           yum clean all
+          yum install epel-release -y
 
       # Download builded deb package artifact
       - name: Download artifact
