@@ -162,7 +162,7 @@ class Agent:
                 # Case the request is 'update-all-packages', then update all packages
                 elif message['request'] == 'update-all-packages':
                     print('[reposerver-agent] Reposerver requested all packages update')
-                    self.packageController.update()
+                    self.packageController.update(True)
                     # Send a summary to the reposerver, with the summary of the update (number of packages updated or failed)
                     summary = self.packageController.summary
                 else:
