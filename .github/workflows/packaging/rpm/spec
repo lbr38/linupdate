@@ -83,14 +83,12 @@ chmod 750 /opt/linupdate
 if [ -f "/usr/bin/systemctl" ];then
     # Copy systemd unit file if not exists
     if [ ! -f "/lib/systemd/system/linupdate.service" ];then
-        cp /opt/linupdate/service/linupdate.systemd.template /etc/systemd/system/linupdate.service
+        cp /opt/linupdate/service/linupdate.systemd.template /lib/systemd/system/linupdate.service
     fi
 
-    # Enable service script by creating a symlink
+    # Delete service symlink if exists
     if [ ! -L "/etc/systemd/system/linupdate.service" ];then
-        # Delete file in case it is a file and not a symlink
         rm -f /etc/systemd/system/linupdate.service
-        ln -sf /lib/systemd/system/linupdate.service /etc/systemd/system/linupdate.service
     fi
 
     chmod 550 "$SERVICE"

@@ -33,7 +33,7 @@ class Mail():
         msg['Subject'] = subject
         # debug only
         # msg['From'] = Address('Linupdate', 'noreply', 'example.com')
-        msg['From'] = Address('Linupdate', 'noreply', socket.gethostname())
+        msg['From'] = Address('Linupdate', 'noreply', socket.getfqdn())
         msg['To'] = ','.join(recipient)
 
         # Retrieve HTML mail template
