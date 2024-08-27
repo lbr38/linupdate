@@ -185,7 +185,8 @@ jobs:
           body: |
             **Changes:**
 
-              - Linupdate python version - initial release
+              - Added a way to send log to reposerver when executing a request (requires Repomanager 4.6.0)
+              - Various fixes
           draft: false
           prerelease: false
 
