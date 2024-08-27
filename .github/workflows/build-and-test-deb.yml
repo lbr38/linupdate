@@ -2,7 +2,7 @@ name: Build and test deb package for linupdate
 
 on:
   push:
-    branches: [ python ]
+    branches: [ devel ]
   pull_request:
     push:
       branches: [ main ]
@@ -469,7 +469,7 @@ jobs:
           apt-get update -y
           apt-get install -y curl gpg
           curl -sS https://packages.bespin.ovh/repo/gpgkeys/packages.bespin.ovh.pub | gpg --dearmor > /etc/apt/trusted.gpg.d/packages.bespin.ovh.gpg
-          echo "deb https://packages.bespin.ovh/repo/linupdate/bookworm/main_prod bookworm main" > /etc/apt/sources.list.d/linupdate.list
+          echo "deb https://packages.bespin.ovh/repo/linupdate/bullseye/main_prod bullseye main" > /etc/apt/sources.list.d/linupdate.list
           apt-get update -y
           apt-get install -y linupdate
 

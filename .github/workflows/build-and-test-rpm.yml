@@ -2,7 +2,7 @@ name: Build and test rpm package for linupdate
 
 on:
   push:
-    branches: [ python ]
+    branches: [ devel ]
   pull_request:
     push:
       branches: [ main ]

@@ -219,7 +219,7 @@ class Package:
                 self.remove_all_exclusions()
                 self.exitController.clean_exit(0, False)
 
-            # Qui here if there was no packages to update
+            # Quit here if there was no packages to update
             if self.packagesToUpdateCount == 0:
                 return
 
@@ -249,7 +249,7 @@ class Package:
 
         except Exception as e:
             print(Fore.RED + ' ✕ ' + Style.RESET_ALL + str(e))
-            print('\n' + Fore.RED + ' Packages update failed: ' + Style.RESET_ALL)
+            print('\n' + Fore.RED + ' Packages update failed ' + Style.RESET_ALL)
             self.summary['update']['status'] = 'failed'
         finally:
             # Remove all exclusions

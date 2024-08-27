@@ -8,9 +8,11 @@ import threading
 import websocket
 import json
 import sys
+import re
 from pathlib import Path
 
 # Import classes
+from src.controllers.Log import Log
 from src.controllers.Module.Module import Module
 from src.controllers.Module.Reposerver.Status import Status
 from src.controllers.Module.Reposerver.Config import Config
@@ -131,6 +133,16 @@ class Agent:
         message = json.loads(message)
         request_id = None
         summary = None
+        log = '/tmp/linupdate-reposerver-request.log'
+        error = None
+        json_response = {
+            'response-to-request': {
+                'request-id': '',
+                'status': '',
+                'summary': '',
+                'log': ''
+            }
+        }
 
         # If the message contains 'request'
         if 'request' in message:
@@ -152,37 +164,71 @@ class Agent:
                 # Case the request is 'request-general-infos', then send general informations to the reposerver
                 elif message['request'] == 'request-general-infos':
                     print('[reposerver-agent] Reposerver requested general informations')
-                    self.reposerverStatusController.send_general_info()
+                    with Log(log):
+                        self.reposerverStatusController.send_general_info()
 
                 # Case the request is 'request-packages-infos', then send packages informations to the reposerver
                 elif message['request'] == 'request-packages-infos':
                     print('[reposerver-agent] Reposerver requested packages informations')
-                    self.reposerverStatusController.send_packages_info()
+                    with Log(log):
+                        self.reposerverStatusController.send_packages_info()
 
                 # Case the request is 'update-all-packages', then update all packages
                 elif message['request'] == 'update-all-packages':
                     print('[reposerver-agent] Reposerver requested all packages update')
-                    self.packageController.update(True)
+
+                    # Log everything to the log file
+                    with Log(log):
+                        self.packageController.update(True)
+
                     # Send a summary to the reposerver, with the summary of the update (number of packages updated or failed)
                     summary = self.packageController.summary
                 else:
                     raise Exception('unknown request sent by reposerver: ' + message['request'])
 
-                # If there was a request id, then send a response to reposerver to make the request as completed
-                if request_id:
-                    # If there is a summary to send, then send it
-                    if summary:
-                        self.websocket.send(json.dumps({'response-to-request': {'request-id': request_id, 'status': 'completed', 'summary': summary}}))
-                    else:
-                        self.websocket.send(json.dumps({'response-to-request': {'request-id': request_id, 'status': 'completed'}}))
+                # If request was successful
+                status = 'completed'
 
             # If request failed
             except Exception as e:
                 print('[reposerver-agent] Error: ' + str(e))
+                status = 'failed'
+                error = str(e)
 
-                # If there was a request id, then send a response to reposerver to make the request as failed
+            finally:
+                # If there was a request id, then send a response to reposerver to make the request as completed
                 if request_id:
-                    self.websocket.send(json.dumps({'response-to-request': {'request-id': request_id, 'status': 'failed', 'error': str(e)}}))
+                    # Set request id
+                    json_response['response-to-request']['request-id'] = request_id
+
+                    # Set status
+                    json_response['response-to-request']['status'] = status
+
+                    # If there was an error
+                    if error:
+                        json_response['response-to-request']['error'] = error
+
+                    # If there is a summary
+                    if summary:
+                        json_response['response-to-request']['summary'] = summary
+
+                    # If there is a log file
+                    if log and Path(log).is_file():
+                        # Get log file content
+                        try:
+                            with open(log, 'r') as file:
+                                # Get log content and remove ANSI escape codes
+                                logcontent = file.read()
+                                ansi_escape = re.compile(r'(?:\x1B[@-_]|[\x80-\x9F])[0-?]*[ -/]*[@-~]')
+                                logcontent = ansi_escape.sub('', logcontent)
+                        except Exception as e:
+                            # If content could not be read, then generate an error message
+                            logcontent = 'Error: could not read log file'
+
+                        json_response['response-to-request']['log'] = logcontent
+
+                    # Send the response
+                    self.websocket.send(json.dumps(json_response))
 
         # If the message contains 'info'
         if 'info' in message:

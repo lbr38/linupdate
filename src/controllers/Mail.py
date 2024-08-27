@@ -25,7 +25,7 @@ class Mail():
             # Get logfile real filename
             attachment = logfile.split('/')[-1]
 
-            # Replace ANSI escape codes
+            # Remove ANSI escape codes
             ansi_escape = re.compile(r'(?:\x1B[@-_]|[\x80-\x9F])[0-?]*[ -/]*[@-~]')
             attach_content = ansi_escape.sub('', attach_content)
 
