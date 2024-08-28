@@ -543,6 +543,14 @@ class Apt:
                 if arch in name:
                     name = name.replace(arch, '')
         
+            # If package name is empty (should not happen), ignore it
+            if name == '':
+                continue
+
+            # If version is empty (sometimes it can be), set it to 'unknown'
+            if version == '':
+                version = 'unknown'
+
             # Add the package to the list of packages
             packages_json.append({
                 'name': name,

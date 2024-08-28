@@ -144,7 +144,7 @@ class App:
             else:
                 exec_method = 'manual (tty)'
 
-        print(' Hostname:            ' + Fore.YELLOW + socket.gethostname() + Style.RESET_ALL)
+        print(' Hostname:            ' + Fore.YELLOW + socket.getfqdn() + Style.RESET_ALL)
         print(' OS:                  ' + Fore.YELLOW + mySystem.get_os_name() + ' ' + mySystem.get_os_version() + Style.RESET_ALL)
         print(' Kernel:              ' + Fore.YELLOW + mySystem.get_kernel() + Style.RESET_ALL)
         print(' Virtualization:      ' + Fore.YELLOW + mySystem.get_virtualization() + Style.RESET_ALL)

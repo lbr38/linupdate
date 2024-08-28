@@ -37,7 +37,7 @@ class Status:
             token = self.reposerverConfigController.getToken()
 
             data = {
-                'hostname': socket.gethostname(),
+                'hostname': socket.getfqdn(),
                 'os_family': self.systemController.get_os_family(),
                 'os': self.systemController.get_os_name(),
                 'os_version': self.systemController.get_os_version(),

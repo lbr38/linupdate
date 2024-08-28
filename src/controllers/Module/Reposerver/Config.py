@@ -249,7 +249,7 @@ class Config:
         # Register to server using API key and IP (POST)
         data = {
             'ip': ip,
-            'hostname': socket.gethostname()
+            'hostname': socket.getfqdn()
         }
 
         try:

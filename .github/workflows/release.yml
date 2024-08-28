@@ -185,8 +185,8 @@ jobs:
           body: |
             **Changes:**
 
-              - Added a way to send log to reposerver when executing a request (requires Repomanager 4.6.0)
-              - Various fixes
+              - Removed systemd service unit symlink
+              - Fixed hostname retrieving
           draft: false
           prerelease: false
 

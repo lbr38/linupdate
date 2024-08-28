@@ -66,15 +66,15 @@ class Module:
             
             # Continue if module is already enabled
             if mod not in configuration['modules']['enabled']:
-                # Copy module default configuration file if it does not exist
-                if not Path('/etc/linupdate/modules/' + mod + '.yml').is_file():
-                    try:
-                        shutil.copy2('/opt/linupdate/templates/modules/' + mod + '.template.yml', '/etc/linupdate/modules/' + mod + '.yml')
-                    except Exception as e:
-                        raise Exception('Could not generate module ' + mod + ' configuration file /etc/linupdate/modules/' + mod + '.yml: ' + str(e))
-
                 # Add enabled module in configuration
                 self.configController.append_module(mod)
+
+            # Copy module default configuration file if it does not exist
+            if not Path('/etc/linupdate/modules/' + mod + '.yml').is_file():
+                try:
+                    shutil.copy2('/opt/linupdate/templates/modules/' + mod + '.template.yml', '/etc/linupdate/modules/' + mod + '.yml')
+                except Exception as e:
+                    raise Exception('Could not generate module ' + mod + ' configuration file /etc/linupdate/modules/' + mod + '.yml: ' + str(e))
 
             # Print enabled module
             print(' Module ' + mod + Fore.GREEN + ' enabled' + Style.RESET_ALL)
