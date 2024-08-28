@@ -185,8 +185,8 @@ jobs:
           body: |
             **Changes:**
 
-              - Removed systemd service unit symlink
-              - Fixed hostname retrieving
+              - Fixed linupdate service killing when updating linupdate package
+              - Various bug fixes
           draft: false
           prerelease: false
 

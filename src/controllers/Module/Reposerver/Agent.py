@@ -1,7 +1,6 @@
 # coding: utf-8
 
 # Import libraries
-from colorama import Fore, Style
 import time
 import pyinotify
 import threading
@@ -133,7 +132,9 @@ class Agent:
         message = json.loads(message)
         request_id = None
         summary = None
-        log = '/tmp/linupdate-reposerver-request.log'
+        log  = '/tmp/linupdate.reposerver.request.log'
+        # Lock to prevent service restart while processing the request
+        lock = '/tmp/linupdate.reposerver.request.lock'
         error = None
         json_response = {
             'response-to-request': {
@@ -143,6 +144,10 @@ class Agent:
                 'log': ''
             }
         }
+
+        # Create a lock file to prevent service restart while processing the request
+        if not Path(lock).is_file():
+            Path(lock).touch()
 
         # If the message contains 'request'
         if 'request' in message:
@@ -221,9 +226,12 @@ class Agent:
                                 logcontent = file.read()
                                 ansi_escape = re.compile(r'(?:\x1B[@-_]|[\x80-\x9F])[0-?]*[ -/]*[@-~]')
                                 logcontent = ansi_escape.sub('', logcontent)
+
+                                # Delete the log file
+                                Path(log).unlink()
                         except Exception as e:
                             # If content could not be read, then generate an error message
-                            logcontent = 'Error: could not read log file'
+                            logcontent = 'Error: could not read log file'                          
 
                         json_response['response-to-request']['log'] = logcontent
 
@@ -237,6 +245,10 @@ class Agent:
         # If the message contains 'error'
         if 'error' in message:
             print('[reposerver-agent] Received error message from reposerver: ' + message['error'])
+
+        # Delete the lock file
+        if Path(lock).is_file():
+            Path(lock).unlink()
 
 
     #-----------------------------------------------------------------------------------------------

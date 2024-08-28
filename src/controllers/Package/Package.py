@@ -3,9 +3,10 @@
 # https://github.com/excid3/python-apt/blob/master/doc/examples/inst.py
 
 # Import libraries
+import re
 from tabulate import tabulate
 from colorama import Fore, Style
-import re
+from pathlib import Path
 
 # Import classes
 from src.controllers.System import System
@@ -142,6 +143,8 @@ class Package:
     #
     #-----------------------------------------------------------------------------------------------
     def update(self, assume_yes: bool = False, ignore_exclude: bool = False, check_updates: bool = False, dist_upgrade: bool = False, keep_oldconf: bool = True):        
+        restart_file = '/tmp/linupdate.restart-needed'
+
         # Package update summary
         self.summary = {
             'update': {
@@ -239,6 +242,14 @@ class Package:
 
             print('\n Updating packages...')
 
+            # If 'linupdate' is in the list of packages to update, then add a temporary file in /tmp to
+            # indicate that a service restart is needed. The service will be restarted by the linupdate service itself.
+            # Important: this file must be created before the update process starts, so this is the right place to do it.
+            for package in self.packagesToUpdateList:
+                if package['name'] == 'linupdate':
+                    if not Path(restart_file).is_file():
+                        Path(restart_file).touch()
+
             # Execute the packages update
             self.myPackageManagerController.dist_upgrade = dist_upgrade
             self.myPackageManagerController.keep_oldconf = keep_oldconf
@@ -251,6 +262,7 @@ class Package:
             print(Fore.RED + ' ✕ ' + Style.RESET_ALL + str(e))
             print('\n' + Fore.RED + ' Packages update failed ' + Style.RESET_ALL)
             self.summary['update']['status'] = 'failed'
+
         finally:
             # Remove all exclusions
             self.remove_all_exclusions()

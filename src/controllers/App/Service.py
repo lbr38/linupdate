@@ -8,6 +8,7 @@ import importlib
 import subprocess
 import time
 from colorama import Fore, Style
+from pathlib import Path
 
 # Import classes
 from src.controllers.Module.Module import Module
@@ -29,12 +30,63 @@ class Service:
     #
     #-----------------------------------------------------------------------------------------------
     def main(self):
+        restart_file = '/tmp/linupdate.restart-needed'
+
         try:
             print("[linupdate] Hi, I'm linupdate service. I will start all enabled module agents and let them run in background. Stop me and I will stop all module agents.")
             # Wait 3 seconds to let the above message to be read
             time.sleep(3)
 
             while True:
+                # Restart check
+                # If a '/tmp/linupdate.restart-needed' file is present, restart linupdate service now
+                if Path(restart_file).is_file():
+                    print('[reposerver-agent] Linupdate service restart is needed.')
+
+                    try:
+                        # List of possible lock files (more could be added in the future)
+                        lock_files = ['/tmp/linupdate.reposerver.request.lock']
+
+                        # Wait a bit if there is a lock file to prevent data loss
+                        while True:
+                            lock_present = 0
+
+                            # Check if lock files are present, if so, wait
+                            for lock_file in lock_files:
+                                if Path(lock_file).is_file():
+                                    print('[reposerver-agent] Lock file ' + lock_file + ' is present, waiting...')
+                                    lock_present +=1
+
+                            # Break the loop if no lock file is present
+                            if (lock_present == 0):
+                                break
+
+                            time.sleep(2)
+
+                        # First delete the restart file
+                        Path(restart_file).unlink()
+
+                        print('[reposerver-agent] Restarting linupdate service...')
+
+                        # Then restart linupdate service
+                        result = subprocess.run(
+                            ['/usr/bin/systemctl restart linupdate'],
+                            stdout = subprocess.PIPE, # subprocess.PIPE & subprocess.PIPE are alias of 'capture_output = True'
+                            stderr = subprocess.PIPE,
+                            universal_newlines = True, # Alias of 'text = True'
+                            shell = True
+                        )
+
+                        # From here, the service should be restarted and the following lines should not be executed. But if there is an error, then raise an exception:
+                        if result.returncode != 0:
+                            raise Exception(result.stderr)
+
+                    # If there was an error, then the service has to stop because it could not be restarted
+                    # Raise an exception to be caught in the main function, it will stop the service
+                    except Exception as e:
+                        raise Exception('could not restart linupdate service: ' + str(e))
+
+
                 # Check for terminated child processes (module agents) and remove them from the list
                 for child in self.child_processes[:]:
                     retcode = child['process'].poll()
@@ -114,7 +166,7 @@ class Service:
 
         except Exception as e:
             print('[linupdate] General error: ' + str(e))
-            exit(1)
+            sys.exit(1)
 
 
     #-----------------------------------------------------------------------------------------------

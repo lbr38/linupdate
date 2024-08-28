@@ -58,8 +58,8 @@ class Reposerver:
         self.configController.get_profile_repos()
 
         # Send last 4 packages history entries to the reposerver
-        status = Status()
-        status.send_packages_history()
+        # status = Status()
+        # status.send_packages_history()
 
 
     #-----------------------------------------------------------------------------------------------

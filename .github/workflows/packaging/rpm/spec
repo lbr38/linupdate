@@ -38,7 +38,10 @@ fi
 if [ -f "/usr/bin/systemctl" ];then
     # Stop service if started
     if /usr/bin/systemctl is-active --quiet linupdate;then
-        /usr/bin/systemctl stop --quiet linupdate
+        # Do not stop if there is a /tmp/linupdate.restart-needed file, the service will restart itself
+        if [ ! -f "/tmp/linupdate.restart-needed" ];then
+            /usr/bin/systemctl stop --quiet linupdate
+        fi
     fi
 fi
 
@@ -98,13 +101,17 @@ if [ -f "/usr/bin/systemctl" ];then
     rm /opt/linupdate/agents-enabled -rf
     rm /opt/linupdate/mods-enabled -rf
     rm /opt/linupdate/mods-available -rf
+    rm /opt/linupdate/service -rf
 
     /usr/bin/systemctl enable linupdate
     /usr/bin/systemctl --quiet daemon-reload
 
-    # Start service
+    # Restart or start service
     if /usr/bin/systemctl is-active --quiet linupdate;then
-        /usr/bin/systemctl restart --quiet linupdate
+        # Do not restart if there is a /tmp/linupdate.restart-needed file, the service will restart itself
+        if [ ! -f "/tmp/linupdate.restart-needed" ];then
+            /usr/bin/systemctl restart --quiet linupdate
+        fi
     else
         /usr/bin/systemctl start --quiet linupdate
     fi
