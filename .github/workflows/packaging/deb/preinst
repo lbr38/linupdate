@@ -12,6 +12,9 @@ fi
 if [ -f "/usr/bin/systemctl" ];then
     # Stop service if started
     if /usr/bin/systemctl is-active --quiet linupdate;then
-        /usr/bin/systemctl stop --quiet linupdate
+        # Do not stop if there is a /tmp/linupdate.restart-needed file, the service will restart itself
+        if [ ! -f "/tmp/linupdate.restart-needed" ];then
+            /usr/bin/systemctl stop --quiet linupdate
+        fi
     fi
 fi
