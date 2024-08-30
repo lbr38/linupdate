@@ -125,10 +125,13 @@ class Package:
     #   Get available packages
     #
     #-----------------------------------------------------------------------------------------------
-    def get_available_packages(self, dist_upgrade: bool = False):
+    def get_available_packages(self, update_cache: bool = True, dist_upgrade: bool = False):
         try:
-            # First, clear package manager cache
-            self.myPackageManagerController.update_cache(dist_upgrade)
+            # If cache update is enabled
+            if update_cache:
+                # First, clear package manager cache
+                self.myPackageManagerController.clear_cache()
+                self.myPackageManagerController.update_cache(dist_upgrade)
 
             # Get a list of available packages
             return self.myPackageManagerController.get_available_packages()
@@ -174,8 +177,9 @@ class Package:
             self.remove_all_exclusions()
     
             # Retrieve available packages,
+            # passing False for the update_cache parameter (which will not update the list of available packages) => maybe change this in the future
             # passing the dist_upgrade parameter (which will, with apt, update the list of available packages including packages such as the kernel)
-            self.packagesToUpdateList = self.get_available_packages(dist_upgrade)
+            self.packagesToUpdateList = self.get_available_packages(True, dist_upgrade)
 
             # Check for package exclusions
             self.exclude(ignore_exclude)

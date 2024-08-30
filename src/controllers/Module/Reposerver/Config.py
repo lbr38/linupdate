@@ -557,14 +557,26 @@ class Config:
             if self.systemController.get_os_family() == 'Redhat':
                 reposRoot = '/etc/yum.repos.d'
 
-            # Insert description at the top of the file, then content
-            # Replace __ENV__ with current environment on the fly
-            with open(reposRoot + '/' + result['filename'], 'w') as file:
-                # Insert description
-                file.write('# ' + result['description'] + '\n' + result['content'].replace('__ENV__', env) + '\n')
+            # Target repo file
+            repo_file = reposRoot + '/' + result['filename']
 
-            # Set permissions
-            Path(reposRoot + '/' + result['filename']).chmod(0o660)
+            # If the file does not exist, create it and insert description at the top of the file, then content
+            if not Path(repo_file).is_file():
+                with open(repo_file, 'w') as file:
+                    # Insert description
+                    file.write('# ' + result['description'] + '\n')
+
+            # Add content to the file, if not already in it
+            with open(repo_file, 'r+') as file:
+                # Replace __ENV__ with current environment on the fly
+                content = result['content'].replace('__ENV__', env)
+
+                # If the content is not already in the file, add it
+                if content not in file.read():
+                    file.write(content + '\n')
+
+            # Set file permissions
+            Path(repo_file).chmod(0o660)
 
             # Clear cache
             self.packageController.clear_cache()
