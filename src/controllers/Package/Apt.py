@@ -103,7 +103,7 @@ class Apt:
     #-----------------------------------------------------------------------------------------------
     def clear_cache(self):
         result = subprocess.run(
-            ["apt", "clean", "all"],
+            ["apt", "clean"],
             stdout = subprocess.PIPE, # subprocess.PIPE & subprocess.PIPE are alias of 'capture_output = True'
             stderr = subprocess.PIPE,
             universal_newlines = True # Alias of 'text = True'
@@ -351,6 +351,10 @@ class Apt:
 
         # Parse each apt history files
         for history_file in history_files:
+            # If file is empty (e.g. file has been rotated), ignore it
+            if os.stat(history_file).st_size == 0:
+                continue
+
             # Retrieve all Start-Date in the history file
             result = subprocess.run(
                 ['zgrep "^Start-Date:*" ' + history_file],
@@ -362,7 +366,7 @@ class Apt:
 
             # Quit if an error occurred
             if result.returncode != 0:
-                raise Exception('could not retrieve Start-Date from ' + history_file + ': ' + result.stderr)
+                raise Exception('no result matching the pattern "Start-Date" in file ' + history_file)
 
             # Split the result into a list
             start_dates = result.stdout.strip().split('\n')
@@ -408,7 +412,7 @@ class Apt:
                     )
 
                 if result.returncode != 0:
-                    raise Exception('could not retrieve event for ' + start_date + ' in ' + history_file + ': ' + result.stderr)
+                    raise Exception('no event found for date "' + start_date + '" in file ' + history_file)
 
                 # Retrieve event block lines
                 event = result.stdout.strip()

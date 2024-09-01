@@ -185,8 +185,8 @@ jobs:
           body: |
             **Changes:**
 
-              - Fixed linupdate service killing when updating linupdate package
-              - Various bug fixes
+              - Fixed cache not being cleared while retrieving available package updates
+              - Module reposerver: fixed profile repos retrieval
           draft: false
           prerelease: false
 
