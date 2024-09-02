@@ -185,8 +185,7 @@ jobs:
           body: |
             **Changes:**
 
-              - Fixed cache not being cleared while retrieving available package updates
-              - Module reposerver: fixed profile repos retrieval
+              - Fixed apt cache cleaning, again
           draft: false
           prerelease: false
 
