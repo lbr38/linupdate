@@ -82,7 +82,7 @@ class Dnf:
     #   Return list of available dnf packages, sorted by name
     #
     #-----------------------------------------------------------------------------------------------
-    def get_available_packages(self):
+    def get_available_packages(self, useless_dist_upgrade: bool = False):
         list = []
 
         # Get list of packages to update sorted by name
@@ -156,7 +156,7 @@ class Dnf:
     #   Update dnf cache
     #
     #-----------------------------------------------------------------------------------------------
-    def update_cache(self, useless_dist_upgrade: bool = False):
+    def update_cache(self):
         # Useless because dnf update command already updates the cache
         return
     

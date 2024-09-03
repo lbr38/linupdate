@@ -68,12 +68,12 @@ class Apt:
     #   Return list of available apt packages, sorted by name
     #
     #-----------------------------------------------------------------------------------------------
-    def get_available_packages(self):
+    def get_available_packages(self, dist_upgrade: bool = False):
         try:
             list = []
 
             # Simulate an upgrade
-            # self.aptcache.upgrade()
+            self.aptcache.upgrade(dist_upgrade)
 
             # Loop through all packages marked for upgrade
             for pkg in self.aptcache.get_changes():
@@ -102,15 +102,10 @@ class Apt:
     #
     #-----------------------------------------------------------------------------------------------
     def clear_cache(self):
-        result = subprocess.run(
-            ["apt", "clean"],
-            stdout = subprocess.PIPE, # subprocess.PIPE & subprocess.PIPE are alias of 'capture_output = True'
-            stderr = subprocess.PIPE,
-            universal_newlines = True # Alias of 'text = True'
-        )
-
-        if result.returncode != 0:
-            raise Exception('could not clear apt cache: ' + result.stderr)
+        try:
+            self.aptcache.clear()
+        except Exception as e:
+            raise Exception('could not clear apt cache: ' + str(e))
 
 
     #-----------------------------------------------------------------------------------------------
@@ -118,12 +113,16 @@ class Apt:
     #   Update apt cache
     #
     #-----------------------------------------------------------------------------------------------
-    def update_cache(self, dist_upgrade: bool = False):
+    def update_cache(self):
         try:
-            if dist_upgrade:
-                self.aptcache.upgrade(True)
-            else:
-                self.aptcache.upgrade()
+            # Clear cache
+            self.aptcache.clear()
+
+            # Update cache
+            self.aptcache.update()
+
+            # Reopen cache
+            self.aptcache.open(None)
 
         except Exception as e:
             raise Exception('could not update apt cache: ' + str(e))

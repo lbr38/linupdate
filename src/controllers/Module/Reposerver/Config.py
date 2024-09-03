@@ -578,9 +578,6 @@ class Config:
             # Set file permissions
             Path(repo_file).chmod(0o660)
 
-            # Clear cache
-            self.packageController.clear_cache()
-
         print('[' + Fore.GREEN + ' OK ' + Style.RESET_ALL + ']')
 
 

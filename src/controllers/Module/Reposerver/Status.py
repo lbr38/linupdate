@@ -95,9 +95,8 @@ class Status:
 
         try:
             # Retrieve available packages
-            # Update cache => True
             # Include package of dist upgrade => True
-            packages = self.packageController.get_available_packages(True, True)
+            packages = self.packageController.get_available_packages(True)
 
             if len(packages) > 0:
                 available_packages = ''
