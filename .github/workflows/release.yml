@@ -174,35 +174,35 @@ jobs:
           path: ~/assets
 
       # Create a new release
-      # - name: Create Release
-      #   id: create_release
-      #   uses: actions/create-release@v1
-      #   env:
-      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      #   with:
-      #     tag_name: ${{ env.VERSION }}
-      #     release_name: ${{ env.VERSION }}
-      #     body: |
-      #       **Changes:**
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ env.VERSION }}
+          release_name: ${{ env.VERSION }}
+          body: |
+            **Changes:**
 
-      #         - Another apt cache cleaning
-      #     draft: false
-      #     prerelease: false
+              - Another apt cache cleaning
+          draft: false
+          prerelease: false
 
       # Upload packages to release
-      # - name: Upload packages
-      #   id: upload-release-assets
-      #   uses: dwenegar/upload-release-assets@v1
-      #   env:
-      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      #   with:
-      #     release_id: ${{ steps.create_release.outputs.id }}
-      #     assets_path: ~/assets
+      - name: Upload packages
+        id: upload-release-assets
+        uses: dwenegar/upload-release-assets@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          release_id: ${{ steps.create_release.outputs.id }}
+          assets_path: ~/assets
 
       # Upload package to repository
       - name: Upload packages to repositories
         run: | 
-          curl --fail-with-body -L --post301 -s -q -X POST -H "Authorization: Bearer ${{ secrets.REPOSITORY_TOKEN }}" -F "files=@$HOME/assets/linupdate_${{ env.VERSION }}_all.deb" https://packages.bespin.ovh/api/v2/snapshot/64/upload
+          curl --fail-with-body -L --post301 -s -q -X POST -H "Authorization: Bearer ${{ secrets.REPOSITORY_TOKEN }}" -F "files=@$HOME/assets/linupdate_${{ env.VERSION }}_all.deb" https://packages.bespin.ovh/api/v2/snapshot/67/upload
           curl --fail-with-body -L --post301 -s -q -X POST -H "Authorization: Bearer ${{ secrets.REPOSITORY_TOKEN }}" -F "files=@$HOME/assets/linupdate_${{ env.VERSION }}_all.deb" https://packages.bespin.ovh/api/v2/snapshot/66/upload
           curl --fail-with-body -L --post301 -s -q -X POST -H "Authorization: Bearer ${{ secrets.REPOSITORY_TOKEN }}" -F "files=@$HOME/assets/linupdate_${{ env.VERSION }}_all.deb" https://packages.bespin.ovh/api/v2/snapshot/68/upload
           curl --fail-with-body -L --post301 -s -q -X POST -H "Authorization: Bearer ${{ secrets.REPOSITORY_TOKEN }}" -F "files=@$HOME/assets/linupdate_${{ env.VERSION }}_all.deb" https://packages.bespin.ovh/api/v2/snapshot/73/upload
@@ -212,7 +212,7 @@ jobs:
       # Rebuild repositories metadata
       - name: Rebuild repositories
         run: |
-          curl --fail-with-body -X PUT -H "Authorization: Bearer ${{ secrets.REPOSITORY_TOKEN }}" -d '{"gpgSign":"true"}' https://packages.bespin.ovh/api/v2/snapshot/64/rebuild
+          curl --fail-with-body -X PUT -H "Authorization: Bearer ${{ secrets.REPOSITORY_TOKEN }}" -d '{"gpgSign":"true"}' https://packages.bespin.ovh/api/v2/snapshot/67/rebuild
           curl --fail-with-body -X PUT -H "Authorization: Bearer ${{ secrets.REPOSITORY_TOKEN }}" -d '{"gpgSign":"true"}' https://packages.bespin.ovh/api/v2/snapshot/66/rebuild
           curl --fail-with-body -X PUT -H "Authorization: Bearer ${{ secrets.REPOSITORY_TOKEN }}" -d '{"gpgSign":"true"}' https://packages.bespin.ovh/api/v2/snapshot/68/rebuild
           curl --fail-with-body -X PUT -H "Authorization: Bearer ${{ secrets.REPOSITORY_TOKEN }}" -d '{"gpgSign":"true"}' https://packages.bespin.ovh/api/v2/snapshot/73/rebuild
