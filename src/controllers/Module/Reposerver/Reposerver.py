@@ -57,10 +57,6 @@ class Reposerver:
         # Generaly "*-release" packages on Redhat/CentOS are resetting .repo files. So it is better to retrieve them again from the reposerver
         self.configController.get_profile_repos()
 
-        # Send last 4 packages history entries to the reposerver
-        # status = Status()
-        # status.send_packages_history()
-
 
     #-----------------------------------------------------------------------------------------------
     #

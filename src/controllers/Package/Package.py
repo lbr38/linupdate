@@ -127,9 +127,6 @@ class Package:
     #-----------------------------------------------------------------------------------------------
     def get_available_packages(self, dist_upgrade: bool = False):
         try:
-            # Update package manager cache
-            self.myPackageManagerController.update_cache()
-
             # Get a list of available packages
             return self.myPackageManagerController.get_available_packages(dist_upgrade)
 
@@ -259,8 +256,7 @@ class Package:
             self.summary['update']['status'] = 'done'
 
         except Exception as e:
-            print(Fore.RED + ' ✕ ' + Style.RESET_ALL + str(e))
-            print('\n' + Fore.RED + ' Packages update failed ' + Style.RESET_ALL)
+            print('\n' + Fore.RED + ' Packages update failed: ' + str(e) + Style.RESET_ALL)
             self.summary['update']['status'] = 'failed'
 
         finally:
@@ -309,12 +305,3 @@ class Package:
     #-----------------------------------------------------------------------------------------------
     def parse_history(self, entries, entries_limit):
         return self.myPackageManagerController.parse_history(entries, entries_limit)
-
-
-    #-----------------------------------------------------------------------------------------------
-    #
-    #   Clear package manager cache
-    #
-    #-----------------------------------------------------------------------------------------------
-    def clear_cache(self):
-        self.myPackageManagerController.clear_cache()

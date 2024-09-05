@@ -39,11 +39,6 @@ if [ -f "/usr/bin/systemctl" ];then
         cp /opt/linupdate/service/linupdate.systemd.template /lib/systemd/system/linupdate.service
     fi
 
-    # Delete service symlink if exists
-    if [ ! -L "/etc/systemd/system/linupdate.service" ];then
-        rm -f /etc/systemd/system/linupdate.service
-    fi
-
     chmod 550 "$SERVICE"
     chown root:root "$SERVICE"
 
