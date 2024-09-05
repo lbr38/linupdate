@@ -200,14 +200,14 @@ jobs:
       #     assets_path: ~/assets
 
       # Upload package to repository
-      - name: Upload to repositories
+      - name: Upload packages to repositories
         run: | 
-          curl --fail-with-body -L --post301 -s -q -X POST -H "Authorization: Bearer ${{ secrets.REPOSITORY_TOKEN }}" -F "files=@~/assets/linupdate_${{ env.VERSION }}_all.deb" https://packages.bespin.ovh/api/v2/snapshot/64/upload
-          curl --fail-with-body -L --post301 -s -q -X POST -H "Authorization: Bearer ${{ secrets.REPOSITORY_TOKEN }}" -F "files=@~/assets/linupdate_${{ env.VERSION }}_all.deb" https://packages.bespin.ovh/api/v2/snapshot/66/upload
-          curl --fail-with-body -L --post301 -s -q -X POST -H "Authorization: Bearer ${{ secrets.REPOSITORY_TOKEN }}" -F "files=@~/assets/linupdate_${{ env.VERSION }}_all.deb" https://packages.bespin.ovh/api/v2/snapshot/68/upload
-          curl --fail-with-body -L --post301 -s -q -X POST -H "Authorization: Bearer ${{ secrets.REPOSITORY_TOKEN }}" -F "files=@~/assets/linupdate_${{ env.VERSION }}_all.deb" https://packages.bespin.ovh/api/v2/snapshot/73/upload
-          curl --fail-with-body -L --post301 -s -q -X POST -H "Authorization: Bearer ${{ secrets.REPOSITORY_TOKEN }}" -F "files=@~/assets/linupdate-${{ env.VERSION }}.noarch.rpm" https://packages.bespin.ovh/api/v2/snapshot/70/upload
-          curl --fail-with-body -L --post301 -s -q -X POST -H "Authorization: Bearer ${{ secrets.REPOSITORY_TOKEN }}" -F "files=@~/assets/linupdate-${{ env.VERSION }}.noarch.rpm" https://packages.bespin.ovh/api/v2/snapshot/71/upload
+          curl --fail-with-body -L --post301 -s -q -X POST -H "Authorization: Bearer ${{ secrets.REPOSITORY_TOKEN }}" -F files=@~/assets/linupdate_${{ env.VERSION }}_all.deb https://packages.bespin.ovh/api/v2/snapshot/64/upload
+          curl --fail-with-body -L --post301 -s -q -X POST -H "Authorization: Bearer ${{ secrets.REPOSITORY_TOKEN }}" -F files=@~/assets/linupdate_${{ env.VERSION }}_all.deb https://packages.bespin.ovh/api/v2/snapshot/66/upload
+          curl --fail-with-body -L --post301 -s -q -X POST -H "Authorization: Bearer ${{ secrets.REPOSITORY_TOKEN }}" -F files=@~/assets/linupdate_${{ env.VERSION }}_all.deb https://packages.bespin.ovh/api/v2/snapshot/68/upload
+          curl --fail-with-body -L --post301 -s -q -X POST -H "Authorization: Bearer ${{ secrets.REPOSITORY_TOKEN }}" -F files=@~/assets/linupdate_${{ env.VERSION }}_all.deb https://packages.bespin.ovh/api/v2/snapshot/73/upload
+          curl --fail-with-body -L --post301 -s -q -X POST -H "Authorization: Bearer ${{ secrets.REPOSITORY_TOKEN }}" -F files=@~/assets/linupdate-${{ env.VERSION }}.noarch.rpm https://packages.bespin.ovh/api/v2/snapshot/70/upload
+          curl --fail-with-body -L --post301 -s -q -X POST -H "Authorization: Bearer ${{ secrets.REPOSITORY_TOKEN }}" -F files=@~/assets/linupdate-${{ env.VERSION }}.noarch.rpm https://packages.bespin.ovh/api/v2/snapshot/71/upload
 
       # Rebuild repositories metadata
       - name: Rebuild repositories
