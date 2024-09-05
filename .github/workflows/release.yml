@@ -199,6 +199,13 @@ jobs:
       #     release_id: ${{ steps.create_release.outputs.id }}
       #     assets_path: ~/assets
 
+      # debug
+      - name: Debug
+        run: ls -l ~/assets/
+
+      - name: Debug 2
+        run: ls -l .
+
       # Upload package to repository
       - name: Upload packages to repositories
         run: | 
