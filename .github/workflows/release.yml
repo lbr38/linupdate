@@ -199,29 +199,22 @@ jobs:
       #     release_id: ${{ steps.create_release.outputs.id }}
       #     assets_path: ~/assets
 
-      # debug
-      - name: Debug
-        run: ls -l ~/assets/
-
-      - name: Debug 2
-        run: ls -l .
-
       # Upload package to repository
       - name: Upload packages to repositories
         run: | 
           curl --fail-with-body -L --post301 -s -q -X POST -H "Authorization: Bearer ${{ secrets.REPOSITORY_TOKEN }}" -F files=@~/assets/linupdate_${{ env.VERSION }}_all.deb https://packages.bespin.ovh/api/v2/snapshot/64/upload
-          curl --fail-with-body -L --post301 -s -q -X POST -H "Authorization: Bearer ${{ secrets.REPOSITORY_TOKEN }}" -F files=@~/assets/linupdate_${{ env.VERSION }}_all.deb https://packages.bespin.ovh/api/v2/snapshot/66/upload
-          curl --fail-with-body -L --post301 -s -q -X POST -H "Authorization: Bearer ${{ secrets.REPOSITORY_TOKEN }}" -F files=@~/assets/linupdate_${{ env.VERSION }}_all.deb https://packages.bespin.ovh/api/v2/snapshot/68/upload
-          curl --fail-with-body -L --post301 -s -q -X POST -H "Authorization: Bearer ${{ secrets.REPOSITORY_TOKEN }}" -F files=@~/assets/linupdate_${{ env.VERSION }}_all.deb https://packages.bespin.ovh/api/v2/snapshot/73/upload
-          curl --fail-with-body -L --post301 -s -q -X POST -H "Authorization: Bearer ${{ secrets.REPOSITORY_TOKEN }}" -F files=@~/assets/linupdate-${{ env.VERSION }}.noarch.rpm https://packages.bespin.ovh/api/v2/snapshot/70/upload
-          curl --fail-with-body -L --post301 -s -q -X POST -H "Authorization: Bearer ${{ secrets.REPOSITORY_TOKEN }}" -F files=@~/assets/linupdate-${{ env.VERSION }}.noarch.rpm https://packages.bespin.ovh/api/v2/snapshot/71/upload
+#          curl --fail-with-body -L --post301 -s -q -X POST -H "Authorization: Bearer ${{ secrets.REPOSITORY_TOKEN }}" -F files=@~/assets/linupdate_${{ env.VERSION }}_all.deb https://packages.bespin.ovh/api/v2/snapshot/66/upload
+#          curl --fail-with-body -L --post301 -s -q -X POST -H "Authorization: Bearer ${{ secrets.REPOSITORY_TOKEN }}" -F files=@~/assets/linupdate_${{ env.VERSION }}_all.deb https://packages.bespin.ovh/api/v2/snapshot/68/upload
+#          curl --fail-with-body -L --post301 -s -q -X POST -H "Authorization: Bearer ${{ secrets.REPOSITORY_TOKEN }}" -F files=@~/assets/linupdate_${{ env.VERSION }}_all.deb https://packages.bespin.ovh/api/v2/snapshot/73/upload
+#          curl --fail-with-body -L --post301 -s -q -X POST -H "Authorization: Bearer ${{ secrets.REPOSITORY_TOKEN }}" -F files=@~/assets/linupdate-${{ env.VERSION }}.noarch.rpm https://packages.bespin.ovh/api/v2/snapshot/70/upload
+#          curl --fail-with-body -L --post301 -s -q -X POST -H "Authorization: Bearer ${{ secrets.REPOSITORY_TOKEN }}" -F files=@~/assets/linupdate-${{ env.VERSION }}.noarch.rpm https://packages.bespin.ovh/api/v2/snapshot/71/upload
 
       # Rebuild repositories metadata
-      - name: Rebuild repositories
-        run: |
-          curl --fail-with-body -X PUT -H "Authorization: Bearer ${{ secrets.REPOSITORY_TOKEN }}" -d '{"gpgSign":"true"}' https://packages.bespin.ovh/api/v2/snapshot/64/rebuild
-          curl --fail-with-body -X PUT -H "Authorization: Bearer ${{ secrets.REPOSITORY_TOKEN }}" -d '{"gpgSign":"true"}' https://packages.bespin.ovh/api/v2/snapshot/66/rebuild
-          curl --fail-with-body -X PUT -H "Authorization: Bearer ${{ secrets.REPOSITORY_TOKEN }}" -d '{"gpgSign":"true"}' https://packages.bespin.ovh/api/v2/snapshot/68/rebuild
-          curl --fail-with-body -X PUT -H "Authorization: Bearer ${{ secrets.REPOSITORY_TOKEN }}" -d '{"gpgSign":"true"}' https://packages.bespin.ovh/api/v2/snapshot/73/rebuild
-          curl --fail-with-body -X PUT -H "Authorization: Bearer ${{ secrets.REPOSITORY_TOKEN }}" -d '{"gpgSign":"true"}' https://packages.bespin.ovh/api/v2/snapshot/70/rebuild
-          curl --fail-with-body -X PUT -H "Authorization: Bearer ${{ secrets.REPOSITORY_TOKEN }}" -d '{"gpgSign":"true"}' https://packages.bespin.ovh/api/v2/snapshot/71/rebuild
+      # - name: Rebuild repositories
+      #   run: |
+      #     curl --fail-with-body -X PUT -H "Authorization: Bearer ${{ secrets.REPOSITORY_TOKEN }}" -d '{"gpgSign":"true"}' https://packages.bespin.ovh/api/v2/snapshot/64/rebuild
+      #     curl --fail-with-body -X PUT -H "Authorization: Bearer ${{ secrets.REPOSITORY_TOKEN }}" -d '{"gpgSign":"true"}' https://packages.bespin.ovh/api/v2/snapshot/66/rebuild
+      #     curl --fail-with-body -X PUT -H "Authorization: Bearer ${{ secrets.REPOSITORY_TOKEN }}" -d '{"gpgSign":"true"}' https://packages.bespin.ovh/api/v2/snapshot/68/rebuild
+      #     curl --fail-with-body -X PUT -H "Authorization: Bearer ${{ secrets.REPOSITORY_TOKEN }}" -d '{"gpgSign":"true"}' https://packages.bespin.ovh/api/v2/snapshot/73/rebuild
+      #     curl --fail-with-body -X PUT -H "Authorization: Bearer ${{ secrets.REPOSITORY_TOKEN }}" -d '{"gpgSign":"true"}' https://packages.bespin.ovh/api/v2/snapshot/70/rebuild
+      #     curl --fail-with-body -X PUT -H "Authorization: Bearer ${{ secrets.REPOSITORY_TOKEN }}" -d '{"gpgSign":"true"}' https://packages.bespin.ovh/api/v2/snapshot/71/rebuild
