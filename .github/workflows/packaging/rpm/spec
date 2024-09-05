@@ -34,6 +34,9 @@ if [ -f "/etc/linupdate/update.yml" ];then
     cp /etc/linupdate/update.yml /tmp/update.yml.rpmsave
 fi
 
+# Delete service symlink if exists
+rm -f /etc/systemd/system/linupdate.service
+
 # Only if systemd is installed (not the case on github runners)
 if [ -f "/usr/bin/systemctl" ];then
     # Stop service if started
@@ -87,11 +90,6 @@ if [ -f "/usr/bin/systemctl" ];then
     # Copy systemd unit file if not exists
     if [ ! -f "/lib/systemd/system/linupdate.service" ];then
         cp /opt/linupdate/service/linupdate.systemd.template /lib/systemd/system/linupdate.service
-    fi
-
-    # Delete service symlink if exists
-    if [ ! -L "/etc/systemd/system/linupdate.service" ];then
-        rm -f /etc/systemd/system/linupdate.service
     fi
 
     chmod 550 "$SERVICE"

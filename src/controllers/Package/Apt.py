@@ -14,9 +14,6 @@ class Apt:
         # Create an instance of the apt cache
         self.aptcache = apt.Cache()
 
-        # self.aptcache.update()
-        self.aptcache.open(None)
-
         # Total count of success and failed package updates
         self.summary = {
             'update': {
@@ -44,6 +41,11 @@ class Apt:
     def get_installed_packages(self):
         list = []
 
+        # Clear, update cache and open it
+        # TODO to fix: cache is updated twice because of a weird bug I cannot fix. It seems that the cache is not updated correctly the first time and leads to an empty list of packages.
+        self.update_cache()
+        self.update_cache()
+
         try:
             # Loop through all installed packages
             for pkg in self.aptcache:
@@ -69,29 +71,31 @@ class Apt:
     #
     #-----------------------------------------------------------------------------------------------
     def get_available_packages(self, dist_upgrade: bool = False):
-        try:
-            list = []
+        list = []
 
-            # Simulate an upgrade
-            self.aptcache.upgrade(dist_upgrade)
+        # Clear, update cache and open it
+        # TODO to fix: cache is updated twice because of a weird bug I cannot fix. It seems that the cache is not updated correctly the first time and leads to an empty list of packages.
+        # Might be because /etc/apt/sources.list is empty
+        self.update_cache()
+        self.update_cache()
 
-            # Loop through all packages marked for upgrade
-            for pkg in self.aptcache.get_changes():
-                # If the package is upgradable, add it to the list of available packages
-                if pkg.is_upgradable:
-                    myPackage = {
-                        'name': pkg.name,
-                        'current_version': pkg.installed.version,
-                        'available_version': pkg.candidate.version
-                    }
+        # Simulate an upgrade to get the list of available packages
+        self.aptcache.upgrade(dist_upgrade)
 
-                    list.append(myPackage)
-            
-            # Sort the list by package name
-            list.sort(key=lambda x: x['name'])
+        # Loop through all packages marked for upgrade
+        for pkg in self.aptcache.get_changes():
+            # If the package is upgradable, add it to the list of available packages
+            if pkg.is_upgradable:
+                myPackage = {
+                    'name': pkg.name,
+                    'current_version': pkg.installed.version,
+                    'available_version': pkg.candidate.version
+                }
 
-        except Exception as e:
-            raise Exception('could not get available packages: ' + str(e))
+                list.append(myPackage)
+        
+        # Sort the list by package name
+        list.sort(key=lambda x: x['name'])
         
         return list
 

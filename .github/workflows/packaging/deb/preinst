@@ -8,6 +8,9 @@ if [ -f "/etc/linupdate/update.yml" ];then
     cp /etc/linupdate/update.yml /tmp/update.yml.debsave
 fi
 
+# Delete service symlink if exists
+rm -f /etc/systemd/system/linupdate.service
+
 # Only if systemd is installed (not the case on github runners)
 if [ -f "/usr/bin/systemctl" ];then
     # Stop service if started
