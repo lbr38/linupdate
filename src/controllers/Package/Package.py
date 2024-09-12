@@ -148,11 +148,11 @@ class Package:
                 'status': 'running',
                 'success': {
                     'count': 0,
-                    'packages': []
+                    'packages': {}
                 },
                 'failed': {
                     'count': 0,
-                    'packages': []
+                    'packages': {}
                 },
             }
         }
@@ -268,6 +268,10 @@ class Package:
             # Update the summary with the number of packages updated and failed
             self.summary['update']['success']['count'] = self.myPackageManagerController.summary['update']['success']['count']
             self.summary['update']['failed']['count'] = self.myPackageManagerController.summary['update']['failed']['count']
+
+            # Also retrieve the list of packages updated and failed, with their version and log
+            self.summary['update']['success']['packages'] = self.myPackageManagerController.summary['update']['success']['packages']
+            self.summary['update']['failed']['packages'] = self.myPackageManagerController.summary['update']['failed']['packages']
 
             # Print the number of packages updated and failed
             # If there was a failed package, print the number in red

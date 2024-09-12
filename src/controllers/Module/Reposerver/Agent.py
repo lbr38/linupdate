@@ -7,7 +7,6 @@ import threading
 import websocket
 import json
 import sys
-import re
 from pathlib import Path
 
 # Import classes
@@ -16,6 +15,7 @@ from src.controllers.Module.Module import Module
 from src.controllers.Module.Reposerver.Status import Status
 from src.controllers.Module.Reposerver.Config import Config
 from src.controllers.Package.Package import Package
+from src.controllers.App.Utils import Utils
 
 class Agent:
     def __init__(self):
@@ -132,7 +132,7 @@ class Agent:
         message = json.loads(message)
         request_id = None
         summary = None
-        log  = '/tmp/linupdate.reposerver.request.log'
+        log = '/tmp/linupdate.reposerver.request.log'
         # Lock to prevent service restart while processing the request
         lock = '/tmp/linupdate.reposerver.request.lock'
         error = None
@@ -223,15 +223,13 @@ class Agent:
                         try:
                             with open(log, 'r') as file:
                                 # Get log content and remove ANSI escape codes
-                                logcontent = file.read()
-                                ansi_escape = re.compile(r'(?:\x1B[@-_]|[\x80-\x9F])[0-?]*[ -/]*[@-~]')
-                                logcontent = ansi_escape.sub('', logcontent)
+                                logcontent = Utils().remove_ansi(file.read())
 
                                 # Delete the log file
                                 Path(log).unlink()
                         except Exception as e:
                             # If content could not be read, then generate an error message
-                            logcontent = 'Error: could not read log file'                          
+                            logcontent = 'Error: could not read log file: ' + str(e)                        
 
                         json_response['response-to-request']['log'] = logcontent
 
