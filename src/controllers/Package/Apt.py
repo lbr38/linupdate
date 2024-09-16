@@ -8,6 +8,11 @@ import os
 import re
 import sys
 from colorama import Fore, Style
+from pathlib import Path
+
+# Import classes
+from src.controllers.Log import Log
+from src.controllers.App.Utils import Utils
 
 class Apt:
     def __init__(self):
@@ -19,11 +24,11 @@ class Apt:
             'update': {
                 'success': {
                     'count': 0,
-                    'packages': []
+                    'packages': {}
                 },
                 'failed': {
                     'count': 0,
-                    'packages': []
+                    'packages': {}
                 }
             }
         }
@@ -200,6 +205,9 @@ class Apt:
     #
     #-----------------------------------------------------------------------------------------------
     def update(self, packagesList, update_method: str = 'one_by_one', exit_on_package_update_error: bool = True):
+        # Log file to store each package update output (when 'one_by_one' method is used)
+        log = '/tmp/linupdate-update-package.log'
+
         # If update_method is 'one_by_one', update packages one by one (one command per package)
         if update_method == 'one_by_one':
             # Loop through the list of packages to update
@@ -208,73 +216,111 @@ class Apt:
                 if pkg['excluded']:
                     continue
 
-                print('\n ▪ Updating ' + Fore.GREEN + pkg['name'] + Style.RESET_ALL + ' (' + pkg['current_version'] + ' → ' + pkg['available_version'] + '):')
+                # If log file exists, remove it
+                if Path(log).is_file():
+                    Path(log).unlink()
 
-                # Before updating, check If package is already in the latest version, if so, skip it
-                # It means that it has been updated previously by another package, probably because it was a dependency
-                # Get the current version of the package from apt cache. Use a new temporary apt cache to be sure it is up to date
-                try:
-                    temp_apt_cache = apt.Cache()
-                    temp_apt_cache.open(None)
+                with Log(log):
+                    print('\n ▪ Updating ' + Fore.GREEN + pkg['name'] + Style.RESET_ALL + ' (' + pkg['current_version'] + ' → ' + pkg['available_version'] + '):')
 
-                    # If version in cache is the same the target version, skip the update
-                    if temp_apt_cache[pkg['name']].installed.version == pkg['available_version']:
-                        print(Fore.GREEN + ' ✔ ' + Style.RESET_ALL + pkg['name'] + ' is already up to date (updated by a previous package).')
+                    # Before updating, check If package is already in the latest version, if so, skip it
+                    # It means that it has been updated previously by another package, probably because it was a dependency
+                    # Get the current version of the package from apt cache. Use a new temporary apt cache to be sure it is up to date
+                    try:
+                        temp_apt_cache = apt.Cache()
+                        temp_apt_cache.open(None)
 
-                        # Mark the package as already updated
-                        self.summary['update']['success']['count'] += 1
-                        continue
-                except Exception as e:
-                    raise Exception('Could not retrieve current version of package ' + pkg['name'] + ': ' + str(e))
+                        # If version in cache is the same the target version, skip the update
+                        if temp_apt_cache[pkg['name']].installed.version == pkg['available_version']:
+                            print(Fore.GREEN + ' ✔ ' + Style.RESET_ALL + pkg['name'] + ' is already up to date (updated with another package).')
 
-                # If --keep-oldconf is True, then keep the old configuration file
-                if self.keep_oldconf:
-                    cmd = [
-                            'apt-get', 'install', pkg['name'], '-y',
-                            '-o', 'Dpkg::Options::=--force-confdef',
-                            '-o', 'Dpkg::Options::=--force-confold'
-                        ]
-                else:
-                    cmd = ['apt-get', 'install', pkg['name'], '-y']
+                            # Mark the package as already updated
+                            self.summary['update']['success']['count'] += 1
 
-                popen = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True)
+                            # Also add the package to the list of successful packages
+                            self.summary['update']['success']['packages'][pkg['name']] = {
+                                'version': pkg['available_version'],
+                                'log': 'Already up to date (updated with another package).'
+                            }
 
-                # Print lines as they are read
-                for line in popen.stdout:
-                    # Deal with carriage return
-                    parts = line.split('\r')
-                    # for part in parts[:-1]:
-                    #     sys.stdout.write('\r' + ' | ' + part.strip() + '\n')
-                    #     sys.stdout.flush()
-                    buffer = parts[-1]
-                    sys.stdout.write('\r' + ' | ' + buffer.strip() + '\n')
-                    sys.stdout.flush()
-                
-                # Wait for the command to finish
-                popen.wait()
+                            # Continue to the next package
+                            continue
 
-                # If command failed, either raise an exception or print a warning
-                if popen.returncode != 0:
-                    # Add the package to the list of failed packages
-                    self.summary['update']['failed']['count'] += 1
+                    except Exception as e:
+                        raise Exception('Could not retrieve current version of package ' + pkg['name'] + ': ' + str(e))
 
-                    # If error is critical, raise an exception
-                    if (exit_on_package_update_error == True):
-                        raise Exception('Error while updating ' + pkg['name'] + '.')
-
-                    # Else print an error message and continue to the next package
+                    # If --keep-oldconf is True, then keep the old configuration file
+                    if self.keep_oldconf:
+                        cmd = [
+                                'apt-get', 'install', pkg['name'], '-y',
+                                # Debug only
+                                # '--dry-run',
+                                '-o', 'Dpkg::Options::=--force-confdef',
+                                '-o', 'Dpkg::Options::=--force-confold'
+                            ]
                     else:
-                        print(Fore.RED + ' ✕ ' + Style.RESET_ALL + 'Error while updating ' + pkg['name'] + '.')
-                        continue
+                        cmd = ['apt-get', 'install', pkg['name'], '-y']
 
-                # Close the pipe
-                popen.stdout.close()
+                    popen = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True)
 
-                # If command succeeded, increment the success counter
-                self.summary['update']['success']['count'] += 1
+                    # Print lines as they are read
+                    for line in popen.stdout:
+                        # Deal with carriage return
+                        parts = line.split('\r')
+                        # for part in parts[:-1]:
+                        #     sys.stdout.write('\r' + ' | ' + part.strip() + '\n')
+                        #     sys.stdout.flush()
+                        buffer = parts[-1]
+                        sys.stdout.write('\r' + ' | ' + buffer.strip() + '\n')
+                        sys.stdout.flush()
+                
+                    # Wait for the command to finish
+                    popen.wait()
 
-                # Print a success message
-                print(Fore.GREEN + ' ✔ ' + Style.RESET_ALL + pkg['name'] + ' updated successfully.')
+                    # If command failed, either raise an exception or print a warning
+                    if popen.returncode != 0:
+                        # Add the package to the list of failed packages
+                        self.summary['update']['failed']['count'] += 1
+
+                        # Also add the package to the list of failed packages
+
+                        # First get log content
+                        with open(log, 'r') as file:
+                            log_content = Utils().remove_ansi(file.read())
+
+                        self.summary['update']['failed']['packages'][pkg['name']] = {
+                            'version': pkg['available_version'],
+                            'log': log_content
+                        }
+
+                        # If error is critical, raise an exception
+                        if (exit_on_package_update_error == True):
+                            raise Exception('Error while updating ' + pkg['name'] + '.')
+
+                        # Else print an error message and continue to the next package
+                        else:
+                            print(Fore.RED + ' ✕ ' + Style.RESET_ALL + 'Error while updating ' + pkg['name'] + '.')
+                            continue
+
+                    # Close the pipe
+                    popen.stdout.close()
+
+                    # If command succeeded, increment the success counter
+                    self.summary['update']['success']['count'] += 1
+
+                    # Also add the package to the list of successful packages
+
+                    # First get log content
+                    with open(log, 'r') as file:
+                        log_content = Utils().remove_ansi(file.read())
+
+                    self.summary['update']['success']['packages'][pkg['name']] = {
+                        'version': pkg['available_version'],
+                        'log': log_content
+                    }
+
+                    # Print a success message
+                    print(Fore.GREEN + ' ✔ ' + Style.RESET_ALL + pkg['name'] + ' updated successfully.')
 
         # If update_method is 'global', update all packages at once (one command)
         if update_method == 'global':

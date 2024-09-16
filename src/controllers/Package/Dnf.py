@@ -7,6 +7,7 @@ import time
 import re
 from colorama import Fore, Style
 from dateutil import parser as dateutil_parser
+from pathlib import Path
 import configparser
 
 class Dnf:
@@ -16,14 +17,15 @@ class Dnf:
             'update': {
                 'success': {
                     'count': 0,
-                    'packages': []
+                    'packages': {}
                 },
                 'failed': {
                     'count': 0,
-                    'packages': []
+                    'packages': {}
                 }
             }
         }
+
 
     #-----------------------------------------------------------------------------------------------
     #
@@ -244,6 +246,9 @@ class Dnf:
     #
     #-----------------------------------------------------------------------------------------------
     def update(self, packagesList, update_method: str = 'one_by_one', exit_on_package_update_error: bool = True):
+        # Log file to store each package update output (when 'one_by_one' method is used)
+        log = '/tmp/linupdate-update-package.log'
+
         # If update_method is 'one_by_one', update packages one by one (one command per package)
         if update_method == 'one_by_one':
             # Loop through the list of packages to update
@@ -252,9 +257,13 @@ class Dnf:
                 if pkg['excluded']:
                     continue
 
+                # If log file exists, remove it
+                if Path(log).is_file():
+                    Path(log).unlink()
+
                 print('\n ▪ Updating ' + Fore.GREEN + pkg['name'] + Style.RESET_ALL + ' (' + pkg['current_version'] + ' → ' + pkg['available_version'] + '):')
 
-                # Before updating, check If package is already in the latest version, if so, skip it
+                # Before updating, check if package is already in the latest version, if so, skip it
                 # It means that it has been updated previously by another package, probably because it was a dependency
                 # Get the current version of the package with dnf
                 # e.g. dnf repoquery --installed --qf="%{version}-%{release}.%{arch}" wget
@@ -274,10 +283,18 @@ class Dnf:
 
                 # If current version is the same the target version, skip the update
                 if current_version == pkg['available_version']:
-                    print(Fore.GREEN + ' ✔ ' + Style.RESET_ALL + pkg['name'] + ' is already up to date (updated by a previous package).')
+                    print(Fore.GREEN + ' ✔ ' + Style.RESET_ALL + pkg['name'] + ' is already up to date (updated with another package).')
 
                     # Mark the package as already updated
                     self.summary['update']['success']['count'] += 1
+
+                    # Also add the package to the list of successful packages
+                    self.summary['update']['success']['packages'][pkg['name']] = {
+                        'version': pkg['available_version'],
+                        'log': 'Already up to date (updated with another package).'
+                    }
+
+                    # Continue to the next package
                     continue
 
                 # Define the command to update the package
@@ -298,6 +315,17 @@ class Dnf:
                     # Add the package to the list of failed packages
                     self.summary['update']['failed']['count'] += 1
 
+                    # Also add the package to the list of failed packages
+
+                    # First get log content
+                    with open(log, 'r') as file:
+                        log_content = file.read()
+
+                    self.summary['update']['failed']['packages'][pkg['name']] = {
+                        'version': pkg['available_version'],
+                        'log': log_content
+                    }
+
                     # If error is critical, raise an exception to quit
                     if (exit_on_package_update_error == True):
                         raise Exception('Error while updating ' + pkg['name'] + '.')
@@ -312,6 +340,17 @@ class Dnf:
 
                 # If command succeeded, increment the success counter
                 self.summary['update']['success']['count'] += 1
+
+                # Also add the package to the list of successful packages
+
+                # First get log content
+                with open(log, 'r') as file:
+                    log_content = file.read()
+
+                self.summary['update']['success']['packages'][pkg['name']] = {
+                    'version': pkg['available_version'],
+                    'log': log_content
+                }
 
                 # Print a success message
                 print(Fore.GREEN + ' ✔ ' + Style.RESET_ALL + pkg['name'] + ' updated successfully.')

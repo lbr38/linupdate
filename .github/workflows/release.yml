@@ -185,7 +185,7 @@ jobs:
           body: |
             **Changes:**
 
-              - Another apt cache cleaning
+              - Reposerver module: sending more logs to the server when updating packages
           draft: false
           prerelease: false
 

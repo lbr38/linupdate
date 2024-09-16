@@ -1,11 +1,13 @@
 # coding: utf-8
 
 # Import libraries
-import re
 import smtplib
 import socket
 from email.message import EmailMessage
 from email.headerregistry import Address
+
+# Import classes
+from src.controllers.App.Utils import Utils
 
 class Mail():
     #-----------------------------------------------------------------------------------------------
@@ -20,14 +22,11 @@ class Mail():
         if logfile:
             # Read logfile content
             with open(logfile, 'r') as f:
-                attach_content = f.read()
+                # Remove ANSI escape codes
+                attach_content = Utils().remove_ansi(f.read())
 
             # Get logfile real filename
             attachment = logfile.split('/')[-1]
-
-            # Remove ANSI escape codes
-            ansi_escape = re.compile(r'(?:\x1B[@-_]|[\x80-\x9F])[0-?]*[ -/]*[@-~]')
-            attach_content = ansi_escape.sub('', attach_content)
 
         # Define email content and headers
         msg['Subject'] = subject
