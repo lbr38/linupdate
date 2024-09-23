@@ -137,9 +137,10 @@ class Package:
     #-----------------------------------------------------------------------------------------------
     #
     #   Update packages
+    #   This can be a list of specific packages or all packages
     #
     #-----------------------------------------------------------------------------------------------
-    def update(self, assume_yes: bool = False, ignore_exclude: bool = False, check_updates: bool = False, dist_upgrade: bool = False, keep_oldconf: bool = True):        
+    def update(self, packages_list: list = [], assume_yes: bool = False, ignore_exclude: bool = False, check_updates: bool = False, dist_upgrade: bool = False, keep_oldconf: bool = True):        
         restart_file = '/tmp/linupdate.restart-needed'
 
         # Package update summary
@@ -170,9 +171,39 @@ class Package:
             # Remove all exclusions before starting (could be some left from a previous run that failed)
             self.remove_all_exclusions()
     
-            # Retrieve available packages,
-            # passing the dist_upgrade parameter (which will, with apt, update the list of available packages including packages such as the kernel)
-            self.packagesToUpdateList = self.get_available_packages(dist_upgrade)
+            # If a list of packages to update has been provided, use it
+            if len(packages_list) > 0:
+                packages_list_temp = []
+
+                # For each package in the list, if no current version or available version is provided, retrieve it
+                # This is the case when the user uses the --update parameter
+                for package in packages_list:
+                    if 'current_version' not in package or 'available_version' not in package:
+                        package['current_version'] = self.myPackageManagerController.get_current_version(package['name'])
+                        package['available_version'] = self.myPackageManagerController.get_available_version(package['name'])
+
+                        # If current version or available version have not been found, skip the package
+                        if package['current_version'] == '' or package['available_version'] == '':
+                            continue
+
+                        # If current version and available version are the same, skip the package
+                        if package['current_version'] == package['available_version']:
+                            continue
+
+                        # Add the package to the list
+                        packages_list_temp.append({
+                            'name': package['name'],
+                            'current_version': package['current_version'],
+                            'available_version': package['available_version']
+                        })
+
+                self.packagesToUpdateList = packages_list_temp
+
+            # Otherwise, retrieve the list of all available packages
+            else:
+                # Retrieve available packages passing the dist_upgrade parameter
+                # (which will, with apt, update the list of available packages including packages such as the kernel)
+                self.packagesToUpdateList = self.get_available_packages(dist_upgrade)
 
             # Check for package exclusions
             self.exclude(ignore_exclude)
@@ -203,7 +234,7 @@ class Package:
 
             # Print the table list of packages to update
             # Check prettytable for table with width control https://pypi.org/project/prettytable/
-            print(tabulate(table, headers=["", "Package", "Current version", "Available version", "Install decision"], tablefmt="simple"), end='\n\n')
+            print(tabulate(table, headers=["", "Package", "Current version", "Available version", "Update decision"], tablefmt="simple"), end='\n\n')
 
             # If there are no packages to update
             if self.packagesToUpdateCount == 0:
@@ -222,6 +253,10 @@ class Package:
             # Quit here if there was no packages to update
             if self.packagesToUpdateCount == 0:
                 return
+
+            # Print again the number of packages if total count is > 50 to avoid the user to scroll up to see it
+            if self.packagesToUpdateCount + self.packagesExcludedCount > 50:
+                print('\n ' + Fore.GREEN + str(self.packagesToUpdateCount) + Style.RESET_ALL + ' packages will be updated, ' + Fore.YELLOW + str(self.packagesExcludedCount) + Style.RESET_ALL + ' will be excluded \n')
 
             # If --assume-yes param has not been specified, then ask for confirmation before installing the printed packages update list
             if not assume_yes:

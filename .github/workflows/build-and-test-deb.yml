@@ -167,6 +167,9 @@ jobs:
       - name: "Run test: check updates"
         run: python3 /opt/linupdate/linupdate.py --check-updates
 
+      - name: "Run text: update specific packages"
+        run: python3 /opt/linupdate/linupdate.py --update curl,wget,apache2 --assume-yes
+
       - name: "Run test: list available modules"
         run: python3 /opt/linupdate/linupdate.py --mod-list
 
@@ -254,6 +257,9 @@ jobs:
 
       - name: "Run test: check updates"
         run: python3 /opt/linupdate/linupdate.py --check-updates
+
+      - name: "Run text: update specific packages"
+        run: python3 /opt/linupdate/linupdate.py --update curl,wget,apache2 --assume-yes
 
       - name: "Run test: list available modules"
         run: python3 /opt/linupdate/linupdate.py --mod-list
@@ -343,6 +349,9 @@ jobs:
       - name: "Run test: check updates"
         run: python3 /opt/linupdate/linupdate.py --check-updates
 
+      - name: "Run text: update specific packages"
+        run: python3 /opt/linupdate/linupdate.py --update curl,wget,apache2 --assume-yes
+
       - name: "Run test: list available modules"
         run: python3 /opt/linupdate/linupdate.py --mod-list
 
@@ -427,6 +436,9 @@ jobs:
 
       - name: "Run test: check updates"
         run: sudo python3 /opt/linupdate/linupdate.py --check-updates
+
+      - name: "Run text: update specific packages"
+        run: sudo python3 /opt/linupdate/linupdate.py --update curl,wget,apache2 --assume-yes
 
       - name: "Run test: list available modules"
         run: sudo python3 /opt/linupdate/linupdate.py --mod-list
@@ -534,6 +546,9 @@ jobs:
 
       - name: "Run test: check updates"
         run: python3 /opt/linupdate/linupdate.py --check-updates
+
+      - name: "Run text: update specific packages"
+        run: python3 /opt/linupdate/linupdate.py --update curl,wget,apache2 --assume-yes
 
       - name: "Run test: print raw configuration"
         run: python3 /opt/linupdate/linupdate.py --show-config

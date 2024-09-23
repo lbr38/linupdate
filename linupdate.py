@@ -99,7 +99,8 @@ def main():
             my_module.pre()
 
             # Execute packages update
-            my_package.update(my_args.assume_yes,
+            my_package.update(my_args.packages_to_update,
+                              my_args.assume_yes,
                               my_args.ignore_exclude,
                               my_args.check_updates,
                               my_args.dist_upgrade,

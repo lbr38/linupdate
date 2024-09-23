@@ -124,6 +124,23 @@ class Agent:
 
     #-----------------------------------------------------------------------------------------------
     #
+    #   Set request status
+    #
+    #-----------------------------------------------------------------------------------------------
+    def set_request_status(self, request_id, status):
+        json_data = {
+            'response-to-request': {
+                'request-id': request_id,
+                'status': status
+            }
+        }
+
+        # Send the response
+        self.websocket.send(json.dumps(json_data))
+
+
+    #-----------------------------------------------------------------------------------------------
+    #
     #   On message received from the websocket
     #
     #-----------------------------------------------------------------------------------------------
@@ -175,6 +192,11 @@ class Agent:
                 # Case the request is 'request-packages-infos', then send packages informations to the reposerver
                 elif message['request'] == 'request-packages-infos':
                     print('[reposerver-agent] Reposerver requested packages informations')
+
+                    # Send a response to the reposerver to make the request as running
+                    self.set_request_status(request_id, 'running')
+
+                    # Log everything to the log file
                     with Log(log):
                         self.reposerverStatusController.send_packages_info()
 
@@ -182,12 +204,33 @@ class Agent:
                 elif message['request'] == 'update-all-packages':
                     print('[reposerver-agent] Reposerver requested all packages update')
 
+                    # Send a response to the reposerver to make the request as running
+                    self.set_request_status(request_id, 'running')
+
                     # Log everything to the log file
                     with Log(log):
-                        self.packageController.update(True)
+                        self.packageController.update([], True)
 
                     # Send a summary to the reposerver, with the summary of the update (number of packages updated or failed)
                     summary = self.packageController.summary
+
+                # Case the request is 'request-specific-packages-installation', then update a list of packages
+                # A list of packages must be provided in the message
+                elif message['request'] == 'request-specific-packages-installation':
+                    if 'data' in message:
+                        if 'packages' in message['data'] and len(message['data']['packages']) > 0:
+                            print('[reposerver-agent] Reposerver requested to update a list of packages')
+
+                            # Send a response to the reposerver to make the request as running
+                            self.set_request_status(request_id, 'running')
+
+                            # Log everything to the log file
+                            with Log(log):
+                                self.packageController.update(message['data']['packages'], True)
+
+                            # Send a summary to the reposerver, with the summary of the installation (number of packages installed or failed)
+                            summary = self.packageController.summary
+
                 else:
                     raise Exception('unknown request sent by reposerver: ' + message['request'])
 

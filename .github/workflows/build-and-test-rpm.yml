@@ -152,8 +152,8 @@ jobs:
       - name: Install package
         run: dnf --nogpgcheck localinstall -y ./linupdate-test-build-${{ env.VERSION }}.noarch.rpm
 
-      - name: Launch linupdate
-        run: python3 /opt/linupdate/linupdate.py --check-updates
+      # - name: Launch linupdate
+      #   run: python3 /opt/linupdate/linupdate.py --check-updates
 
       # Tests some params
       - name: "Run test: print help"
@@ -184,19 +184,22 @@ jobs:
         run: python3 /opt/linupdate/linupdate.py --get-exclude
 
       - name: "Run test: set package exclusions on major update"
-        run: python3 /opt/linupdate/linupdate.py --exclude-major "apache2,mysql.*"
+        run: python3 /opt/linupdate/linupdate.py --exclude-major "httpd,mysql.*"
 
       - name: "Run test: get package exclusions on major update"
         run: python3 /opt/linupdate/linupdate.py --get-exclude-major
 
       - name: "Run test: set services to restart after update"
-        run: python3 /opt/linupdate/linupdate.py --service-restart "apache2,mysql"
+        run: python3 /opt/linupdate/linupdate.py --service-restart "httpd,mysql"
 
       - name: "Run test: get services to restart after update"
         run: python3 /opt/linupdate/linupdate.py --get-service-restart
 
       - name: "Run test: check updates"
         run: python3 /opt/linupdate/linupdate.py --check-updates
+
+      - name: "Run text: update specific packages"
+        run: python3 /opt/linupdate/linupdate.py --update curl,wget,httpd --assume-yes
 
       - name: "Run test: list available modules"
         run: python3 /opt/linupdate/linupdate.py --mod-list
@@ -247,8 +250,8 @@ jobs:
       - name: Install package
         run: dnf --nogpgcheck localinstall -y ./linupdate-test-build-${{ env.VERSION }}.noarch.rpm
 
-      - name: Launch linupdate
-        run: python3 /opt/linupdate/linupdate.py --check-updates
+      # - name: Launch linupdate
+      #   run: python3 /opt/linupdate/linupdate.py --check-updates
 
       # Tests some params
       - name: "Run test: print help"
@@ -279,19 +282,22 @@ jobs:
         run: python3 /opt/linupdate/linupdate.py --get-exclude
 
       - name: "Run test: set package exclusions on major update"
-        run: python3 /opt/linupdate/linupdate.py --exclude-major "apache2,mysql.*"
+        run: python3 /opt/linupdate/linupdate.py --exclude-major "httpd,mysql.*"
 
       - name: "Run test: get package exclusions on major update"
         run: python3 /opt/linupdate/linupdate.py --get-exclude-major
 
       - name: "Run test: set services to restart after update"
-        run: python3 /opt/linupdate/linupdate.py --service-restart "apache2,mysql"
+        run: python3 /opt/linupdate/linupdate.py --service-restart "httpd,mysql"
 
       - name: "Run test: get services to restart after update"
         run: python3 /opt/linupdate/linupdate.py --get-service-restart
 
       - name: "Run test: check updates"
         run: python3 /opt/linupdate/linupdate.py --check-updates
+
+      - name: "Run text: update specific packages"
+        run: python3 /opt/linupdate/linupdate.py --update curl,wget,httpd --assume-yes
 
       - name: "Run test: list available modules"
         run: python3 /opt/linupdate/linupdate.py --mod-list

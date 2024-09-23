@@ -185,7 +185,9 @@ jobs:
           body: |
             **Changes:**
 
-              - Reposerver module: sending more logs to the server when updating packages
+              - Fixed update process on RHEL based systems
+              - Added a new parameter to update only a list of packages
+              - Reposerver module: added the feature to receive a list of packages to update
           draft: false
           prerelease: false
 

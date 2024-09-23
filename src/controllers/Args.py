@@ -41,6 +41,7 @@ class Args:
         Args.assume_yes = False
         Args.check_updates = False
         Args.ignore_exclude = False
+        Args.packages_to_update = []
         Args.dist_upgrade = False
         Args.keep_oldconf = True
 
@@ -72,6 +73,8 @@ class Args:
             # Set mail recipient
             parser.add_argument("--set-mail-recipient", action="store", nargs='?', default="null")
 
+            # Packages to update list
+            parser.add_argument("--update", "-u", action="store", nargs='?', default="null")
             # Dist upgrade
             parser.add_argument("--dist-upgrade", "-du", action="store_true", default="null")
             # Keep oldconf
@@ -299,7 +302,18 @@ class Args:
                     raise ArgsException('Could not set mail recipient(s): ' + str(e))
 
             #
+            # If --update param has been set
+            #
+            if args.update != "null":
+                try:
+                    for package in args.update.split(','):
+                        Args.packages_to_update.append({'name': package.strip()})
+                except Exception as e:
+                    raise ArgsException('Could not parse update list: ' + str(e))
+
+            #
             # If --ignore-exclude param has been set
+            #
             if args.ignore_exclude != "null":
                 Args.ignore_exclude = True
 
@@ -628,6 +642,14 @@ class Args:
                 },
                 {
                     'title': 'Update options'
+                },
+                {
+                    'args': [
+                        '--update',
+                        '-u'
+                    ],
+                    'option': 'PACKAGE',
+                    'description': 'Update only the specified packages (separated by commas)'
                 },
                 {
                     'args': [

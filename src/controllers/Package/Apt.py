@@ -19,23 +19,57 @@ class Apt:
         # Create an instance of the apt cache
         self.aptcache = apt.Cache()
 
-        # Total count of success and failed package updates
-        self.summary = {
-            'update': {
-                'success': {
-                    'count': 0,
-                    'packages': {}
-                },
-                'failed': {
-                    'count': 0,
-                    'packages': {}
-                }
-            }
-        }
-
         # Define some default options
         self.dist_upgrade = False
         self.keep_oldconf = True
+
+
+    #-----------------------------------------------------------------------------------------------
+    #
+    #   Return the current version of a package
+    #
+    #-----------------------------------------------------------------------------------------------
+    def get_current_version(self, package):
+        try:
+            # Open apt cache
+            self.aptcache.open(None)
+
+            # Get the package from the cache
+            pkg = self.aptcache[package]
+
+            # If the package is not installed, return an empty string
+            if not pkg.is_installed:
+                return ''
+
+            # Return the installed version of the package
+            return pkg.installed.version
+
+        except Exception as e:
+            raise Exception('could not get current version of package ' + package + ': ' + str(e))
+
+
+    #-----------------------------------------------------------------------------------------------
+    #
+    #   Return the available version of a package
+    #
+    #-----------------------------------------------------------------------------------------------
+    def get_available_version(self, package):
+        try:
+            # Open apt cache
+            self.aptcache.open(None)
+
+            # Get the package from the cache
+            pkg = self.aptcache[package]
+
+            # If the package is not installed, return an empty string
+            if not pkg.is_installed:
+                return ''
+
+            # Return the available version of the package
+            return pkg.candidate.version
+
+        except Exception as e:
+            raise Exception('could not get available version of package ' + package + ': ' + str(e))
 
 
     #-----------------------------------------------------------------------------------------------
@@ -208,6 +242,20 @@ class Apt:
         # Log file to store each package update output (when 'one_by_one' method is used)
         log = '/tmp/linupdate-update-package.log'
 
+        # Package update summary
+        self.summary = {
+            'update': {
+                'success': {
+                    'count': 0,
+                    'packages': {}
+                },
+                'failed': {
+                    'count': 0,
+                    'packages': {}
+                }
+            }
+        }
+
         # If update_method is 'one_by_one', update packages one by one (one command per package)
         if update_method == 'one_by_one':
             # Loop through the list of packages to update
@@ -252,14 +300,14 @@ class Apt:
                     # If --keep-oldconf is True, then keep the old configuration file
                     if self.keep_oldconf:
                         cmd = [
-                                'apt-get', 'install', pkg['name'], '-y',
+                                'apt-get', 'install', pkg['name'] + '=' + pkg['available_version'], '-y',
                                 # Debug only
                                 # '--dry-run',
                                 '-o', 'Dpkg::Options::=--force-confdef',
                                 '-o', 'Dpkg::Options::=--force-confold'
                             ]
                     else:
-                        cmd = ['apt-get', 'install', pkg['name'], '-y']
+                        cmd = ['apt-get', 'install', pkg['name'] + '=' + pkg['available_version'], '-y']
 
                     popen = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True)
 
