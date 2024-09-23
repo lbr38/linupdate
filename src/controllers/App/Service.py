@@ -95,7 +95,7 @@ class Service:
                         # If the process has terminated with an error (exit 1), print a message
                         if retcode != 0:
                             print('[' + child['agent'] + '-agent] Terminated with return code ' + str(retcode) + ' :(')
-                            print("[" + child['agent'] + "-agent] I'm dead for now but I will be resurrected soon, please wait or restart main service")
+                            print("[" + child['agent'] + "-agent] I'm dead for now but I will be resurrected soon, please wait or restart linupdate service")
 
                         # Remove child process from list
                         self.child_processes.remove(child)

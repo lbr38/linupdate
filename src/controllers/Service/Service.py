@@ -4,6 +4,7 @@
 import subprocess
 import re
 from colorama import Fore, Style
+from pathlib import Path
 
 # Import classes
 from src.controllers.App.Config import Config
@@ -23,6 +24,11 @@ class Service:
 
         # Quit if no packages were updated
         if updated_packages == 0:
+            return
+
+        # Quit if systemctl is not installed (e.g. in docker container of linupdate's CI)
+        if not Path('/usr/bin/systemctl').is_file():
+            print('\n systemctl is not installed, skipping service restart')
             return
 
         print('\n Restarting services')
