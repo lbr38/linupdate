@@ -44,6 +44,7 @@ class Args:
         Args.packages_to_update = []
         Args.dist_upgrade = False
         Args.keep_oldconf = True
+        Args.dry_run = False
 
         myApp       = App()
         myAppConfig = Config()
@@ -77,6 +78,8 @@ class Args:
             parser.add_argument("--update", "-u", action="store", nargs='?', default="null")
             # Dist upgrade
             parser.add_argument("--dist-upgrade", "-du", action="store_true", default="null")
+            # Dry run
+            parser.add_argument("--dry-run", action="store_true", default="null")
             # Keep oldconf
             parser.add_argument("--keep-oldconf", action="store_true", default="null")
             # Force / assume-yes
@@ -85,10 +88,6 @@ class Args:
             parser.add_argument("--check-updates", "-cu", action="store_true", default="null")
             # Ignore exclude
             parser.add_argument("--ignore-exclude", "-ie", action="store_true", default="null")
-            # Get update method
-            parser.add_argument("--get-update-method", action="store", nargs='?', default="null")
-            # Set Update method
-            parser.add_argument("--set-update-method", action="store", nargs='?', default="null")
             # Exit on package update error
             parser.add_argument("--exit-on-package-update-error", action="store", nargs='?', default="null")
 
@@ -310,6 +309,12 @@ class Args:
                         Args.packages_to_update.append({'name': package.strip()})
                 except Exception as e:
                     raise ArgsException('Could not parse update list: ' + str(e))
+                
+            #
+            # If --dry-run param has been set
+            #
+            if args.dry_run != "null":
+                Args.dry_run = True
 
             #
             # If --ignore-exclude param has been set
@@ -340,28 +345,6 @@ class Args:
             #
             if args.assume_yes != "null":
                 Args.assume_yes = True
-
-            #
-            # If --get-update-method param has been set
-            #
-            if args.get_update_method != "null":
-                try:
-                    update_method = myAppConfig.get_update_method()
-                    print(' Current update method: ' + Fore.GREEN + update_method + Style.RESET_ALL, end='\n\n')
-                    myExit.clean_exit(0, False)
-                except Exception as e:
-                    raise ArgsException('Could not get update method: ' + str(e))
-
-            #
-            # If --set-update-method param has been set
-            #
-            if args.set_update_method != "null":
-                try:
-                    myAppConfig.set_update_method(args.set_update_method)
-                    print(' Update method set to ' + Fore.GREEN + args.set_update_method + Style.RESET_ALL, end='\n\n')
-                    myExit.clean_exit(0, False)
-                except Exception as e:
-                    raise ArgsException('Could not set update method: ' + str(e))
 
             #
             # If --exit-on-package-update-error param has been set
@@ -510,9 +493,6 @@ class Args:
 
                     print(' Setting services to restart after package update: ' + Fore.GREEN)
 
-                    for service in services:
-                        print('  ▪ ' + service)
-
                     # If no service is set to restart
                     if not services:
                         print('  ▪ None')
@@ -660,6 +640,12 @@ class Args:
                 },
                 {
                     'args': [
+                        '--dry-run'
+                    ],
+                    'description': 'Simulate the update process (do not update packages)'
+                },
+                {
+                    'args': [
                         '--keep-oldconf'
                     ],
                     'description': 'Keep old configuration files when updating packages (Debian based OS only)'
@@ -687,23 +673,10 @@ class Args:
                 },
                 {
                     'args': [
-                        '--get-update-method',
-                    ],
-                    'description': 'Get current update method'
-                },
-                {
-                    'args': [
-                        '--set-update-method',
-                    ],
-                    'option': 'one_by_one|global',
-                    'description': 'Set update method: one_by_one (update packages one by one, one apt command executed for each package) or global (update all packages at once, one single apt command executed for all packages)'
-                },
-                {
-                    'args': [
                         '--exit-on-package-update-error',
                     ],
                     'option': 'true|false',
-                    'description': 'When update method is one_by_one, immediately exit if an error occurs during package update and do not update the remaining packages'
+                    'description': 'Immediately exit if an error occurs during package update and do not update the remaining packages'
                 },
                 {
                     'title': 'Packages exclusion and services restart'

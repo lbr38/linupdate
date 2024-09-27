@@ -183,11 +183,10 @@ jobs:
           tag_name: ${{ env.VERSION }}
           release_name: ${{ env.VERSION }}
           body: |
-            **Changes:**
-
-              - Fixed update process on RHEL based systems
-              - Added a new parameter to update only a list of packages
-              - Reposerver module: added the feature to receive a list of packages to update
+            **Changes**:
+              - Added `--dry-run` option to simulate an update
+              - Removed the `--set-update-method` and `--get-update-method` options, now the update method is always one package at a time (easier to log)
+              - Reposerver module: improved logs output cleaning before sending it to the reposerver
           draft: false
           prerelease: false
 

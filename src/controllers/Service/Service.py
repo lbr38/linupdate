@@ -15,7 +15,7 @@ class Service:
     #   Restart services
     #
     #-----------------------------------------------------------------------------------------------
-    def restart(self, update_summary: list):
+    def restart(self, update_summary: list, dry_run: bool = False):
         # Retrieve services to restart
         services = Config().get_service_to_restart()
 
@@ -51,6 +51,11 @@ class Service:
                 # If the package is not in the list of updated packages, skip the service
                 if not re.match(regex, package):
                     continue
+
+            # If dry-run is enabled, just print the service that would be restarted
+            if dry_run:
+                print('  ▪ Would restart ' + Fore.YELLOW + service + Style.RESET_ALL)
+                continue
 
             print('  ▪ Restarting ' + Fore.YELLOW + service + Style.RESET_ALL + ':', end=' ')
 

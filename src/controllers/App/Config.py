@@ -109,14 +109,6 @@ class Config:
             if 'update' not in configuration:
                 raise Exception('update key is missing in ' + self.config_file)
 
-            # Check if update.method is set
-            if 'method' not in configuration['update']:
-                raise Exception('update.method key is missing in ' + self.config_file)
-
-            # Check if update.method is not empty
-            if configuration['update']['method'] == None:
-                raise Exception('update.method key is empty in ' + self.config_file)
-
             # Check if update.exit_on_package_update_error is set
             if 'exit_on_package_update_error' not in configuration['update']:
                 raise Exception('update.exit_on_package_update_error key is missing in ' + self.config_file)
@@ -411,37 +403,6 @@ class Config:
 
     #-----------------------------------------------------------------------------------------------
     #
-    #   Get update method
-    #
-    #-----------------------------------------------------------------------------------------------
-    def get_update_method(self):
-        # Get current configuration
-        configuration = self.get_conf()
-
-        return configuration['update']['method']
-
-
-    #-----------------------------------------------------------------------------------------------
-    #
-    #   Set update method
-    #
-    #-----------------------------------------------------------------------------------------------
-    def set_update_method(self, method: str):
-        if method not in ['one_by_one', 'global']:
-            raise Exception('Invalid update method: ' + method)
-
-        # Get current configuration
-        configuration = self.get_conf()
-
-        # Set method
-        configuration['update']['method'] = method
-
-        # Write config file
-        self.write_conf(configuration)
-
-
-    #-----------------------------------------------------------------------------------------------
-    #
     #   Set exit on package update error
     #
     #-----------------------------------------------------------------------------------------------
@@ -449,7 +410,7 @@ class Config:
         # Get current configuration
         configuration = self.get_conf()
 
-        # Set method
+        # Set exit on package update error
         configuration['update']['exit_on_package_update_error'] = exit_on_package_update_error
 
         # Write config file

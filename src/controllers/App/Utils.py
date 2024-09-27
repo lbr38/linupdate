@@ -32,3 +32,20 @@ class Utils:
         # If an exception occurs, simply return the original text as it is
         except Exception as e:
             return text
+    
+    #-----------------------------------------------------------------------------------------------
+    #
+    #   Clean log text
+    #
+    #-----------------------------------------------------------------------------------------------
+    def clean_log(self, text):
+        # First, remove ANSI escape codes
+        text = self.remove_ansi(text)
+
+        # Replace double line breaks with single line breaks before '|' character (occurs mainly with apt logs)
+        text = re.sub(r'\n\n \|', '\n |', text)
+
+        # Remove leading and trailing whitespaces
+        text = text.strip()
+
+        return text
