@@ -140,13 +140,16 @@ class Package:
     #   This can be a list of specific packages or all packages
     #
     #-----------------------------------------------------------------------------------------------
-    def update(self, packages_list: list = [], assume_yes: bool = False, ignore_exclude: bool = False, check_updates: bool = False, dist_upgrade: bool = False, keep_oldconf: bool = True):        
+    def update(self, packages_list: list = [], assume_yes: bool = False, ignore_exclude: bool = False, check_updates: bool = False, dist_upgrade: bool = False, keep_oldconf: bool = True, dry_run: bool = False):
         restart_file = '/tmp/linupdate.restart-needed'
 
         # Package update summary
         self.summary = {
             'update': {
                 'status': 'running',
+                'options': {
+                    'dry_run': dry_run,
+                },
                 'success': {
                     'count': 0,
                     'packages': {}
@@ -161,9 +164,6 @@ class Package:
         try:
             # Retrieve configuration
             configuration = self.appConfigController.get_conf()
-
-            # Retrieve the update method
-            update_method = configuration['update']['method']
 
             # Retrieve the exit_on_package_update_error option
             exit_on_package_update_error = configuration['update']['exit_on_package_update_error']
@@ -219,7 +219,10 @@ class Package:
                     self.packagesToUpdateCount += 1
 
             # Print the number of packages to update
-            print('\n ' + Fore.GREEN + str(self.packagesToUpdateCount) + Style.RESET_ALL + ' packages will be updated, ' + Fore.YELLOW + str(self.packagesExcludedCount) + Style.RESET_ALL + ' will be excluded \n')
+            if dry_run:
+                print('\n ' + Fore.YELLOW + '(dry run) ' + Fore.GREEN + str(self.packagesToUpdateCount) + Style.RESET_ALL + ' packages would be updated, ' + Fore.YELLOW + str(self.packagesExcludedCount) + Style.RESET_ALL + ' would be excluded \n')
+            else:
+                print('\n ' + Fore.GREEN + str(self.packagesToUpdateCount) + Style.RESET_ALL + ' packages will be updated, ' + Fore.YELLOW + str(self.packagesExcludedCount) + Style.RESET_ALL + ' will be excluded \n')
 
             # Convert the list of packages to a table
             table = []
@@ -256,7 +259,10 @@ class Package:
 
             # Print again the number of packages if total count is > 50 to avoid the user to scroll up to see it
             if self.packagesToUpdateCount + self.packagesExcludedCount > 50:
-                print('\n ' + Fore.GREEN + str(self.packagesToUpdateCount) + Style.RESET_ALL + ' packages will be updated, ' + Fore.YELLOW + str(self.packagesExcludedCount) + Style.RESET_ALL + ' will be excluded \n')
+                if dry_run:
+                    print('\n ' + Fore.YELLOW + '(dry run) ' + Fore.GREEN + str(self.packagesToUpdateCount) + Style.RESET_ALL + ' packages would be updated, ' + Fore.YELLOW + str(self.packagesExcludedCount) + Style.RESET_ALL + ' would be excluded \n')
+                else:
+                    print('\n ' + Fore.GREEN + str(self.packagesToUpdateCount) + Style.RESET_ALL + ' packages will be updated, ' + Fore.YELLOW + str(self.packagesExcludedCount) + Style.RESET_ALL + ' will be excluded \n')
 
             # If --assume-yes param has not been specified, then ask for confirmation before installing the printed packages update list
             if not assume_yes:
@@ -285,7 +291,7 @@ class Package:
             # Execute the packages update
             self.myPackageManagerController.dist_upgrade = dist_upgrade
             self.myPackageManagerController.keep_oldconf = keep_oldconf
-            self.myPackageManagerController.update(self.packagesToUpdateList, update_method, exit_on_package_update_error)
+            self.myPackageManagerController.update(self.packagesToUpdateList, exit_on_package_update_error, dry_run)
 
             # Update the summary status
             self.summary['update']['status'] = 'done'
@@ -298,30 +304,20 @@ class Package:
             # Remove all exclusions
             self.remove_all_exclusions()
 
-        # If update method is 'one_by_one', it will be possible to print precise information about the number of packages updated and failed
-        if update_method == 'one_by_one':
-            # Update the summary with the number of packages updated and failed
-            self.summary['update']['success']['count'] = self.myPackageManagerController.summary['update']['success']['count']
-            self.summary['update']['failed']['count'] = self.myPackageManagerController.summary['update']['failed']['count']
+        # Update the summary with the number of packages updated and failed
+        self.summary['update']['success']['count'] = self.myPackageManagerController.summary['update']['success']['count']
+        self.summary['update']['failed']['count'] = self.myPackageManagerController.summary['update']['failed']['count']
 
-            # Also retrieve the list of packages updated and failed, with their version and log
-            self.summary['update']['success']['packages'] = self.myPackageManagerController.summary['update']['success']['packages']
-            self.summary['update']['failed']['packages'] = self.myPackageManagerController.summary['update']['failed']['packages']
+        # Also retrieve the list of packages updated and failed, with their version and log
+        self.summary['update']['success']['packages'] = self.myPackageManagerController.summary['update']['success']['packages']
+        self.summary['update']['failed']['packages'] = self.myPackageManagerController.summary['update']['failed']['packages']
 
-            # Print the number of packages updated and failed
-            # If there was a failed package, print the number in red
-            if self.summary['update']['failed']['count'] > 0:
-                print('\n ' + Fore.GREEN + str(self.summary['update']['success']['count']) + Style.RESET_ALL + ' packages updated, ' + Fore.RED + str(self.summary['update']['failed']['count']) + Style.RESET_ALL + ' packages failed' + Style.RESET_ALL)
-            else:
-                print('\n ' + Fore.GREEN + str(self.summary['update']['success']['count']) + Style.RESET_ALL + ' packages updated, ' + str(self.summary['update']['failed']['count']) + ' packages failed' + Style.RESET_ALL)
-
-        # If update method is 'global', just print success or failure
-        if update_method == 'global':
-            # If there was a failed package, print the number in red
-            if self.summary['update']['status'] == 'done':
-                print('\n ' + Fore.GREEN + 'All packages updated' + Style.RESET_ALL)
-            else:
-                print('\n ' + Fore.RED + 'Some packages failed to update' + Style.RESET_ALL)
+        # Print the number of packages updated and failed
+        # If there was a failed package, print the number in red
+        if self.summary['update']['failed']['count'] > 0:
+            print('\n ' + Fore.GREEN + str(self.summary['update']['success']['count']) + Style.RESET_ALL + ' packages updated, ' + Fore.RED + str(self.summary['update']['failed']['count']) + Style.RESET_ALL + ' packages failed' + Style.RESET_ALL)
+        else:
+            print('\n ' + Fore.GREEN + str(self.summary['update']['success']['count']) + Style.RESET_ALL + ' packages updated, ' + str(self.summary['update']['failed']['count']) + ' packages failed' + Style.RESET_ALL)
 
         # If there was a failed package update and the package update error is critical (set to true), then raise an exception to exit
         if exit_on_package_update_error == True and self.summary['update']['failed']['count'] > 0:

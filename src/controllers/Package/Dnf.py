@@ -277,8 +277,8 @@ class Dnf:
     #   Update packages
     #
     #-----------------------------------------------------------------------------------------------
-    def update(self, packagesList, update_method: str = 'one_by_one', exit_on_package_update_error: bool = True):
-        # Log file to store each package update output (when 'one_by_one' method is used)
+    def update(self, packagesList, exit_on_package_update_error: bool = True, dry_run: bool = False):
+        # Log file to store each package update output
         log = '/tmp/linupdate-update-package.log'
 
         # Package update summary
@@ -295,143 +295,109 @@ class Dnf:
             }
         }
 
-        # If update_method is 'one_by_one', update packages one by one (one command per package)
-        if update_method == 'one_by_one':
-            # Loop through the list of packages to update
-            for pkg in packagesList:
-                # If the package is excluded, ignore it
-                if pkg['excluded']:
-                    continue
+        # Loop through the list of packages to update
+        for pkg in packagesList:
+            # If the package is excluded, ignore it
+            if pkg['excluded']:
+                continue
 
-                # If log file exists, remove it
-                if Path(log).is_file():
-                    Path(log).unlink()
+            # If log file exists, remove it
+            if Path(log).is_file():
+                Path(log).unlink()
 
-                with Log(log):
-                    print('\n ▪ Updating ' + Fore.GREEN + pkg['name'] + Style.RESET_ALL + ' (' + pkg['current_version'] + ' → ' + pkg['available_version'] + '):')
+            with Log(log):
+                print('\n ▪ Updating ' + Fore.GREEN + pkg['name'] + Style.RESET_ALL + ' (' + pkg['current_version'] + ' → ' + pkg['available_version'] + '):')
 
-                    # Before updating, check if package is already in the latest version, if so, skip it
-                    # It means that it has been updated previously by another package, probably because it was a dependency
-                    # Get the current version of the package with dnf
-                    # e.g. dnf repoquery --installed --qf="%{version}-%{release}.%{arch}" wget
-                    result = subprocess.run(
-                        ["dnf", "repoquery", "--installed", "--qf=%{version}-%{release}.%{arch}", pkg['name']],
-                        stdout = subprocess.PIPE, # subprocess.PIPE & subprocess.PIPE are alias of 'capture_output = True'
-                        stderr = subprocess.PIPE,
-                        universal_newlines = True # Alias of 'text = True'
-                    )
+                # Before updating, check if package is already in the latest version, if so, skip it
+                # It means that it has been updated previously by another package, probably because it was a dependency
+                # Get the current version of the package with dnf
+                # e.g. dnf repoquery --installed --qf="%{version}-%{release}.%{arch}" wget
+                result = subprocess.run(
+                    ["dnf", "repoquery", "--installed", "--qf=%{version}-%{release}.%{arch}", pkg['name']],
+                    stdout = subprocess.PIPE, # subprocess.PIPE & subprocess.PIPE are alias of 'capture_output = True'
+                    stderr = subprocess.PIPE,
+                    universal_newlines = True # Alias of 'text = True'
+                )
 
-                    # Quit if an error occurred
-                    if result.returncode != 0:
-                        raise Exception('Could not retrieve current version of package ' + pkg['name'] + ': ' + result.stderr)
-                    
-                    # Retrieve current version
-                    current_version = result.stdout.strip()
+                # Quit if an error occurred
+                if result.returncode != 0:
+                    raise Exception('Could not retrieve current version of package ' + pkg['name'] + ': ' + result.stderr)
+                
+                # Retrieve current version
+                current_version = result.stdout.strip()
 
-                    # If current version is the same the target version, skip the update
-                    if current_version == pkg['available_version']:
-                        print(Fore.GREEN + ' ✔ ' + Style.RESET_ALL + pkg['name'] + ' is already up to date (updated with another package).')
+                # If current version is the same the target version, skip the update
+                if current_version == pkg['available_version']:
+                    print(Fore.GREEN + ' ✔ ' + Style.RESET_ALL + pkg['name'] + ' is already up to date (updated with another package).')
 
-                        # Mark the package as already updated
-                        self.summary['update']['success']['count'] += 1
-
-                        # Also add the package to the list of successful packages
-                        self.summary['update']['success']['packages'][pkg['name']] = {
-                            'version': pkg['available_version'],
-                            'log': 'Already up to date (updated with another package).'
-                        }
-
-                        # Continue to the next package
-                        continue
-
-                    # Define the command to update the package
-                    cmd = ['dnf', 'update', pkg['name'] + '-' + pkg['available_version'], '-y']
-
-                    popen = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, bufsize=1, universal_newlines=True)
-
-                    # Print lines as they are read
-                    for line in popen.stdout:
-                        line = line.replace('\r', '')
-                        print(' | ' + line, end='')
-
-                    # Wait for the command to finish
-                    popen.wait()
-
-                    # If command failed, either raise an exception or print a warning
-                    if popen.returncode != 0:
-                        # Add the package to the list of failed packages
-                        self.summary['update']['failed']['count'] += 1
-
-                        # Also add the package to the list of failed packages
-
-                        # First get log content
-                        with open(log, 'r') as file:
-                            log_content = file.read()
-
-                        self.summary['update']['failed']['packages'][pkg['name']] = {
-                            'version': pkg['available_version'],
-                            'log': log_content
-                        }
-
-                        # If error is critical, raise an exception to quit
-                        if (exit_on_package_update_error == True):
-                            raise Exception('Error while updating ' + pkg['name'] + '.')
-
-                        # Else continue to the next package
-                        else:
-                            print(Fore.RED + ' ✕ ' + Style.RESET_ALL + 'Error while updating ' + pkg['name'] + '.')
-                            continue
-
-                    # Close the pipe
-                    popen.stdout.close()
-
-                    # If command succeeded, increment the success counter
+                    # Mark the package as already updated
                     self.summary['update']['success']['count'] += 1
 
                     # Also add the package to the list of successful packages
-
-                    # First get log content
-                    with open(log, 'r') as file:
-                        log_content = file.read()
-
                     self.summary['update']['success']['packages'][pkg['name']] = {
+                        'version': pkg['available_version'],
+                        'log': 'Already up to date (updated with another package).'
+                    }
+
+                    # Continue to the next package
+                    continue
+
+                # Define the command to update the package
+                cmd = ['dnf', 'update', pkg['name'] + '-' + pkg['available_version'], '-y']
+
+                # If dry_run is True, add the --setopt tsflags=test option to simulate the update
+                if dry_run:
+                    cmd.append('--setopt')
+                    cmd.append('tsflags=test')
+
+                popen = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, bufsize=1, universal_newlines=True)
+
+                # Print lines as they are read
+                for line in popen.stdout:
+                    line = line.replace('\r', '')
+                    print(' | ' + line, end='')
+
+                # Wait for the command to finish
+                popen.wait()
+
+                # Get log content
+                with open(log, 'r') as file:
+                    log_content = Utils().clean_log(file.read())
+
+                # If command failed, either raise an exception or print a warning
+                if popen.returncode != 0:
+                    # Add the package to the list of failed packages
+                    self.summary['update']['failed']['count'] += 1
+
+                    # Add the package to the list of failed packages
+                    self.summary['update']['failed']['packages'][pkg['name']] = {
                         'version': pkg['available_version'],
                         'log': log_content
                     }
 
-                    # Print a success message
-                    print(Fore.GREEN + ' ✔ ' + Style.RESET_ALL + pkg['name'] + ' updated successfully.')
+                    # If error is critical, raise an exception to quit
+                    if (exit_on_package_update_error == True):
+                        raise Exception('Error while updating ' + pkg['name'] + '.')
 
-        # If update_method is 'global', update all packages at once (one command)
-        if update_method == 'global':
-            # Define the command to update all packages
-            cmd = ['dnf', 'update', '-y']
+                    # Else continue to the next package
+                    else:
+                        print(Fore.RED + ' ✕ ' + Style.RESET_ALL + 'Error while updating ' + pkg['name'] + '.')
+                        continue
 
-            popen = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, bufsize=1, universal_newlines=True)
+                # Close the pipe
+                popen.stdout.close()
 
-            # Print lines as they are read
-            for line in popen.stdout:
-                line = line.replace('\r', '')
-                print(' | ' + line, end='')
+                # If command succeeded, increment the success counter
+                self.summary['update']['success']['count'] += 1
 
-            # Wait for the command to finish
-            popen.wait()
+                # Add the package to the list of successful packages
+                self.summary['update']['success']['packages'][pkg['name']] = {
+                    'version': pkg['available_version'],
+                    'log': log_content
+                }
 
-            # If command failed, either raise an exception or print a warning
-            if popen.returncode != 0:
-                # If error is critical, raise an exception to quit
-                if (exit_on_package_update_error == True):
-                    raise Exception('Error while updating packages.')
-                
-                # Else print an error message
-                else:
-                    print(Fore.RED + ' ✕ ' + Style.RESET_ALL + 'Error.')
-            else:
                 # Print a success message
-                print(Fore.GREEN + ' ✔ ' + Style.RESET_ALL + 'Done.')
-
-            # Close the pipe
-            popen.stdout.close()
+                print(Fore.GREEN + ' ✔ ' + Style.RESET_ALL + pkg['name'] + ' updated successfully.')
 
 
     #-----------------------------------------------------------------------------------------------

@@ -104,13 +104,14 @@ def main():
                               my_args.ignore_exclude,
                               my_args.check_updates,
                               my_args.dist_upgrade,
-                              my_args.keep_oldconf)
+                              my_args.keep_oldconf,
+                              my_args.dry_run)
 
             # Execute post-update modules functions
             my_module.post(my_package.summary)
 
             # Restart services
-            my_service.restart(my_package.summary)
+            my_service.restart(my_package.summary, my_args.dry_run)
 
             # Check if reboot is required
             if my_system.reboot_required() is True:

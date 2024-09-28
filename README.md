@@ -59,9 +59,7 @@ It should help you **installing** and starting using linupdate.
     --assume-yes, -y                             Answer yes to all questions
     --check-updates, -cu                         Only check for updates and exit
     --ignore-exclude, -ie                        Ignore all package exclusions
-    --get-update-method                          Get current update method
-    --set-update-method [one_by_one|global]      Set update method: one_by_one (update packages one by one, one apt command executed for each package) or global (update all packages at once, one single apt command executed for all packages)
-    --exit-on-package-update-error [true|false]  When update method is one_by_one, immediately exit if an error occurs during package update and do not update the remaining packages
+    --exit-on-package-update-error [true|false]  Immediately exit if an error occurs during package update and do not update the remaining packages
     
     Packages exclusion and services restart
     
