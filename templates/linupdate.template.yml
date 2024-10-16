@@ -3,6 +3,8 @@ main:
   mail:
     enabled: false
     recipient: []
+    smtp_host: localhost
+    smtp_port: 25
   profile: Host
 modules:
   enabled: []

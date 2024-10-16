@@ -403,6 +403,74 @@ class Config:
 
     #-----------------------------------------------------------------------------------------------
     #
+    #   Set mail smtp host
+    #
+    #-----------------------------------------------------------------------------------------------
+    def set_mail_smtp_host(self, smtp_host: str):
+        # Get current configuration
+        configuration = self.get_conf()
+
+        # Set smtp host
+        configuration['main']['mail']['smtp_host'] = smtp_host
+
+        # Write config file
+        self.write_conf(configuration)
+
+
+    #-----------------------------------------------------------------------------------------------
+    #
+    #   Get mail smtp host
+    #
+    #-----------------------------------------------------------------------------------------------
+    def get_mail_smtp_host(self):
+        smtp_host = 'localhost'
+
+        # Get current configuration
+        configuration = self.get_conf()
+
+        # Get smtp host, if any, otherwise use localhost
+        if 'smtp_host' in configuration['main']['mail']:
+            smtp_host = configuration['main']['mail']['smtp_host']
+
+        return smtp_host
+
+
+    #-----------------------------------------------------------------------------------------------
+    #
+    #   Set mail smtp host port
+    #
+    #-----------------------------------------------------------------------------------------------
+    def set_mail_smtp_port(self, smtp_port: int):
+        # Get current configuration
+        configuration = self.get_conf()
+
+        # Set smtp port
+        configuration['main']['mail']['smtp_port'] = smtp_port
+
+        # Write config file
+        self.write_conf(configuration)
+
+
+    #-----------------------------------------------------------------------------------------------
+    #
+    #   Get mail smtp host port
+    #
+    #-----------------------------------------------------------------------------------------------
+    def get_mail_smtp_port(self):
+        smtp_port = 25
+
+        # Get current configuration
+        configuration = self.get_conf()
+
+        # Get smtp port, if any, otherwise use 25
+        if 'smtp_port' in configuration['main']['mail']:
+            smtp_port = configuration['main']['mail']['smtp_port']
+
+        return smtp_port
+
+
+    #-----------------------------------------------------------------------------------------------
+    #
     #   Set exit on package update error
     #
     #-----------------------------------------------------------------------------------------------

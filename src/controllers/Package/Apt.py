@@ -142,10 +142,10 @@ class Apt:
     #-----------------------------------------------------------------------------------------------
     #
     #   Wait for dpkg lock to be released
-    #   Default timeout is 30 seconds
+    #   Default timeout is 60 seconds
     #
     #-----------------------------------------------------------------------------------------------
-    def wait_for_dpkg_lock(self, timeout: int = 30):
+    def wait_for_dpkg_lock(self, timeout: int = 60):
         import fcntl
         from time import sleep
 
@@ -187,17 +187,22 @@ class Apt:
             # Clear cache
             self.wait_for_dpkg_lock()
             self.clear_cache()
+        except Exception as e:
+            raise Exception('unable to clear apt cache: ' + str(e))
 
+        try:
             # Update cache
             self.wait_for_dpkg_lock()
             self.aptcache.update()
+        except Exception as e:
+            raise Exception('could not update apt cache: ' + str(e))
 
+        try:
             # Reopen cache
             self.wait_for_dpkg_lock()
             self.aptcache.open(None)
-
         except Exception as e:
-            raise Exception('could not update apt cache: ' + str(e))
+            raise Exception('could not open apt cache: ' + str(e))
 
 
     #-----------------------------------------------------------------------------------------------

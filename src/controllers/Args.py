@@ -73,6 +73,14 @@ class Args:
             parser.add_argument("--get-mail-recipient", action="store_true", default="null")
             # Set mail recipient
             parser.add_argument("--set-mail-recipient", action="store", nargs='?', default="null")
+            # Get mail smtp host
+            parser.add_argument("--get-mail-smtp-host", action="store_true", default="null")
+            # Set mail smtp host
+            parser.add_argument("--set-mail-smtp-host", action="store", nargs='?', default="null")
+            # Get mail smtp port
+            parser.add_argument("--get-mail-smtp-port", action="store_true", default="null")
+            # Set mail smtp port
+            parser.add_argument("--set-mail-smtp-port", action="store", nargs='?', default="null")
 
             # Packages to update list
             parser.add_argument("--update", "-u", action="store", nargs='?', default="null")
@@ -299,6 +307,48 @@ class Args:
                     myExit.clean_exit(0, False)
                 except Exception as e:
                     raise ArgsException('Could not set mail recipient(s): ' + str(e))
+                
+            #
+            # If --get-mail-smtp-host param has been set
+            #
+            if args.get_mail_smtp_host != "null":
+                try:
+                    print(' Current mail SMTP host: ' + Fore.GREEN + myAppConfig.get_mail_smtp_host() + Style.RESET_ALL, end='\n\n')
+                    myExit.clean_exit(0, False)
+                except Exception as e:
+                    raise ArgsException('Could not get mail SMTP host: ' + str(e))
+            
+            #
+            # If --set-mail-smtp-host param has been set
+            #
+            if args.set_mail_smtp_host != "null":
+                try:
+                    myAppConfig.set_mail_smtp_host(args.set_mail_smtp_host)
+                    print(' Mail SMTP host set to: ' + Fore.GREEN + args.set_mail_smtp_host + Style.RESET_ALL, end='\n\n')
+                    myExit.clean_exit(0, False)
+                except Exception as e:
+                    raise ArgsException('Could not set mail SMTP host: ' + str(e))
+                
+            #
+            # If --get-mail-smtp-port param has been set
+            #
+            if args.get_mail_smtp_port != "null":
+                try:
+                    print(' Current mail SMTP port: ' + Fore.GREEN + str(myAppConfig.get_mail_smtp_port()) + Style.RESET_ALL, end='\n\n')
+                    myExit.clean_exit(0, False)
+                except Exception as e:
+                    raise ArgsException('Could not get mail SMTP port: ' + str(e))
+                
+            #
+            # If --set-mail-smtp-port param has been set
+            #
+            if args.set_mail_smtp_port != "null":
+                try:
+                    myAppConfig.set_mail_smtp_port(args.set_mail_smtp_port)
+                    print(' Mail SMTP port set to: ' + Fore.GREEN + str(args.set_mail_smtp_port) + Style.RESET_ALL, end='\n\n')
+                    myExit.clean_exit(0, False)
+                except Exception as e:
+                    raise ArgsException('Could not set mail SMTP port: ' + str(e))
 
             #
             # If --update param has been set
@@ -621,6 +671,32 @@ class Args:
                     'description': 'Set mail recipient(s) (separated by commas)'
                 },
                 {
+                    'args': [
+                        '--get-mail-smtp-host'
+                    ],
+                    'description': 'Get current mail SMTP host'
+                },
+                {
+                    'args': [
+                        '--set-mail-smtp-host'
+                    ],
+                    'option': 'HOST',
+                    'description': 'Set mail SMTP host'
+                },
+                {
+                    'args': [
+                        '--get-mail-smtp-port'
+                    ],
+                    'description': 'Get current mail SMTP port'
+                },
+                {
+                    'args': [
+                        '--set-mail-smtp-port'
+                    ],
+                    'option': 'PORT',
+                    'description': 'Set mail SMTP port'
+                },
+                {
                     'title': 'Update options'
                 },
                 {
@@ -742,7 +818,7 @@ class Args:
                     ],
                     'option': 'MODULE',
                     'description': 'Disable a module'
-                },
+                }
             ]
 
             # Add options to table

@@ -184,9 +184,7 @@ jobs:
           release_name: ${{ env.VERSION }}
           body: |
             **Changes**:
-              - Added `--dry-run` option to simulate an update
-              - Removed the `--set-update-method` and `--get-update-method` options, now the update method is always one package at a time (easier to log)
-              - Reposerver module: improved logs output cleaning before sending it to the reposerver
+              - Added a way to specify SMTP host and port for mail report sending
           draft: false
           prerelease: false
 
