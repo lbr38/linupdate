@@ -52,6 +52,7 @@ class Mail():
 
         # Send the message via our own SMTP server
         s = smtplib.SMTP('localhost')
+        # s = smtplib.SMTP(socket.getfqdn())
         s.send_message(msg)
         s.quit()
 
