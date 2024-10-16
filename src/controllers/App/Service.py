@@ -34,8 +34,8 @@ class Service:
 
         try:
             print("[linupdate] Hi, I'm linupdate service. I will start all enabled module agents and let them run in background. Stop me and I will stop all module agents.")
-            # Wait 3 seconds to let the above message to be read
-            time.sleep(3)
+            # Wait 10 seconds to let the above message to be read
+            time.sleep(10)
 
             while True:
                 # Restart check
