@@ -5,8 +5,10 @@ import smtplib
 import socket
 from email.message import EmailMessage
 from email.headerregistry import Address
+from colorama import Fore, Style
 
 # Import classes
+from src.controllers.App.Config import Config
 from src.controllers.App.Utils import Utils
 
 class Mail():
@@ -15,43 +17,69 @@ class Mail():
     #   Send email
     #
     #-----------------------------------------------------------------------------------------------
-    def send(self, subject: str, body_content: str, recipient: list, logfile = None):
-        msg = EmailMessage()
+    def send(self, subject: str, body_content: str, attachment = None):
+        try:
+            configController = Config()
+            msg = EmailMessage()
+            attach_content = ''
 
-        # If logfile is set, then clean it from ANSI escape codes
-        if logfile:
-            # Read logfile content
-            with open(logfile, 'r') as f:
-                # Remove ANSI escape codes
-                attach_content = Utils().remove_ansi(f.read())
+            print('\n Sending email:', end=' ')
 
-            # Get logfile real filename
-            attachment = logfile.split('/')[-1]
+            # Get mail enabled
+            mail_enabled = configController.get_mail_enabled()
 
-        # Define email content and headers
-        msg['Subject'] = subject
-        # debug only
-        # msg['From'] = Address('Linupdate', 'noreply', 'example.com')
-        msg['From'] = Address('Linupdate', 'noreply', socket.getfqdn())
-        msg['To'] = ','.join(recipient)
+            # If mail is not enabled, then quit
+            if not mail_enabled:
+                print(Fore.YELLOW + 'disabled' + Style.RESET_ALL)
+                return
 
-        # Retrieve HTML mail template
-        with open('/opt/linupdate/templates/mail/mail.template.html') as f:
-            template = f.read()
-            # Replace values in template
-            template = template.replace('__CONTENT__', body_content)
-            template = template.replace('__PRE_CONTENT__', attach_content)
+            # Get recipient(s) list
+            recipient = configController.get_mail_recipient()
 
-        # Add HTML body
-        msg.add_alternative(template, subtype='html')
+            # Get smtp host
+            smtp_host = configController.get_mail_smtp_host()
 
-        # Add attachment if there is
-        if attach_content:
-            bs = attach_content.encode('utf-8')
-            msg.add_attachment(bs, maintype='text', subtype='plain', filename=attachment)
+            # Get smtp port
+            smtp_port = configController.get_mail_smtp_port()
 
-        # Send the message via our own SMTP server
-        s = smtplib.SMTP('localhost')
-        s.send_message(msg)
-        s.quit()
+            # If attachment is set, then clean it from ANSI escape codes
+            if attachment:
+                # Read attachment content
+                with open(attachment, 'r') as f:
+                    # Remove ANSI escape codes
+                    attach_content = Utils().remove_ansi(f.read())
 
+                # Get attachment real filename
+                attachment = attachment.split('/')[-1]
+
+            # Define email content and headers
+            msg['Subject'] = subject
+            # debug only
+            # msg['From'] = Address('Linupdate', 'noreply', 'example.com')
+            msg['From'] = Address('Linupdate', 'noreply', socket.getfqdn())
+            msg['To'] = ','.join(recipient)
+
+            # Retrieve HTML mail template
+            with open('/opt/linupdate/templates/mail/mail.template.html') as f:
+                template = f.read()
+                # Replace values in template
+                template = template.replace('__CONTENT__', body_content)
+                template = template.replace('__PRE_CONTENT__', attach_content)
+
+            # Add HTML body
+            msg.add_alternative(template, subtype='html')
+
+            # Add attachment if there is
+            if attach_content and attach_content != '':
+                bs = attach_content.encode('utf-8')
+                msg.add_attachment(bs, maintype='text', subtype='plain', filename=attachment)
+
+            # Send the message via SMTP server
+            s = smtplib.SMTP(smtp_host, smtp_port)
+            s.send_message(msg)
+            s.quit()
+
+            print(Fore.GREEN + 'sent' + Style.RESET_ALL)
+        except Exception as e:
+            print(Fore.YELLOW + str(e) + Style.RESET_ALL)
+            raise Exception(str(e))

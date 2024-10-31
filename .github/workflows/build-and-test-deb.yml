@@ -146,6 +146,18 @@ jobs:
       - name: "Run test: set mail recipient"
         run: python3 /opt/linupdate/linupdate.py --set-mail-recipient test@mail.com,test2@mail.com
 
+      - name: "Run test: set mail smtp host"
+        run: python3 /opt/linupdate/linupdate.py --set-mail-smtp-host localhost
+
+      - name: "Run test: get mail smtp host"
+        run: python3 /opt/linupdate/linupdate.py --get-mail-smtp-host
+
+      - name: "Run test: set mail smtp port"
+        run: python3 /opt/linupdate/linupdate.py --set-mail-smtp-port 25
+
+      - name: "Run test: get mail smtp port"
+        run: python3 /opt/linupdate/linupdate.py --get-mail-smtp-port
+
       - name: "Run test: set package exclusions"
         run: python3 /opt/linupdate/linupdate.py --exclude "kernel.*"
 
@@ -236,6 +248,18 @@ jobs:
 
       - name: "Run test: set mail recipient"
         run: python3 /opt/linupdate/linupdate.py --set-mail-recipient test@mail.com,test2@mail.com
+
+      - name: "Run test: set mail smtp host"
+        run: python3 /opt/linupdate/linupdate.py --set-mail-smtp-host localhost
+
+      - name: "Run test: get mail smtp host"
+        run: python3 /opt/linupdate/linupdate.py --get-mail-smtp-host
+
+      - name: "Run test: set mail smtp port"
+        run: python3 /opt/linupdate/linupdate.py --set-mail-smtp-port 25
+
+      - name: "Run test: get mail smtp port"
+        run: python3 /opt/linupdate/linupdate.py --get-mail-smtp-port
 
       - name: "Run test: set package exclusions"
         run: python3 /opt/linupdate/linupdate.py --exclude "kernel.*"
@@ -328,6 +352,18 @@ jobs:
       - name: "Run test: set mail recipient"
         run: python3 /opt/linupdate/linupdate.py --set-mail-recipient test@mail.com,test2@mail.com
 
+      - name: "Run test: set mail smtp host"
+        run: python3 /opt/linupdate/linupdate.py --set-mail-smtp-host localhost
+
+      - name: "Run test: get mail smtp host"
+        run: python3 /opt/linupdate/linupdate.py --get-mail-smtp-host
+
+      - name: "Run test: set mail smtp port"
+        run: python3 /opt/linupdate/linupdate.py --set-mail-smtp-port 25
+
+      - name: "Run test: get mail smtp port"
+        run: python3 /opt/linupdate/linupdate.py --get-mail-smtp-port
+
       - name: "Run test: set package exclusions"
         run: python3 /opt/linupdate/linupdate.py --exclude "kernel.*"
 
@@ -415,6 +451,18 @@ jobs:
 
       - name: "Run test: set mail recipient"
         run: sudo python3 /opt/linupdate/linupdate.py --set-mail-recipient test@mail.com,test2@mail.com
+
+      - name: "Run test: set mail smtp host"
+        run: sudo python3 /opt/linupdate/linupdate.py --set-mail-smtp-host localhost
+
+      - name: "Run test: get mail smtp host"
+        run: sudo python3 /opt/linupdate/linupdate.py --get-mail-smtp-host
+
+      - name: "Run test: set mail smtp port"
+        run: sudo python3 /opt/linupdate/linupdate.py --set-mail-smtp-port 25
+
+      - name: "Run test: get mail smtp port"
+        run: sudo python3 /opt/linupdate/linupdate.py --get-mail-smtp-port
 
       - name: "Run test: set package exclusions"
         run: sudo python3 /opt/linupdate/linupdate.py --exclude "kernel.*"

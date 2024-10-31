@@ -2,7 +2,6 @@
 
 # Import classes
 from src.controllers.Module.Reposerver.Config import Config as Config
-from src.controllers.Module.Reposerver.Status import Status
 from src.controllers.Module.Reposerver.Args import Args
 
 class Reposerver:

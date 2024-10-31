@@ -51,6 +51,10 @@ It should help you **installing** and starting using linupdate.
     --mail-enable [true|false]                   Enable or disable mail reports
     --get-mail-recipient                         Get current mail recipient(s)
     --set-mail-recipient [EMAIL]                 Set mail recipient(s) (separated by commas)
+    --get-mail-stmp-host                         Get current mail SMTP host
+    --set-mail-stmp-host [HOST]                  Set mail SMTP host
+    --get-mail-stmp-port                         Get current mail SMTP port
+    --set-mail-stmp-port [PORT]                  Set mail SMTP port
     
     Update options
     
