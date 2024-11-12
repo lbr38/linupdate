@@ -184,7 +184,8 @@ jobs:
           release_name: ${{ env.VERSION }}
           body: |
             **Changes**:
-              - Added a way to specify SMTP host and port for mail report sending
+              - Requests from reposerver now support more options like dry-run, keep old config files, etc...
+              - Various typo fixes
           draft: false
           prerelease: false
 

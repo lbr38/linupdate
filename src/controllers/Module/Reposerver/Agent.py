@@ -259,6 +259,12 @@ class Agent:
         status = None
         error = None
 
+        # Update parameters default values
+        dry_run = False
+        ignore_exclusions = False
+        keep_oldconf = True
+        full_upgrade = False
+
         # Decode JSON message
         message = json.loads(message)
 
@@ -327,42 +333,63 @@ class Agent:
                         with Log(log):
                             self.reposerverStatusController.send_packages_info()
 
-                    # Case the request is 'update-all-packages', then update all packages
-                    elif message['request'] == 'update-all-packages':
+                    # Case the request is 'request-all-packages-update', then update all packages
+                    elif message['request'] == 'request-all-packages-update':
                         print('[reposerver-agent] Reposerver requested all packages update')
+
+                        # Try to retrieve the update params
+                        if 'data' in message:
+                            if 'update-params' in message['data']:
+                                if 'dry-run' in message['data']['update-params']:
+                                    dry_run = Utils().stringToBoolean(message['data']['update-params']['dry-run'])
+                                if 'ignore-exclusions' in message['data']['update-params']:
+                                    ignore_exclusions = Utils().stringToBoolean(message['data']['update-params']['ignore-exclusions'])
+                                if 'keep-config-files' in message['data']['update-params']:
+                                    keep_oldconf = Utils().stringToBoolean(message['data']['update-params']['keep-config-files'])
+                                if 'full-upgrade' in message['data']['update-params']:
+                                    full_upgrade = Utils().stringToBoolean(message['data']['update-params']['full-upgrade'])
 
                         # Send a response to the reposerver to make the request as running
                         self.set_request_status(request_id, 'running')
 
                         # Log everything to the log file
                         with Log(log):
-                            self.packageController.update([], True)
+                            self.packageController.update([], True, ignore_exclusions, False, full_upgrade, keep_oldconf, dry_run)
 
                             # TODO
-                            # Take into account the --dry-run option
                             # Restart/reload services if the user said so
                             # Execute reposever post-update actions
 
                         # Send a summary to the reposerver, with the summary of the update (number of packages updated or failed)
                         summary = self.packageController.summary
 
-                    # Case the request is 'request-specific-packages-installation', then update a list of packages
+                    # Case the request is 'request-packages-update', then update a list of specific packages
                     # A list of packages must be provided in the message
-                    elif message['request'] == 'request-specific-packages-installation':
+                    elif message['request'] == 'request-packages-update':
+                        print('[reposerver-agent] Reposerver requested to update a list of packages')
+                        # Try to retrieve the update packages and params
                         if 'data' in message:
-                            if 'packages' in message['data'] and len(message['data']['packages']) > 0:
-                                print('[reposerver-agent] Reposerver requested to update a list of packages')
+                            if 'update-params' in message['data']:
+                                if 'dry-run' in message['data']['update-params']:
+                                    dry_run = Utils().stringToBoolean(message['data']['update-params']['dry-run'])
+                                if 'ignore-exclusions' in message['data']['update-params']:
+                                    ignore_exclusions = Utils().stringToBoolean(message['data']['update-params']['ignore-exclusions'])
+                                if 'keep-config-files' in message['data']['update-params']:
+                                    keep_oldconf = Utils().stringToBoolean(message['data']['update-params']['keep-config-files'])
+                                if 'full-upgrade' in message['data']['update-params']:
+                                    full_upgrade = Utils().stringToBoolean(message['data']['update-params']['full-upgrade'])
 
+                            # If a list of packages is provided, then the update can be performed
+                            if 'packages' in message['data'] and len(message['data']['packages']) > 0:
                                 # Send a response to the reposerver to make the request as running
                                 self.set_request_status(request_id, 'running')
 
                                 # Log everything to the log file
                                 with Log(log):
-                                    self.packageController.update(message['data']['packages'], True)
+                                    self.packageController.update(message['data']['packages'], True, ignore_exclusions, False, full_upgrade, keep_oldconf, dry_run)
 
                                 # Send a summary to the reposerver, with the summary of the installation (number of packages installed or failed)
                                 summary = self.packageController.summary
-
                     else:
                         raise Exception('unknown request sent by reposerver: ' + message['request'])
 

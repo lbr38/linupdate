@@ -40,7 +40,7 @@ class Args:
         # Default values
         Args.assume_yes = False
         Args.check_updates = False
-        Args.ignore_exclude = False
+        Args.ignore_exclusions = False
         Args.packages_to_update = []
         Args.dist_upgrade = False
         Args.keep_oldconf = True
@@ -95,7 +95,7 @@ class Args:
             # Check updates
             parser.add_argument("--check-updates", "-cu", action="store_true", default="null")
             # Ignore exclude
-            parser.add_argument("--ignore-exclude", "-ie", action="store_true", default="null")
+            parser.add_argument("--ignore-exclusions", "-ie", action="store_true", default="null")
             # Exit on package update error
             parser.add_argument("--exit-on-package-update-error", action="store", nargs='?', default="null")
 
@@ -367,10 +367,10 @@ class Args:
                 Args.dry_run = True
 
             #
-            # If --ignore-exclude param has been set
+            # If --ignore-exclusions param has been set
             #
-            if args.ignore_exclude != "null":
-                Args.ignore_exclude = True
+            if args.ignore_exclusions != "null":
+                Args.ignore_exclusions = True
 
             #
             # If --check-updates param has been set
@@ -742,7 +742,7 @@ class Args:
                 },
                 {
                     'args': [
-                        '--ignore-exclude',
+                        '--ignore-exclusions',
                         '-ie'
                     ],
                     'description': 'Ignore all package exclusions'

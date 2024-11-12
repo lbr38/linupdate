@@ -58,7 +58,7 @@ class Status:
 
         try:
             self.httpRequestController.quiet = False
-            self.httpRequestController.put(url + '/api/v2/host/status', id, token, data)
+            self.httpRequestController.put(url + '/api/v2/host/status', id, token, data, 5, 10)
         except Exception as e:
             raise Exception('error while sending general status to reposerver: ' + str(e))
 
@@ -103,7 +103,7 @@ class Status:
 
                 for package in packages:
                     name = package['name']
-                    available_version = package['available_version']
+                    available_version = package['target_version']
 
                     # Ignore package if name is empty
                     if name == '':
@@ -134,7 +134,7 @@ class Status:
         print(' Sending available packages to ' + Fore.YELLOW + url + Style.RESET_ALL + ':')
 
         self.httpRequestController.quiet = False
-        self.httpRequestController.put(url + '/api/v2/host/packages/available', id, token, data)
+        self.httpRequestController.put(url + '/api/v2/host/packages/available', id, token, data, 5, 10)
 
 
     #-----------------------------------------------------------------------------------------------
@@ -184,7 +184,7 @@ class Status:
         print(' Sending installed packages to ' + Fore.YELLOW + url + Style.RESET_ALL + ':')
 
         self.httpRequestController.quiet = False
-        self.httpRequestController.put(url + '/api/v2/host/packages/installed', id, token, data)
+        self.httpRequestController.put(url + '/api/v2/host/packages/installed', id, token, data, 5, 10)
 
 
     #-----------------------------------------------------------------------------------------------
@@ -235,4 +235,4 @@ class Status:
         print(' Sending packages events to ' + Fore.YELLOW + url + Style.RESET_ALL + ':')
 
         self.httpRequestController.quiet = False
-        self.httpRequestController.put(url + '/api/v2/host/packages/event', id, token, events)
+        self.httpRequestController.put(url + '/api/v2/host/packages/event', id, token, events, 5, 10)

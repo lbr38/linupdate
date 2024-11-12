@@ -49,3 +49,14 @@ class Utils:
         text = text.strip()
 
         return text
+
+    #-----------------------------------------------------------------------------------------------
+    #
+    #   Convert a string to a boolean
+    #
+    #-----------------------------------------------------------------------------------------------
+    def stringToBoolean(self, value: str):       
+        if value == 'true' or value == 'True':
+            return True
+
+        return False
