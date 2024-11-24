@@ -36,7 +36,7 @@ class Package:
     #   Check for package exclusions
     #
     #-----------------------------------------------------------------------------------------------
-    def exclude(self, ignore_exclude):
+    def exclude(self, ignore_exclusions):
         try:
             # Create a new empty list of packages to update
             packagesToUpdateList = []
@@ -50,8 +50,8 @@ class Package:
             for package in self.packagesToUpdateList:
                 excluded = False
 
-                # Check for exclusions and exclude packages only if the ignore_exclude parameter is False
-                if not ignore_exclude:
+                # Check for exclusions and exclude packages only if the ignore_exclusions parameter is False
+                if not ignore_exclusions:
                     # If the package is in the list of packages to exclude (on major update), check if the available version is a major update
                     if excludeOnMajorUpdate:
                         # There can be regex in the excludeOnMajorUpdate list (e.g. apache.*), so we need to convert it to a regex pattern
@@ -62,7 +62,7 @@ class Package:
                         if re.match(regex, package['name']):
                             # Retrieve the first digit of the current and available versions
                             # If the first digit is different then it is a major update, exclude the package
-                            if package['current_version'].split('.')[0] != package['available_version'].split('.')[0]:
+                            if package['current_version'].split('.')[0] != package['target_version'].split('.')[0]:
                                 self.myPackageManagerController.exclude(package['name'])
                                 excluded = True
 
@@ -81,7 +81,7 @@ class Package:
                 packagesToUpdateList.append({
                     'name': package['name'],
                     'current_version': package['current_version'],
-                    'available_version': package['available_version'],
+                    'target_version': package['target_version'],
                     'excluded': excluded
                 })
 
@@ -140,7 +140,7 @@ class Package:
     #   This can be a list of specific packages or all packages
     #
     #-----------------------------------------------------------------------------------------------
-    def update(self, packages_list: list = [], assume_yes: bool = False, ignore_exclude: bool = False, check_updates: bool = False, dist_upgrade: bool = False, keep_oldconf: bool = True, dry_run: bool = False):
+    def update(self, packages_list: list = [], assume_yes: bool = False, ignore_exclusions: bool = False, check_updates: bool = False, dist_upgrade: bool = False, keep_oldconf: bool = True, dry_run: bool = False):
         restart_file = '/tmp/linupdate.restart-needed'
 
         # Package update summary
@@ -175,27 +175,28 @@ class Package:
             if len(packages_list) > 0:
                 packages_list_temp = []
 
-                # For each package in the list, if no current version or available version is provided, retrieve it
+                # For each package in the list, if no current version or target version is provided, retrieve it
                 # This is the case when the user uses the --update parameter
                 for package in packages_list:
-                    if 'current_version' not in package or 'available_version' not in package:
+                    if 'current_version' not in package:
                         package['current_version'] = self.myPackageManagerController.get_current_version(package['name'])
-                        package['available_version'] = self.myPackageManagerController.get_available_version(package['name'])
+                    if 'target_version' not in package:
+                        package['target_version'] = self.myPackageManagerController.get_available_version(package['name'])
+ 
+                    # If current version or target version have not been found, skip the package
+                    if package['current_version'] == '' or package['target_version'] == '':
+                        continue
 
-                        # If current version or available version have not been found, skip the package
-                        if package['current_version'] == '' or package['available_version'] == '':
-                            continue
+                    # If current version and target version are the same, skip the package
+                    if package['current_version'] == package['target_version']:
+                        continue
 
-                        # If current version and available version are the same, skip the package
-                        if package['current_version'] == package['available_version']:
-                            continue
-
-                        # Add the package to the list
-                        packages_list_temp.append({
-                            'name': package['name'],
-                            'current_version': package['current_version'],
-                            'available_version': package['available_version']
-                        })
+                    # Add the package to the list
+                    packages_list_temp.append({
+                        'name': package['name'],
+                        'current_version': package['current_version'],
+                        'target_version': package['target_version']
+                    })
 
                 self.packagesToUpdateList = packages_list_temp
 
@@ -206,7 +207,7 @@ class Package:
                 self.packagesToUpdateList = self.get_available_packages(dist_upgrade)
 
             # Check for package exclusions
-            self.exclude(ignore_exclude)
+            self.exclude(ignore_exclusions)
 
             # Count packages to update and packages excluded
             self.packagesToUpdateCount = 0
@@ -233,11 +234,11 @@ class Package:
                 else:
                     installOrExclude = Fore.GREEN + '✔' + Style.RESET_ALL
 
-                table.append(['', package['name'], package['current_version'], package['available_version'], installOrExclude])
+                table.append(['', package['name'], package['current_version'], package['target_version'], installOrExclude])
 
             # Print the table list of packages to update
             # Check prettytable for table with width control https://pypi.org/project/prettytable/
-            print(tabulate(table, headers=["", "Package", "Current version", "Available version", "Update decision"], tablefmt="simple"), end='\n\n')
+            print(tabulate(table, headers=["", "Package", "Current version", "Target version", "Install decision"], tablefmt="simple"), end='\n\n')
 
             # If there are no packages to update
             if self.packagesToUpdateCount == 0:

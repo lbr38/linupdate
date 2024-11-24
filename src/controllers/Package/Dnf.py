@@ -157,7 +157,7 @@ class Dnf:
             list.append({
                 'name': package[0],
                 'current_version': current_version,
-                'available_version': package[1],
+                'target_version': package[1],
                 'repository': package[2]
             })
 
@@ -306,7 +306,7 @@ class Dnf:
                 Path(log).unlink()
 
             with Log(log):
-                print('\n ▪ Updating ' + Fore.GREEN + pkg['name'] + Style.RESET_ALL + ' (' + pkg['current_version'] + ' → ' + pkg['available_version'] + '):')
+                print('\n ▪ Updating ' + Fore.GREEN + pkg['name'] + Style.RESET_ALL + ' (' + pkg['current_version'] + ' → ' + pkg['target_version'] + '):')
 
                 # Before updating, check if package is already in the latest version, if so, skip it
                 # It means that it has been updated previously by another package, probably because it was a dependency
@@ -327,7 +327,7 @@ class Dnf:
                 current_version = result.stdout.strip()
 
                 # If current version is the same the target version, skip the update
-                if current_version == pkg['available_version']:
+                if current_version == pkg['target_version']:
                     print(Fore.GREEN + ' ✔ ' + Style.RESET_ALL + pkg['name'] + ' is already up to date (updated with another package).')
 
                     # Mark the package as already updated
@@ -335,7 +335,7 @@ class Dnf:
 
                     # Also add the package to the list of successful packages
                     self.summary['update']['success']['packages'][pkg['name']] = {
-                        'version': pkg['available_version'],
+                        'version': pkg['target_version'],
                         'log': 'Already up to date (updated with another package).'
                     }
 
@@ -343,10 +343,10 @@ class Dnf:
                     continue
 
                 # Define the command to update the package
-                cmd = ['dnf', 'update', pkg['name'] + '-' + pkg['available_version'], '-y']
+                cmd = ['dnf', 'update', pkg['name'] + '-' + pkg['target_version'], '-y']
 
                 # If dry_run is True, add the --setopt tsflags=test option to simulate the update
-                if dry_run:
+                if dry_run == True:
                     cmd.append('--setopt')
                     cmd.append('tsflags=test')
 
@@ -371,7 +371,7 @@ class Dnf:
 
                     # Add the package to the list of failed packages
                     self.summary['update']['failed']['packages'][pkg['name']] = {
-                        'version': pkg['available_version'],
+                        'version': pkg['target_version'],
                         'log': log_content
                     }
 
@@ -392,7 +392,7 @@ class Dnf:
 
                 # Add the package to the list of successful packages
                 self.summary['update']['success']['packages'][pkg['name']] = {
-                    'version': pkg['available_version'],
+                    'version': pkg['target_version'],
                     'log': log_content
                 }
 

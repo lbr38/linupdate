@@ -128,7 +128,7 @@ class Apt:
                 myPackage = {
                     'name': pkg.name,
                     'current_version': pkg.installed.version,
-                    'available_version': pkg.candidate.version
+                    'target_version': pkg.candidate.version
                 }
 
                 list.append(myPackage)
@@ -301,7 +301,7 @@ class Apt:
                 Path(log).unlink()
 
             with Log(log):
-                print('\n ▪ Updating ' + Fore.GREEN + pkg['name'] + Style.RESET_ALL + ' (' + pkg['current_version'] + ' → ' + pkg['available_version'] + '):')
+                print('\n ▪ Updating ' + Fore.GREEN + pkg['name'] + Style.RESET_ALL + ' (' + pkg['current_version'] + ' → ' + pkg['target_version'] + '):')
 
                 # Before updating, check If package is already in the latest version, if so, skip it
                 # It means that it has been updated previously by another package, probably because it was a dependency
@@ -311,7 +311,7 @@ class Apt:
                     temp_apt_cache.open(None)
 
                     # If version in cache is the same the target version, skip the update
-                    if temp_apt_cache[pkg['name']].installed.version == pkg['available_version']:
+                    if temp_apt_cache[pkg['name']].installed.version == pkg['target_version']:
                         print(Fore.GREEN + ' ✔ ' + Style.RESET_ALL + pkg['name'] + ' is already up to date (updated with another package).')
 
                         # Mark the package as already updated
@@ -319,7 +319,7 @@ class Apt:
 
                         # Also add the package to the list of successful packages
                         self.summary['update']['success']['packages'][pkg['name']] = {
-                            'version': pkg['available_version'],
+                            'version': pkg['target_version'],
                             'log': 'Already up to date (updated with another package).'
                         }
 
@@ -332,17 +332,20 @@ class Apt:
                 # If --keep-oldconf is True, then keep the old configuration file
                 if self.keep_oldconf:
                     cmd = [
-                            'apt-get', 'install', pkg['name'] + '=' + pkg['available_version'], '-y',
-                            # Debug only
-                            # '--dry-run',
+                            'apt-get', 'install', pkg['name'] + '=' + pkg['target_version'], '-y',
                             '-o', 'Dpkg::Options::=--force-confdef',
-                            '-o', 'Dpkg::Options::=--force-confold'
+                            '-o', 'Dpkg::Options::=--force-confold',
+                            # Debug only
+                            # '--dry-run'
                         ]
                 else:
-                    cmd = ['apt-get', 'install', pkg['name'] + '=' + pkg['available_version'], '-y']
+                    cmd = ['apt-get', 'install', pkg['name'] + '=' + pkg['target_version'], '-y',
+                            # Debug only
+                            # '--dry-run'
+                        ]
 
                 # If --dry-run is True, then simulate the update
-                if dry_run:
+                if dry_run == True:
                     cmd.append('--dry-run')
 
                 popen = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True)
@@ -372,7 +375,7 @@ class Apt:
 
                     # Add the package to the list of failed packages
                     self.summary['update']['failed']['packages'][pkg['name']] = {
-                        'version': pkg['available_version'],
+                        'version': pkg['target_version'],
                         'log': log_content
                     }
 
@@ -393,7 +396,7 @@ class Apt:
 
                 # Add the package to the list of successful packages
                 self.summary['update']['success']['packages'][pkg['name']] = {
-                    'version': pkg['available_version'],
+                    'version': pkg['target_version'],
                     'log': log_content
                 }
 

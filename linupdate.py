@@ -101,7 +101,7 @@ def main():
             # Execute packages update
             my_package.update(my_args.packages_to_update,
                               my_args.assume_yes,
-                              my_args.ignore_exclude,
+                              my_args.ignore_exclusions,
                               my_args.check_updates,
                               my_args.dist_upgrade,
                               my_args.keep_oldconf,
