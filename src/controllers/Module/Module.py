@@ -189,7 +189,7 @@ class Module:
     def pre(self):
         for module in self.loadedModules:
             try:
-                print('\n Executing ' + Fore.YELLOW + module + Style.RESET_ALL + ' pre-update actions')
+                print('\n Executing ' + Fore.YELLOW + module + Style.RESET_ALL + ' pre-update actions:')
                 # Convert module name to uppercase first letter
                 moduleName = module.capitalize()
 
@@ -214,7 +214,7 @@ class Module:
     def post(self, updateSummary):
         for module in self.loadedModules:
             try:
-                print('\n Executing ' + Fore.YELLOW + module + Style.RESET_ALL + ' post-update actions')
+                print('\n Executing ' + Fore.YELLOW + module + Style.RESET_ALL + ' post-update actions:')
                 # Convert module name to uppercase first letter
                 moduleName = module.capitalize()
 

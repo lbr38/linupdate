@@ -51,7 +51,7 @@ class Status:
                 'reboot_required': str(self.systemController.reboot_required()).lower() # Convert True/False to 'true'/'false'
             }
 
-            print('\n Sending general informations to ' + Fore.YELLOW + url + Style.RESET_ALL + ':')
+            print('\n  ▪ Sending general informations to ' + Fore.YELLOW + url + Style.RESET_ALL + ':')
 
         except Exception as e:
             raise Exception('could not build general status data: ' + str(e))
@@ -91,7 +91,7 @@ class Status:
 
         available_packages = 'none'
 
-        print('\n Building available packages list...')
+        print('\n  ▪ Building available packages list...')
 
         try:
             # Retrieve available packages
@@ -131,7 +131,7 @@ class Status:
             raise Exception('error while retrieving available packages: ' + str(e))
 
         # Send available packages to Reposerver
-        print(' Sending available packages to ' + Fore.YELLOW + url + Style.RESET_ALL + ':')
+        print('  ▪ Sending available packages to ' + Fore.YELLOW + url + Style.RESET_ALL + ':')
 
         self.httpRequestController.quiet = False
         self.httpRequestController.put(url + '/api/v2/host/packages/available', id, token, data, 5, 10)
@@ -150,7 +150,7 @@ class Status:
 
         installed_packages = ''
 
-        print('\n Building installed packages list...')
+        print('\n  ▪ Building installed packages list...')
 
         try:
             # Retrieve installed packages
@@ -181,7 +181,7 @@ class Status:
             raise Exception('error while retrieving installed packages: ' + str(e))
         
         # Send installed packages to Reposerver
-        print(' Sending installed packages to ' + Fore.YELLOW + url + Style.RESET_ALL + ':')
+        print('  ▪ Sending installed packages to ' + Fore.YELLOW + url + Style.RESET_ALL + ':')
 
         self.httpRequestController.quiet = False
         self.httpRequestController.put(url + '/api/v2/host/packages/installed', id, token, data, 5, 10)
@@ -201,7 +201,7 @@ class Status:
         # History parsing will start from the oldest to the newest
         history_order = 'oldest'
 
-        print('\n Building packages history...')
+        print('\n  ▪ Building packages history...')
 
         # If limit is set (not the default 999999), history parsing will start from the newest to the oldest
         if entries_limit != 999999:        
@@ -232,7 +232,7 @@ class Status:
         except Exception as e:
             raise Exception('could not parse packages history: ' + str(e))
 
-        print(' Sending packages events to ' + Fore.YELLOW + url + Style.RESET_ALL + ':')
+        print('  ▪ Sending packages events to ' + Fore.YELLOW + url + Style.RESET_ALL + ':')
 
         self.httpRequestController.quiet = False
         self.httpRequestController.put(url + '/api/v2/host/packages/event', id, token, events, 5, 10)

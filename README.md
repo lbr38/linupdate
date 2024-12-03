@@ -39,7 +39,7 @@ It should help you **installing** and starting using linupdate.
  Available options:
 
     Name                                         Description
---  -------------------------------------------  -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+--  -------------------------------------------  --------------------------------------------------------------------------------------------------
     --help, -h                                   Show help
     --show-config, -sc                           Show raw configuration
     --version, -v                                Show version
@@ -51,18 +51,20 @@ It should help you **installing** and starting using linupdate.
     --mail-enable [true|false]                   Enable or disable mail reports
     --get-mail-recipient                         Get current mail recipient(s)
     --set-mail-recipient [EMAIL]                 Set mail recipient(s) (separated by commas)
-    --get-mail-stmp-host                         Get current mail SMTP host
-    --set-mail-stmp-host [HOST]                  Set mail SMTP host
-    --get-mail-stmp-port                         Get current mail SMTP port
-    --set-mail-stmp-port [PORT]                  Set mail SMTP port
+    --get-mail-smtp-host                         Get current mail SMTP host
+    --set-mail-smtp-host [HOST]                  Set mail SMTP host
+    --get-mail-smtp-port                         Get current mail SMTP port
+    --set-mail-smtp-port [PORT]                  Set mail SMTP port
     
     Update options
     
+    --update, -u [PACKAGE]                       Update only the specified packages (separated by commas)
     --dist-upgrade, -du                          Enable distribution upgrade when updating packages (Debian based OS only)
+    --dry-run                                    Simulate the update process (do not update packages)
     --keep-oldconf                               Keep old configuration files when updating packages (Debian based OS only)
     --assume-yes, -y                             Answer yes to all questions
     --check-updates, -cu                         Only check for updates and exit
-    --ignore-exclude, -ie                        Ignore all package exclusions
+    --ignore-exclusions, -ie                     Ignore all package exclusions
     --exit-on-package-update-error [true|false]  Immediately exit if an error occurs during package update and do not update the remaining packages
     
     Packages exclusion and services restart

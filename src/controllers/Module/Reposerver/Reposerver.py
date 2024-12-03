@@ -3,6 +3,7 @@
 # Import classes
 from src.controllers.Module.Reposerver.Config import Config as Config
 from src.controllers.Module.Reposerver.Args import Args
+from src.controllers.Module.Reposerver.Status import Status
 
 class Reposerver:
     def __init__(self):
@@ -48,6 +49,8 @@ class Reposerver:
     def post(self, updateSummary):
         # Note: no need of try / except block here, as it is already handled in the Module pre() function
 
+        statusController = Status()
+
         # Quit if there was no packages updates
         if updateSummary['update']['status'] == 'nothing-to-do':
             print('  ▪ Nothing to do as no packages have been updated')
@@ -55,6 +58,10 @@ class Reposerver:
 
         # Generaly "*-release" packages on Redhat/CentOS are resetting .repo files. So it is better to retrieve them again from the reposerver
         self.configController.get_profile_repos()
+
+        # Send package status to reposerver
+        # TODO: to test
+        # statusController.send_packages_info()        
 
 
     #-----------------------------------------------------------------------------------------------

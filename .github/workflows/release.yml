@@ -184,8 +184,8 @@ jobs:
           release_name: ${{ env.VERSION }}
           body: |
             **Changes**:
-              - Requests from reposerver now support more options like dry-run, keep old config files, etc...
-              - Various typo fixes
+              - Reposerver module: sending connection type to meet the new requirements of the server (Repomanager v4.14.1)
+              - Various fixes and improvements
           draft: false
           prerelease: false
 
@@ -202,19 +202,19 @@ jobs:
       # Upload package to repository
       - name: Upload packages to repositories
         run: | 
-          curl --fail-with-body -L --post301 -s -q -X POST -H "Authorization: Bearer ${{ secrets.REPOSITORY_TOKEN }}" -F "files=@$HOME/assets/linupdate_${{ env.VERSION }}_all.deb" https://packages.bespin.ovh/api/v2/snapshot/67/upload
-          curl --fail-with-body -L --post301 -s -q -X POST -H "Authorization: Bearer ${{ secrets.REPOSITORY_TOKEN }}" -F "files=@$HOME/assets/linupdate_${{ env.VERSION }}_all.deb" https://packages.bespin.ovh/api/v2/snapshot/66/upload
-          curl --fail-with-body -L --post301 -s -q -X POST -H "Authorization: Bearer ${{ secrets.REPOSITORY_TOKEN }}" -F "files=@$HOME/assets/linupdate_${{ env.VERSION }}_all.deb" https://packages.bespin.ovh/api/v2/snapshot/68/upload
-          curl --fail-with-body -L --post301 -s -q -X POST -H "Authorization: Bearer ${{ secrets.REPOSITORY_TOKEN }}" -F "files=@$HOME/assets/linupdate_${{ env.VERSION }}_all.deb" https://packages.bespin.ovh/api/v2/snapshot/73/upload
-          curl --fail-with-body -L --post301 -s -q -X POST -H "Authorization: Bearer ${{ secrets.REPOSITORY_TOKEN }}" -F "files=@$HOME/assets/linupdate-${{ env.VERSION }}.noarch.rpm" https://packages.bespin.ovh/api/v2/snapshot/70/upload
-          curl --fail-with-body -L --post301 -s -q -X POST -H "Authorization: Bearer ${{ secrets.REPOSITORY_TOKEN }}" -F "files=@$HOME/assets/linupdate-${{ env.VERSION }}.noarch.rpm" https://packages.bespin.ovh/api/v2/snapshot/71/upload
+          curl --fail-with-body -L --post301 -s -q -X POST -H "Authorization: Bearer ${{ secrets.REPOSITORY_TOKEN }}" -F "files=@$HOME/assets/linupdate_${{ env.VERSION }}_all.deb" https://packages.repomanager.net/api/v2/snapshot/67/upload
+          curl --fail-with-body -L --post301 -s -q -X POST -H "Authorization: Bearer ${{ secrets.REPOSITORY_TOKEN }}" -F "files=@$HOME/assets/linupdate_${{ env.VERSION }}_all.deb" https://packages.repomanager.net/api/v2/snapshot/66/upload
+          curl --fail-with-body -L --post301 -s -q -X POST -H "Authorization: Bearer ${{ secrets.REPOSITORY_TOKEN }}" -F "files=@$HOME/assets/linupdate_${{ env.VERSION }}_all.deb" https://packages.repomanager.net/api/v2/snapshot/68/upload
+          curl --fail-with-body -L --post301 -s -q -X POST -H "Authorization: Bearer ${{ secrets.REPOSITORY_TOKEN }}" -F "files=@$HOME/assets/linupdate_${{ env.VERSION }}_all.deb" https://packages.repomanager.net/api/v2/snapshot/73/upload
+          curl --fail-with-body -L --post301 -s -q -X POST -H "Authorization: Bearer ${{ secrets.REPOSITORY_TOKEN }}" -F "files=@$HOME/assets/linupdate-${{ env.VERSION }}.noarch.rpm" https://packages.repomanager.net/api/v2/snapshot/70/upload
+          curl --fail-with-body -L --post301 -s -q -X POST -H "Authorization: Bearer ${{ secrets.REPOSITORY_TOKEN }}" -F "files=@$HOME/assets/linupdate-${{ env.VERSION }}.noarch.rpm" https://packages.repomanager.net/api/v2/snapshot/71/upload
 
       # Rebuild repositories metadata
       - name: Rebuild repositories
         run: |
-          curl --fail-with-body -X PUT -H "Authorization: Bearer ${{ secrets.REPOSITORY_TOKEN }}" -d '{"gpgSign":"true"}' https://packages.bespin.ovh/api/v2/snapshot/67/rebuild
-          curl --fail-with-body -X PUT -H "Authorization: Bearer ${{ secrets.REPOSITORY_TOKEN }}" -d '{"gpgSign":"true"}' https://packages.bespin.ovh/api/v2/snapshot/66/rebuild
-          curl --fail-with-body -X PUT -H "Authorization: Bearer ${{ secrets.REPOSITORY_TOKEN }}" -d '{"gpgSign":"true"}' https://packages.bespin.ovh/api/v2/snapshot/68/rebuild
-          curl --fail-with-body -X PUT -H "Authorization: Bearer ${{ secrets.REPOSITORY_TOKEN }}" -d '{"gpgSign":"true"}' https://packages.bespin.ovh/api/v2/snapshot/73/rebuild
-          curl --fail-with-body -X PUT -H "Authorization: Bearer ${{ secrets.REPOSITORY_TOKEN }}" -d '{"gpgSign":"true"}' https://packages.bespin.ovh/api/v2/snapshot/70/rebuild
-          curl --fail-with-body -X PUT -H "Authorization: Bearer ${{ secrets.REPOSITORY_TOKEN }}" -d '{"gpgSign":"true"}' https://packages.bespin.ovh/api/v2/snapshot/71/rebuild
+          curl --fail-with-body -X PUT -H "Authorization: Bearer ${{ secrets.REPOSITORY_TOKEN }}" -d '{"gpgSign":"true"}' https://packages.repomanager.net/api/v2/snapshot/67/rebuild
+          curl --fail-with-body -X PUT -H "Authorization: Bearer ${{ secrets.REPOSITORY_TOKEN }}" -d '{"gpgSign":"true"}' https://packages.repomanager.net/api/v2/snapshot/66/rebuild
+          curl --fail-with-body -X PUT -H "Authorization: Bearer ${{ secrets.REPOSITORY_TOKEN }}" -d '{"gpgSign":"true"}' https://packages.repomanager.net/api/v2/snapshot/68/rebuild
+          curl --fail-with-body -X PUT -H "Authorization: Bearer ${{ secrets.REPOSITORY_TOKEN }}" -d '{"gpgSign":"true"}' https://packages.repomanager.net/api/v2/snapshot/73/rebuild
+          curl --fail-with-body -X PUT -H "Authorization: Bearer ${{ secrets.REPOSITORY_TOKEN }}" -d '{"gpgSign":"true"}' https://packages.repomanager.net/api/v2/snapshot/70/rebuild
+          curl --fail-with-body -X PUT -H "Authorization: Bearer ${{ secrets.REPOSITORY_TOKEN }}" -d '{"gpgSign":"true"}' https://packages.repomanager.net/api/v2/snapshot/71/rebuild
