@@ -151,5 +151,5 @@ class App:
         print(' Profile:             ' + Fore.YELLOW + myAppConfig.get_profile() + Style.RESET_ALL)
         print(' Environment:         ' + Fore.YELLOW + myAppConfig.get_environment() + Style.RESET_ALL)
         print(' Execution date:      ' + Fore.YELLOW + datetime.now().strftime('%d-%m-%Y %H:%M:%S') + Style.RESET_ALL)
-        print(' Execution method:    ' + Fore.YELLOW + exec_method + Style.RESET_ALL)
         print(' Executed by user:    ' + Fore.YELLOW + getpass.getuser() + Style.RESET_ALL + '\n')
+        print(' Execution method:    ' + Fore.YELLOW + exec_method + Style.RESET_ALL)

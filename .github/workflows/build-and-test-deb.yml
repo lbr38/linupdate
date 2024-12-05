@@ -189,7 +189,7 @@ jobs:
         run: python3 /opt/linupdate/linupdate.py --mod-enable reposerver
 
       - name: "Run test: configure reposerver module"
-        run: python3 /opt/linupdate/linupdate.py --mod-configure reposerver --url https://packages.bespin.ovh
+        run: python3 /opt/linupdate/linupdate.py --mod-configure reposerver --url https://packages.repomanager.net
 
       - name: "Run test: register to reposerver"
         run: python3 /opt/linupdate/linupdate.py --mod-configure reposerver --api-key ${{ secrets.REPOSITORY_TOKEN }} --register
@@ -292,7 +292,7 @@ jobs:
         run: python3 /opt/linupdate/linupdate.py --mod-enable reposerver
 
       - name: "Run test: configure reposerver module"
-        run: python3 /opt/linupdate/linupdate.py --mod-configure reposerver --url https://packages.bespin.ovh
+        run: python3 /opt/linupdate/linupdate.py --mod-configure reposerver --url https://packages.repomanager.net
 
       - name: "Run test: register to reposerver"
         run: python3 /opt/linupdate/linupdate.py --mod-configure reposerver --api-key ${{ secrets.REPOSITORY_TOKEN }} --register
@@ -395,7 +395,7 @@ jobs:
         run: python3 /opt/linupdate/linupdate.py --mod-enable reposerver
 
       - name: "Run test: configure reposerver module"
-        run: python3 /opt/linupdate/linupdate.py --mod-configure reposerver --url https://packages.bespin.ovh
+        run: python3 /opt/linupdate/linupdate.py --mod-configure reposerver --url https://packages.repomanager.net
 
       - name: "Run test: register to reposerver"
         run: python3 /opt/linupdate/linupdate.py --mod-configure reposerver --api-key ${{ secrets.REPOSITORY_TOKEN }} --register
@@ -495,7 +495,7 @@ jobs:
         run: sudo python3 /opt/linupdate/linupdate.py --mod-enable reposerver
 
       - name: "Run test: configure reposerver module"
-        run: sudo python3 /opt/linupdate/linupdate.py --mod-configure reposerver --url https://packages.bespin.ovh
+        run: sudo python3 /opt/linupdate/linupdate.py --mod-configure reposerver --url https://packages.repomanager.net
 
       - name: "Run test: register to reposerver"
         run: sudo python3 /opt/linupdate/linupdate.py --mod-configure reposerver --api-key ${{ secrets.REPOSITORY_TOKEN }} --register
@@ -528,8 +528,8 @@ jobs:
         run: |
           apt-get update -y
           apt-get install -y curl gpg
-          curl -sS https://packages.bespin.ovh/repo/gpgkeys/packages.bespin.ovh.pub | gpg --dearmor > /etc/apt/trusted.gpg.d/packages.bespin.ovh.gpg
-          echo "deb https://packages.bespin.ovh/repo/linupdate/bullseye/main_prod bullseye main" > /etc/apt/sources.list.d/linupdate.list
+          curl -sS https://packages.repomanager.net/repo/gpgkeys/packages.repomanager.net.pub | gpg --dearmor > /etc/apt/trusted.gpg.d/packages.repomanager.net.gpg
+          echo "deb https://packages.repomanager.net/repo/linupdate/bullseye/main_prod bullseye main" > /etc/apt/sources.list.d/linupdate.list
           apt-get update -y
           apt-get install -y linupdate
 
@@ -543,7 +543,7 @@ jobs:
           sed -i 's/MAIL_RECIPIENT=.*/MAIL_RECIPIENT="repomanager@protonmail.com"/g' /etc/linupdate/linupdate.conf
           sed -i 's/SERVICE_RESTART=.*/SERVICE_RESTART="service1,service2"/g' /etc/linupdate/linupdate.conf
           linupdate --mod-enable reposerver
-          linupdate --mod-configure reposerver --url https://packages.bespin.ovh --fail-level 3
+          linupdate --mod-configure reposerver --url https://packages.repomanager.net --fail-level 3
           linupdate --mod-configure reposerver --get-packages-conf-from-reposerver no
           linupdate --mod-configure reposerver --get-repos-from-reposerver no
           linupdate --mod-configure reposerver --api-key ${{ secrets.REPOSITORY_TOKEN }} --register

@@ -509,7 +509,14 @@ class Agent:
     #
     #-----------------------------------------------------------------------------------------------
     def websocket_on_open(self, ws):
-        print('[reposerver-agent] Opening connection with reposerver')
+        print('[reposerver-agent] Opened connection with reposerver')
+
+        # Send connection type to the reposerver
+        self.websocket.send(
+            json.dumps({
+                'connection-type': 'host'
+            })
+        )
 
 
     #-----------------------------------------------------------------------------------------------
