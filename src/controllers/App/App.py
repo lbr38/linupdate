@@ -64,17 +64,30 @@ class App:
 
     #-----------------------------------------------------------------------------------------------
     #
-    #   Remove lock file
+    #   Remove lock files
     #
     #-----------------------------------------------------------------------------------------------
-    def remove_lock(self):
-        if not Path('/tmp/linupdate.lock').is_file():
-            return
+    def remove_locks(self):
+        # All lock files
+        locks = [
+            '/tmp/linupdate.lock',
+            '/tmp/linupdate.update-running'
+        ]
 
-        try:
-            Path('/tmp/linupdate.lock').unlink()
-        except Exception as e:
-            raise Exception('Could not remove lock file /tmp/linupdate.lock: ' + str(e))
+        # Failed locks
+        failed_locks = []
+
+        # Try to remove lock files
+        for lock in locks:
+            if Path(lock).is_file():
+                try:
+                    Path(lock).unlink()
+                except Exception as e:
+                    failed_locks.append(lock)
+
+        # If there are failed locks, raise an exception
+        if failed_locks:
+            raise Exception(' Could not remove lock files: ' + ', '.join(failed_locks))
 
 
     #-----------------------------------------------------------------------------------------------

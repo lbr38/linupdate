@@ -360,6 +360,10 @@ class Apt:
                     buffer = parts[-1]
                     sys.stdout.write('\r' + ' | ' + buffer.strip() + '\n')
                     sys.stdout.flush()
+
+                # TODO: to test
+                # Deal with the carriage return of the last line
+                sys.stdout.write('\r')
             
                 # Wait for the command to finish
                 popen.wait()

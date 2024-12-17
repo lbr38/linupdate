@@ -169,9 +169,7 @@ class Args:
 
         # Catch exceptions
         # Either ArgsException or Exception, it will always raise an ArgsException to the main script, this to avoid sending an email when an argument error occurs
-        except ArgsException as e:
-            raise ArgsException(str(e))
-        except Exception as e:
+        except (ArgsException, Exception) as e:
             raise ArgsException(str(e))
 
         try:
@@ -595,9 +593,7 @@ class Args:
 
         # Catch exceptions
         # Either ArgsException or Exception, it will always raise an ArgsException to the main script, this to avoid sending an email when an argument error occurs
-        except ArgsException as e:
-            raise ArgsException(str(e))
-        except Exception as e:
+        except (ArgsException, Exception) as e:
             raise ArgsException(str(e))
 
 
@@ -849,7 +845,5 @@ class Args:
 
         # Catch exceptions
         # Either ArgsException or Exception, it will always raise an ArgsException to the main script, this to avoid sending an email when an argument error occurs
-        except ArgsException as e:
-            raise ArgsException('Printing help error: ' + str(e))
-        except Exception as e:
+        except (ArgsException, Exception) as e:
             raise ArgsException('Printing help error: ' + str(e))
