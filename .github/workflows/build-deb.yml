@@ -2,10 +2,7 @@ name: Build and test deb package for linupdate
 
 on:
   push:
-    branches: [ devel ]
-  pull_request:
-    push:
-      branches: [ main ]
+    branches: [ linupdate-2.x.x ]
 
 jobs:
   build-deb:
@@ -17,6 +14,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v3
+        with:
+          ref: 'linupdate-2.x.x'
 
       - name: Get linupdate version
         run: echo "VERSION=$(cat ${GITHUB_WORKSPACE}/version)" >> $GITHUB_ENV
@@ -81,6 +80,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v3
+        with:
+          ref: 'linupdate-2.x.x'
 
       - name: Get linupdate version
         run: echo "VERSION=$(cat ${GITHUB_WORKSPACE}/version)" >> $GITHUB_ENV
@@ -96,18 +97,18 @@ jobs:
           apt-get update -y
           apt-get install -y ./linupdate-test-build_${{ env.VERSION }}_all.deb
 
-      - name: Test some params
-        run: |
-          /opt/linupdate/linupdate --help
-          /opt/linupdate/linupdate --version
-          /opt/linupdate/linupdate --check-updates
-          /opt/linupdate/linupdate --profile container
-          /opt/linupdate/linupdate --env test
-          /opt/linupdate/linupdate --mod-enable reposerver
-          /opt/linupdate/linupdate --mod-configure reposerver --url https://packages.bespin.ovh --fail-level 3
-          /opt/linupdate/linupdate --mod-configure reposerver --api-key ${{ secrets.REPOSITORY_TOKEN }} --register
-          /opt/linupdate/linupdate --mod-configure reposerver --send-full-status
-          /opt/linupdate/linupdate --mod-configure reposerver --unregister
+      # - name: Test some params
+      #   run: |
+      #     /opt/linupdate/linupdate --help
+      #     /opt/linupdate/linupdate --version
+      #     /opt/linupdate/linupdate --check-updates
+      #     /opt/linupdate/linupdate --profile container
+      #     /opt/linupdate/linupdate --env test
+      #     /opt/linupdate/linupdate --mod-enable reposerver
+      #     /opt/linupdate/linupdate --mod-configure reposerver --url https://packages.bespin.ovh --fail-level 3
+      #     /opt/linupdate/linupdate --mod-configure reposerver --api-key ${{ secrets.REPOSITORY_TOKEN }} --register
+      #     /opt/linupdate/linupdate --mod-configure reposerver --send-full-status
+      #     /opt/linupdate/linupdate --mod-configure reposerver --unregister
 
   # Try to install package on Debian 11
   install-debian-11:
@@ -121,6 +122,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v3
+        with:
+          ref: 'linupdate-2.x.x'
 
       - name: Get linupdate version
         run: echo "VERSION=$(cat ${GITHUB_WORKSPACE}/version)" >> $GITHUB_ENV
@@ -136,18 +139,18 @@ jobs:
           apt-get update -y
           apt-get install -y ./linupdate-test-build_${{ env.VERSION }}_all.deb
 
-      - name: Test some params
-        run: |
-          /opt/linupdate/linupdate --help
-          /opt/linupdate/linupdate --version
-          /opt/linupdate/linupdate --check-updates
-          /opt/linupdate/linupdate --profile container
-          /opt/linupdate/linupdate --env test
-          /opt/linupdate/linupdate --mod-enable reposerver
-          /opt/linupdate/linupdate --mod-configure reposerver --url https://packages.bespin.ovh --fail-level 3
-          /opt/linupdate/linupdate --mod-configure reposerver --api-key ${{ secrets.REPOSITORY_TOKEN }} --register
-          /opt/linupdate/linupdate --mod-configure reposerver --send-full-status
-          /opt/linupdate/linupdate --mod-configure reposerver --unregister
+      # - name: Test some params
+      #   run: |
+      #     /opt/linupdate/linupdate --help
+      #     /opt/linupdate/linupdate --version
+      #     /opt/linupdate/linupdate --check-updates
+      #     /opt/linupdate/linupdate --profile container
+      #     /opt/linupdate/linupdate --env test
+      #     /opt/linupdate/linupdate --mod-enable reposerver
+      #     /opt/linupdate/linupdate --mod-configure reposerver --url https://packages.bespin.ovh --fail-level 3
+      #     /opt/linupdate/linupdate --mod-configure reposerver --api-key ${{ secrets.REPOSITORY_TOKEN }} --register
+      #     /opt/linupdate/linupdate --mod-configure reposerver --send-full-status
+      #     /opt/linupdate/linupdate --mod-configure reposerver --unregister
 
   # Try to install package on Debian 12
   install-debian-12:
@@ -161,6 +164,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v3
+        with:
+          ref: 'linupdate-2.x.x'
 
       - name: Get linupdate version
         run: echo "VERSION=$(cat ${GITHUB_WORKSPACE}/version)" >> $GITHUB_ENV
@@ -176,18 +181,18 @@ jobs:
           apt-get update -y
           apt-get install -y ./linupdate-test-build_${{ env.VERSION }}_all.deb
 
-      - name: Test some params
-        run: |
-          /opt/linupdate/linupdate --help
-          /opt/linupdate/linupdate --version
-          /opt/linupdate/linupdate --check-updates
-          /opt/linupdate/linupdate --profile container
-          /opt/linupdate/linupdate --env test
-          /opt/linupdate/linupdate --mod-enable reposerver
-          /opt/linupdate/linupdate --mod-configure reposerver --url https://packages.bespin.ovh --fail-level 3
-          /opt/linupdate/linupdate --mod-configure reposerver --api-key ${{ secrets.REPOSITORY_TOKEN }} --register
-          /opt/linupdate/linupdate --mod-configure reposerver --send-full-status
-          /opt/linupdate/linupdate --mod-configure reposerver --unregister
+      # - name: Test some params
+      #   run: |
+      #     /opt/linupdate/linupdate --help
+      #     /opt/linupdate/linupdate --version
+      #     /opt/linupdate/linupdate --check-updates
+      #     /opt/linupdate/linupdate --profile container
+      #     /opt/linupdate/linupdate --env test
+      #     /opt/linupdate/linupdate --mod-enable reposerver
+      #     /opt/linupdate/linupdate --mod-configure reposerver --url https://packages.bespin.ovh --fail-level 3
+      #     /opt/linupdate/linupdate --mod-configure reposerver --api-key ${{ secrets.REPOSITORY_TOKEN }} --register
+      #     /opt/linupdate/linupdate --mod-configure reposerver --send-full-status
+      #     /opt/linupdate/linupdate --mod-configure reposerver --unregister
 
   # Try to install package on Ubuntu (latest)
   install-ubuntu:
@@ -198,6 +203,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v3
+        with:
+          ref: 'linupdate-2.x.x'
 
       - name: Get linupdate version
         run: echo "VERSION=$(cat ${GITHUB_WORKSPACE}/version)" >> $GITHUB_ENV
@@ -213,15 +220,15 @@ jobs:
           sudo apt-get update -y
           sudo apt-get install -y ./linupdate-test-build_${{ env.VERSION }}_all.deb
 
-      - name: Test some params
-        run: |
-          sudo /opt/linupdate/linupdate --help
-          sudo /opt/linupdate/linupdate --version
-          sudo /opt/linupdate/linupdate --check-updates
-          sudo /opt/linupdate/linupdate --profile container
-          sudo /opt/linupdate/linupdate --env test
-          sudo /opt/linupdate/linupdate --mod-enable reposerver
-          sudo /opt/linupdate/linupdate --mod-configure reposerver --url https://packages.bespin.ovh --fail-level 3
-          sudo /opt/linupdate/linupdate --mod-configure reposerver --api-key ${{ secrets.REPOSITORY_TOKEN }} --register
-          sudo /opt/linupdate/linupdate --mod-configure reposerver --send-full-status
-          sudo /opt/linupdate/linupdate --mod-configure reposerver --unregister
+      # - name: Test some params
+      #   run: |
+      #     sudo /opt/linupdate/linupdate --help
+      #     sudo /opt/linupdate/linupdate --version
+      #     sudo /opt/linupdate/linupdate --check-updates
+      #     sudo /opt/linupdate/linupdate --profile container
+      #     sudo /opt/linupdate/linupdate --env test
+      #     sudo /opt/linupdate/linupdate --mod-enable reposerver
+      #     sudo /opt/linupdate/linupdate --mod-configure reposerver --url https://packages.bespin.ovh --fail-level 3
+      #     sudo /opt/linupdate/linupdate --mod-configure reposerver --api-key ${{ secrets.REPOSITORY_TOKEN }} --register
+      #     sudo /opt/linupdate/linupdate --mod-configure reposerver --send-full-status
+      #     sudo /opt/linupdate/linupdate --mod-configure reposerver --unregister

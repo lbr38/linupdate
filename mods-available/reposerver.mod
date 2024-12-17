@@ -1056,6 +1056,7 @@ function send_general_status
 {
     UPDATE_MESSAGE_SUCCESS=""
     UPDATE_MESSAGE_ERROR=""
+    FQDN=$(hostname -f)
 
     # Check if reboot is needed
     checkRebootNeeded
@@ -1063,8 +1064,8 @@ function send_general_status
     CURL_PARAMS=""
 
     # Paramètres généraux (os, version, profil...)
-    if [ ! -z "$HOSTNAME" ];then
-        CURL_PARAMS+="\"hostname\":\"$HOSTNAME\","
+    if [ ! -z "$FQDN" ];then
+        CURL_PARAMS+="\"hostname\":\"$FQDN\","
     fi
     if [ ! -z "$OS_NAME" ];then
         CURL_PARAMS+="\"os\":\"$OS_NAME\","

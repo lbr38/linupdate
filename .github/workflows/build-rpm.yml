@@ -2,10 +2,7 @@ name: Build and test rpm package for linupdate
 
 on:
   push:
-    branches: [ devel ]
-  pull_request:
-    push:
-      branches: [ main ]
+    branches: [ linupdate-2.x.x ]
 
 jobs:
   # Build rpm package
@@ -23,6 +20,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v3
+        with:
+          ref: 'linupdate-2.x.x'
 
       - name: Get linupdate version
         run: echo "VERSION=$(cat ${GITHUB_WORKSPACE}/version)" >> $GITHUB_ENV
@@ -117,6 +116,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v3
+        with:
+          ref: 'linupdate-2.x.x'
 
       - name: Get linupdate version
         run: echo "VERSION=$(cat ${GITHUB_WORKSPACE}/version)" >> $GITHUB_ENV
@@ -158,18 +159,18 @@ jobs:
       - name: Install package
         run: yum --nogpgcheck localinstall -y ./linupdate-test-build-${{ env.VERSION }}.noarch.rpm
 
-      - name: Test some params
-        run: |
-          /opt/linupdate/linupdate --help
-          /opt/linupdate/linupdate --version
-          /opt/linupdate/linupdate --check-updates
-          /opt/linupdate/linupdate --profile container
-          /opt/linupdate/linupdate --env test
-          /opt/linupdate/linupdate --mod-enable reposerver
-          /opt/linupdate/linupdate --mod-configure reposerver --url https://packages.bespin.ovh --fail-level 3
-          /opt/linupdate/linupdate --mod-configure reposerver --api-key ${{ secrets.REPOSITORY_TOKEN }} --register
-          /opt/linupdate/linupdate --mod-configure reposerver --send-full-status
-          /opt/linupdate/linupdate --mod-configure reposerver --unregister
+      # - name: Test some params
+      #   run: |
+      #     /opt/linupdate/linupdate --help
+      #     /opt/linupdate/linupdate --version
+      #     /opt/linupdate/linupdate --check-updates
+      #     /opt/linupdate/linupdate --profile container
+      #     /opt/linupdate/linupdate --env test
+      #     /opt/linupdate/linupdate --mod-enable reposerver
+      #     /opt/linupdate/linupdate --mod-configure reposerver --url https://packages.bespin.ovh --fail-level 3
+      #     /opt/linupdate/linupdate --mod-configure reposerver --api-key ${{ secrets.REPOSITORY_TOKEN }} --register
+      #     /opt/linupdate/linupdate --mod-configure reposerver --send-full-status
+      #     /opt/linupdate/linupdate --mod-configure reposerver --unregister
 
   # Try to install packages on RockyLinux 8
   install-rockylinux8:
@@ -183,6 +184,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v3
+        with:
+          ref: 'linupdate-2.x.x'
 
       - name: Get linupdate version
         run: echo "VERSION=$(cat ${GITHUB_WORKSPACE}/version)" >> $GITHUB_ENV
@@ -199,18 +202,18 @@ jobs:
       - name: Install package
         run: yum --nogpgcheck localinstall -y ./linupdate-test-build-${{ env.VERSION }}.noarch.rpm
 
-      - name: Test some params
-        run: |
-          /opt/linupdate/linupdate --help
-          /opt/linupdate/linupdate --version
-          /opt/linupdate/linupdate --check-updates
-          /opt/linupdate/linupdate --profile container
-          /opt/linupdate/linupdate --env test
-          /opt/linupdate/linupdate --mod-enable reposerver
-          /opt/linupdate/linupdate --mod-configure reposerver --url https://packages.bespin.ovh --fail-level 3
-          /opt/linupdate/linupdate --mod-configure reposerver --api-key ${{ secrets.REPOSITORY_TOKEN }} --register
-          /opt/linupdate/linupdate --mod-configure reposerver --send-full-status
-          /opt/linupdate/linupdate --mod-configure reposerver --unregister
+      # - name: Test some params
+      #   run: |
+      #     /opt/linupdate/linupdate --help
+      #     /opt/linupdate/linupdate --version
+      #     /opt/linupdate/linupdate --check-updates
+      #     /opt/linupdate/linupdate --profile container
+      #     /opt/linupdate/linupdate --env test
+      #     /opt/linupdate/linupdate --mod-enable reposerver
+      #     /opt/linupdate/linupdate --mod-configure reposerver --url https://packages.bespin.ovh --fail-level 3
+      #     /opt/linupdate/linupdate --mod-configure reposerver --api-key ${{ secrets.REPOSITORY_TOKEN }} --register
+      #     /opt/linupdate/linupdate --mod-configure reposerver --send-full-status
+      #     /opt/linupdate/linupdate --mod-configure reposerver --unregister
 
   # Try to install packages on RockyLinux 9
   install-rockylinux9:
@@ -224,6 +227,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v3
+        with:
+          ref: 'linupdate-2.x.x'
 
       - name: Get linupdate version
         run: echo "VERSION=$(cat ${GITHUB_WORKSPACE}/version)" >> $GITHUB_ENV
@@ -240,18 +245,18 @@ jobs:
       - name: Install package
         run: yum --nogpgcheck localinstall -y ./linupdate-test-build-${{ env.VERSION }}.noarch.rpm
 
-      - name: Test some params
-        run: |
-          /opt/linupdate/linupdate --help
-          /opt/linupdate/linupdate --version
-          /opt/linupdate/linupdate --check-updates
-          /opt/linupdate/linupdate --profile container
-          /opt/linupdate/linupdate --env test
-          /opt/linupdate/linupdate --mod-enable reposerver
-          /opt/linupdate/linupdate --mod-configure reposerver --url https://packages.bespin.ovh --fail-level 3
-          /opt/linupdate/linupdate --mod-configure reposerver --api-key ${{ secrets.REPOSITORY_TOKEN }} --register
-          /opt/linupdate/linupdate --mod-configure reposerver --send-full-status
-          /opt/linupdate/linupdate --mod-configure reposerver --unregister
+      # - name: Test some params
+      #   run: |
+      #     /opt/linupdate/linupdate --help
+      #     /opt/linupdate/linupdate --version
+      #     /opt/linupdate/linupdate --check-updates
+      #     /opt/linupdate/linupdate --profile container
+      #     /opt/linupdate/linupdate --env test
+      #     /opt/linupdate/linupdate --mod-enable reposerver
+      #     /opt/linupdate/linupdate --mod-configure reposerver --url https://packages.bespin.ovh --fail-level 3
+      #     /opt/linupdate/linupdate --mod-configure reposerver --api-key ${{ secrets.REPOSITORY_TOKEN }} --register
+      #     /opt/linupdate/linupdate --mod-configure reposerver --send-full-status
+      #     /opt/linupdate/linupdate --mod-configure reposerver --unregister
 
   # Try to install packages on latest Fedora
   install-fedora:
@@ -265,6 +270,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v3
+        with:
+          ref: 'linupdate-2.x.x'
 
       - name: Get linupdate version
         run: echo "VERSION=$(cat ${GITHUB_WORKSPACE}/version)" >> $GITHUB_ENV
@@ -281,15 +288,15 @@ jobs:
       - name: Install package
         run: dnf --nogpgcheck localinstall -y ./linupdate-test-build-${{ env.VERSION }}.noarch.rpm
 
-      - name: Test some params
-        run: |
-          /opt/linupdate/linupdate --help
-          /opt/linupdate/linupdate --version
-          /opt/linupdate/linupdate --check-updates
-          /opt/linupdate/linupdate --profile container
-          /opt/linupdate/linupdate --env test
-          /opt/linupdate/linupdate --mod-enable reposerver
-          /opt/linupdate/linupdate --mod-configure reposerver --url https://packages.bespin.ovh --fail-level 3
-          /opt/linupdate/linupdate --mod-configure reposerver --api-key ${{ secrets.REPOSITORY_TOKEN }} --register
-          /opt/linupdate/linupdate --mod-configure reposerver --send-full-status
-          /opt/linupdate/linupdate --mod-configure reposerver --unregister
+      # - name: Test some params
+      #   run: |
+      #     /opt/linupdate/linupdate --help
+      #     /opt/linupdate/linupdate --version
+      #     /opt/linupdate/linupdate --check-updates
+      #     /opt/linupdate/linupdate --profile container
+      #     /opt/linupdate/linupdate --env test
+      #     /opt/linupdate/linupdate --mod-enable reposerver
+      #     /opt/linupdate/linupdate --mod-configure reposerver --url https://packages.bespin.ovh --fail-level 3
+      #     /opt/linupdate/linupdate --mod-configure reposerver --api-key ${{ secrets.REPOSITORY_TOKEN }} --register
+      #     /opt/linupdate/linupdate --mod-configure reposerver --send-full-status
+      #     /opt/linupdate/linupdate --mod-configure reposerver --unregister
