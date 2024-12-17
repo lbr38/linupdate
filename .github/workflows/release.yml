@@ -184,7 +184,9 @@ jobs:
           release_name: ${{ env.VERSION }}
           body: |
             **Changes**:
-              - Reposerver module: sending connection type to meet the new requirements of the server (Repomanager v4.14.1)
+              - Added SIGINT (Ctrl+C) handling
+              - Reposerver module: now sending packages information at the end of each update
+              - Reposerver module: automatically retrieve profile configuration from the server on every profile update (requires Repomanager >= `4.15.0`)
               - Various fixes and improvements
           draft: false
           prerelease: false

@@ -7,6 +7,8 @@ import glob
 import os
 import re
 import sys
+import time
+import fcntl
 from colorama import Fore, Style
 from pathlib import Path
 
@@ -146,21 +148,34 @@ class Apt:
     #
     #-----------------------------------------------------------------------------------------------
     def wait_for_dpkg_lock(self, timeout: int = 60):
-        import fcntl
-        from time import sleep
+        lock_files = [
+            '/var/lib/dpkg/lock',
+            '/var/lib/dpkg/lock-frontend',
+            '/var/cache/apt/archives/lock',
+            '/var/lib/apt/lists/lock'
+        ]
 
-        while timeout > 0:
-            with open('/var/lib/dpkg/lock', 'w') as handle:
-                try:
-                    fcntl.lockf(handle, fcntl.LOCK_EX | fcntl.LOCK_NB)
-                    return
-                except IOError:
-                    pass
+        start_time = time.time()
 
-            timeout -= 1
-            sleep(1)
+        while time.time() - start_time < timeout:
+            locks_held = False
+            for lock_file in lock_files:
+                if os.path.exists(lock_file):
+                    try:
+                        with open(lock_file, 'w') as handle:
+                            fcntl.lockf(handle, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                    except IOError:
+                        locks_held = True
+                        break
 
-        raise Exception('could not acquire dpkg lock (timeout ' + str(timeout) + 's)')
+            if not locks_held:
+                return
+
+            print(' Waiting for dpkg lock to be released...')
+            time.sleep(5)
+
+        raise Exception(f'Could not acquire dpkg lock within {timeout} seconds')
+
 
     #-----------------------------------------------------------------------------------------------
     #
@@ -329,26 +344,24 @@ class Apt:
                 except Exception as e:
                     raise Exception('Could not retrieve current version of package ' + pkg['name'] + ': ' + str(e))
 
-                # If --keep-oldconf is True, then keep the old configuration file
+                # Define the command to update the package
+                cmd = 'DEBIAN_FRONTEND=noninteractive /usr/bin/apt-get install ' + pkg['name'] + '=' + pkg['target_version'] +  ' -y'
+
+                # If --keep-oldconf is True, then keep the old configuration files
                 if self.keep_oldconf:
-                    cmd = [
-                            'apt-get', 'install', pkg['name'] + '=' + pkg['target_version'], '-y',
-                            '-o', 'Dpkg::Options::=--force-confdef',
-                            '-o', 'Dpkg::Options::=--force-confold',
-                            # Debug only
-                            # '--dry-run'
-                        ]
-                else:
-                    cmd = ['apt-get', 'install', pkg['name'] + '=' + pkg['target_version'], '-y',
-                            # Debug only
-                            # '--dry-run'
-                        ]
+                    cmd += ' -o Dpkg::Options::=--force-confdef -o Dpkg::Options::=--force-confold'
 
                 # If --dry-run is True, then simulate the update
                 if dry_run == True:
-                    cmd.append('--dry-run')
+                    cmd += ' --dry-run'
 
-                popen = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True)
+                popen = subprocess.Popen(
+                    cmd,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.STDOUT,
+                    universal_newlines=True,
+                    shell = True
+                )
 
                 # Print lines as they are read
                 for line in popen.stdout:
@@ -360,6 +373,9 @@ class Apt:
                     buffer = parts[-1]
                     sys.stdout.write('\r' + ' | ' + buffer.strip() + '\n')
                     sys.stdout.flush()
+
+                # Deal with the carriage return of the last line
+                sys.stdout.write('\r')
             
                 # Wait for the command to finish
                 popen.wait()

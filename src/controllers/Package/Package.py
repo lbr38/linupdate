@@ -142,6 +142,7 @@ class Package:
     #-----------------------------------------------------------------------------------------------
     def update(self, packages_list: list = [], assume_yes: bool = False, ignore_exclusions: bool = False, check_updates: bool = False, dist_upgrade: bool = False, keep_oldconf: bool = True, dry_run: bool = False):
         restart_file = '/tmp/linupdate.restart-needed'
+        update_running_file = '/tmp/linupdate.update-running'
 
         # Package update summary
         self.summary = {
@@ -162,6 +163,10 @@ class Package:
         }
 
         try:
+            # Create a temporary file in /tmp to indicate that the update process is running
+            if not Path(update_running_file).is_file():
+                Path(update_running_file).touch()
+
             # Retrieve configuration
             configuration = self.appConfigController.get_conf()
 
@@ -268,7 +273,10 @@ class Package:
             # If --assume-yes param has not been specified, then ask for confirmation before installing the printed packages update list
             if not assume_yes:
                 # Ask for confirmation
-                print('\n ' + Fore.YELLOW + 'Update now [y/N]' + Style.RESET_ALL, end=' ')
+                if dry_run:
+                    print('\n ' + Fore.YELLOW + 'Update now (dry-run) [y/N]' + Style.RESET_ALL, end=' ')
+                else:
+                    print('\n ' + Fore.YELLOW + 'Update now [y/N]' + Style.RESET_ALL, end=' ')
 
                 answer = input()
 

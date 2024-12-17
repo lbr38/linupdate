@@ -20,10 +20,11 @@ class Service:
         services = Config().get_service_to_restart()
 
         # Retrieve updated packages list from update summary
-        updated_packages = update_summary['update']['success']['count']
+        updated_packages = update_summary['update']['success']['packages']
+        updated_packages_count = update_summary['update']['success']['count']
 
         # Quit if no packages were updated
-        if updated_packages == 0:
+        if updated_packages_count == 0:
             return
 
         # Quit if systemctl is not installed (e.g. in docker container of linupdate's CI)

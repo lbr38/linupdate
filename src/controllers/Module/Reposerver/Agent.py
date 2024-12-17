@@ -7,9 +7,9 @@ import threading
 import websocket
 import json
 import sys
+import os
 from pathlib import Path
 from shutil import rmtree
-import os
 
 # Import classes
 from src.controllers.Log import Log
@@ -18,6 +18,7 @@ from src.controllers.Module.Reposerver.Status import Status
 from src.controllers.Module.Reposerver.Config import Config
 from src.controllers.Package.Package import Package
 from src.controllers.App.Utils import Utils
+from src.controllers.App.Trigger import Trigger
 
 class Agent:
     def __init__(self):
@@ -85,23 +86,13 @@ class Agent:
     #
     #-----------------------------------------------------------------------------------------------
     def on_inotify_change(self, ev):
-        # If latest event was less than 120 seconds ago, then do not send again the history
-        if self.last_inotify_event_time and time.time() - self.last_inotify_event_time < 120:
+        # If an update is running by linupdate, then do nothing for now
+        if Path('/tmp/linupdate.update-running').is_file():
             return
 
-        # Define new last event time
-        self.last_inotify_event_time = time.time()
-
-        # /var/log/dnf.log issue: wait before sending the history because it might have 
-        # been triggered by another history sending (from a request from the Repomanager server for example) as 
-        # even the 'dnf history' command is logged in the dnf.log file
-        # So just wait a bit to don't send both history at the same time...
-        if self.log_file == '/var/log/dnf.log':
-            time.sleep(15)
-
-        # Send the history
-        print('[reposerver-agent] New event has been detected in ' + self.log_file + ' - sending history to the Repomanager server.')
-        self.reposerverStatusController.send_packages_history()
+        # Message for debugging
+        # print('[reposerver-agent][debug] New event has been detected in ' + self.log_file + ' - triggering packages informations.')
+        Trigger().create('package-info')
 
 
     #-----------------------------------------------------------------------------------------------
@@ -118,19 +109,14 @@ class Agent:
             self.last_inotify_event_time = None
 
             watch_manager = pyinotify.WatchManager()
-            # TODO: to test when there are multiple events at once in the log file
             # quiet=False => raise Exception
-            # watch_manager.add_watch(self.log_file, pyinotify.IN_MODIFY, self.on_inotify_change)
             watch_manager.add_watch(self.log_file, pyinotify.IN_CLOSE_WRITE, self.on_inotify_change, quiet=False)
             notifier = pyinotify.Notifier(watch_manager)
             notifier.loop()
 
         # If an exception is raised, then set inotify process as not running and store the exception to
         # be read by the main function (cannot raise an exception to be read by the main function, it does not work, so store it instead)
-        except pyinotify.WatchManagerError as e:
-            self.inotify_is_running = False
-            self.inotify_exception = str(e)
-        except Exception as e:
+        except (pyinotify.WatchManagerError, Exception) as e:
             self.inotify_is_running = False
             self.inotify_exception = str(e)
 
@@ -390,6 +376,19 @@ class Agent:
 
                                 # Send a summary to the reposerver, with the summary of the installation (number of packages installed or failed)
                                 summary = self.packageController.summary
+
+                    # Case the request is 'update-profile', then retrieve profile configuration from the reposerver
+                    elif message['request'] == 'update-profile':
+                        print('[reposerver-agent] Reposerver requested to update profile configuration')
+
+                        # Send a response to the reposerver to make the request as running
+                        self.set_request_status(request_id, 'running')
+
+                        # Log everything to the log file
+                        with Log(log):
+                            self.configController.get_profile_packages_conf()
+                            self.configController.get_profile_repos()
+
                     else:
                         raise Exception('unknown request sent by reposerver: ' + message['request'])
 
@@ -572,8 +571,7 @@ class Agent:
     #-----------------------------------------------------------------------------------------------
     def main(self):
         counter = 0
-        self.child_processes = []
-        self.child_processes_started = []
+        self.delayed_processes = []
         self.inotify_is_running = False
         self.inotify_exception = None
         self.websocket_is_running = False
@@ -622,10 +620,19 @@ class Agent:
                         thread.start()
                     except Exception as e:
                         raise Exception('reposerver websocket connection failed: ' + str(e))
-                    
+
                 # If some requests logs were not sent (because the program crashed or the reposerver was unavailable for eg), then send them now
                 self.send_remaining_requests_logs()
 
+            # Trigger files
+            # If package-info has been triggered, then send it
+            if Trigger().exists('package-info'):
+                print('[reposerver-agent] Package informations triggered. Sending them to the reposerver')
+                self.reposerverStatusController.send_packages_info()
+                time.sleep(5)
+                Trigger().remove('package-info')
+
+            # Sleep 5 seconds before next loop
             time.sleep(5)
 
             counter+=1
