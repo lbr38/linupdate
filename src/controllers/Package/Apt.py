@@ -7,6 +7,8 @@ import glob
 import os
 import re
 import sys
+import time
+import fcntl
 from colorama import Fore, Style
 from pathlib import Path
 
@@ -146,21 +148,34 @@ class Apt:
     #
     #-----------------------------------------------------------------------------------------------
     def wait_for_dpkg_lock(self, timeout: int = 60):
-        import fcntl
-        from time import sleep
+        lock_files = [
+            '/var/lib/dpkg/lock',
+            '/var/lib/dpkg/lock-frontend',
+            '/var/cache/apt/archives/lock',
+            '/var/lib/apt/lists/lock'
+        ]
 
-        while timeout > 0:
-            with open('/var/lib/dpkg/lock', 'w') as handle:
-                try:
-                    fcntl.lockf(handle, fcntl.LOCK_EX | fcntl.LOCK_NB)
-                    return
-                except IOError:
-                    pass
+        start_time = time.time()
 
-            timeout -= 1
-            sleep(1)
+        while time.time() - start_time < timeout:
+            locks_held = False
+            for lock_file in lock_files:
+                if os.path.exists(lock_file):
+                    try:
+                        with open(lock_file, 'w') as handle:
+                            fcntl.lockf(handle, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                    except IOError:
+                        locks_held = True
+                        break
 
-        raise Exception('could not acquire dpkg lock (timeout ' + str(timeout) + 's)')
+            if not locks_held:
+                return
+
+            print(' Waiting for dpkg lock to be released...')
+            time.sleep(5)
+
+        raise Exception(f'Could not acquire dpkg lock within {timeout} seconds')
+
 
     #-----------------------------------------------------------------------------------------------
     #
@@ -330,7 +345,7 @@ class Apt:
                     raise Exception('Could not retrieve current version of package ' + pkg['name'] + ': ' + str(e))
 
                 # Define the command to update the package
-                cmd = '/usr/bin/apt-get install ' + pkg['name'] + '=' + pkg['target_version'] +  ' -y'
+                cmd = 'DEBIAN_FRONTEND=noninteractive /usr/bin/apt-get install ' + pkg['name'] + '=' + pkg['target_version'] +  ' -y'
 
                 # If --keep-oldconf is True, then keep the old configuration files
                 if self.keep_oldconf:
