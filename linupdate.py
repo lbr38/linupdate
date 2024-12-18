@@ -3,6 +3,7 @@
 
 # Import libraries
 import socket
+import signal
 from pathlib import Path
 from datetime import datetime
 from colorama import Fore, Style
@@ -19,6 +20,7 @@ from src.controllers.Service.Service import Service
 from src.controllers.Exit import Exit
 from src.controllers.ArgsException import ArgsException
 
+
 #-----------------------------------------------------------------------------------------------
 #
 #   Main function
@@ -29,6 +31,9 @@ def main():
     send_mail = True
 
     try:
+        # Handle Ctrl+C (KeyboardInterrupt)
+        signal.signal(signal.SIGINT, signal.default_int_handler)
+
         # Get current date and time
         todaydatetime = datetime.now()
         date = todaydatetime.strftime('%Y-%m-%d')
@@ -127,6 +132,11 @@ def main():
     except Exception as e:
         print('\n' + Fore.RED + ' ✕ ' + Style.RESET_ALL + str(e) + '\n')
         exit_code = 1
+    
+    # If the user presses Ctrl+C or the script is killed, do not send an email and exit with code 2
+    except KeyboardInterrupt as e:
+        send_mail = False
+        exit_code = 2
 
     # Exit with exit code and logfile for email report
     my_exit.clean_exit(exit_code, send_mail, logsdir + '/' + logfile)
