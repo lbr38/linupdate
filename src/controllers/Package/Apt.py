@@ -329,26 +329,24 @@ class Apt:
                 except Exception as e:
                     raise Exception('Could not retrieve current version of package ' + pkg['name'] + ': ' + str(e))
 
-                # If --keep-oldconf is True, then keep the old configuration file
+                # Define the command to update the package
+                cmd = '/usr/bin/apt-get install ' + pkg['name'] + '=' + pkg['target_version'] +  ' -y'
+
+                # If --keep-oldconf is True, then keep the old configuration files
                 if self.keep_oldconf:
-                    cmd = [
-                            'apt-get', 'install', pkg['name'] + '=' + pkg['target_version'], '-y',
-                            '-o', 'Dpkg::Options::=--force-confdef',
-                            '-o', 'Dpkg::Options::=--force-confold',
-                            # Debug only
-                            # '--dry-run'
-                        ]
-                else:
-                    cmd = ['apt-get', 'install', pkg['name'] + '=' + pkg['target_version'], '-y',
-                            # Debug only
-                            # '--dry-run'
-                        ]
+                    cmd += ' -o Dpkg::Options::=--force-confdef -o Dpkg::Options::=--force-confold'
 
                 # If --dry-run is True, then simulate the update
                 if dry_run == True:
-                    cmd.append('--dry-run')
+                    cmd += ' --dry-run'
 
-                popen = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True)
+                popen = subprocess.Popen(
+                    cmd,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.STDOUT,
+                    universal_newlines=True,
+                    shell = True
+                )
 
                 # Print lines as they are read
                 for line in popen.stdout:
