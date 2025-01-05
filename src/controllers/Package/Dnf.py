@@ -343,14 +343,20 @@ class Dnf:
                     continue
 
                 # Define the command to update the package
-                cmd = ['dnf', 'update', pkg['name'] + '-' + pkg['target_version'], '-y']
+                cmd = '/usr/bin/dnf update ' + pkg['name'] + '-' + pkg['target_version'] + ' -y'
 
                 # If dry_run is True, add the --setopt tsflags=test option to simulate the update
                 if dry_run == True:
-                    cmd.append('--setopt')
-                    cmd.append('tsflags=test')
+                    cmd += '--setopt tsflags=test'
 
-                popen = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, bufsize=1, universal_newlines=True)
+                popen = subprocess.Popen(
+                    cmd,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.STDOUT,
+                    bufsize=1,
+                    universal_newlines=True,
+                    shell = True
+                )
 
                 # Print lines as they are read
                 for line in popen.stdout:
