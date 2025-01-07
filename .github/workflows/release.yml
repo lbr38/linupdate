@@ -184,10 +184,9 @@ jobs:
           release_name: ${{ env.VERSION }}
           body: |
             **Changes**:
-              - Added SIGINT (Ctrl+C) handling
-              - Reposerver module: now sending packages information at the end of each update
-              - Reposerver module: automatically retrieve profile configuration from the server on every profile update (requires Repomanager >= `4.15.0`)
-              - Various fixes and improvements
+            - Fixed an error when trying to manually update a package which is not installed
+            - Fixed `--update` parameter. When specifying a package which is not installed, it is now ignored
+            - Fixed https://github.com/lbr38/linupdate/issues/82
           draft: false
           prerelease: false
 

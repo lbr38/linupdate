@@ -15,6 +15,9 @@ from src.controllers.Log import Log
 from src.controllers.App.Utils import Utils
 
 class Dnf:
+    def __init__(self):
+        self.dnf_command = '/usr/bin/dnf --disableplugin subscription-manager'
+
     #-----------------------------------------------------------------------------------------------
     #
     #   Return the current version of a package
@@ -22,12 +25,14 @@ class Dnf:
     #-----------------------------------------------------------------------------------------------
     def get_current_version(self, package):
         # Get the current version of the package
-        # e.g. dnf repoquery --installed --qf="%{version}-%{release}.%{arch}" wget
+        # Use rpm instead of dnf because dnf returns exit code 0 even when the package is not installed
+        # e.g. rpm -q --qf="%{version}-%{release}.%{arch}" wget
         result = subprocess.run(
-            ["dnf", "repoquery", "--installed", "--qf=%{version}-%{release}.%{arch}", package],
+            ['/usr/bin/rpm -q --qf="%{version}-%{release}.%{arch}" ' + package],
             stdout = subprocess.PIPE, # subprocess.PIPE & subprocess.PIPE are alias of 'capture_output = True'
             stderr = subprocess.PIPE,
-            universal_newlines = True # Alias of 'text = True'
+            universal_newlines = True, # Alias of 'text = True'
+            shell = True
         )
 
         # Quit if an error occurred
@@ -46,10 +51,11 @@ class Dnf:
         # Get the available version of the package
         # e.g. dnf repoquery --upgrades --latest-limit 1 --qf="%{version}-%{release}.%{arch}" wget
         result = subprocess.run(
-            ["dnf", "repoquery", "--upgrades", "--latest-limit", "1", "--qf=%{version}-%{release}.%{arch}", package],
+            [self.dnf_command + ' repoquery --upgrades --latest-limit 1 --qf="%{version}-%{release}.%{arch}" ' + package],
             stdout = subprocess.PIPE, # subprocess.PIPE & subprocess.PIPE are alias of 'capture_output = True'
             stderr = subprocess.PIPE,
-            universal_newlines = True # Alias of 'text = True'
+            universal_newlines = True, # Alias of 'text = True'
+            shell = True
         )
 
         # Quit if an error occurred
@@ -70,10 +76,11 @@ class Dnf:
         # Get list of installed packages
         # e.g. dnf repoquery -q -a --qf="%{name} %{version}-%{release}.%{arch} %{repoid}" --upgrades
         result = subprocess.run(
-            ["dnf", "repoquery", "--installed", "-a", "--qf=%{name} %{epoch}:%{version}-%{release}.%{arch}"],
+            [self.dnf_command + ' repoquery --installed -a --qf="%{name} %{epoch}:%{version}-%{release}.%{arch}"'],
             stdout = subprocess.PIPE, # subprocess.PIPE & subprocess.PIPE are alias of 'capture_output = True'
             stderr = subprocess.PIPE,
-            universal_newlines = True # Alias of 'text = True'
+            universal_newlines = True, # Alias of 'text = True'
+            shell = True
         )
 
         # Quit if an error occurred
@@ -122,10 +129,11 @@ class Dnf:
         # Get list of packages to update sorted by name
         # e.g. dnf repoquery --upgrades --latest-limit 1 -q -a --qf="%{name} %{version}-%{release}.%{arch} %{repoid}"
         result = subprocess.run(
-            ["dnf", "repoquery", "--upgrades", "--latest-limit", "1", "-a", "--qf=%{name} %{version}-%{release}.%{arch} %{repoid}"],
+            [self.dnf_command + ' repoquery --upgrades --latest-limit 1 -a -q --qf="%{name} %{version}-%{release}.%{arch} %{repoid}"'],
             stdout = subprocess.PIPE, # subprocess.PIPE & subprocess.PIPE are alias of 'capture_output = True'
             stderr = subprocess.PIPE,
-            universal_newlines = True # Alias of 'text = True'
+            universal_newlines = True, # Alias of 'text = True'
+            shell = True
         )
 
         # Quit if an error occurred
@@ -139,20 +147,8 @@ class Dnf:
 
             package = line.split(' ')
 
-            # Retrieve current version with dnf
-            # e.g. rpm -q --qf="%{version}-%{release}.%{arch}" <package>
-            result = subprocess.run(
-                ["rpm", "-q", "--qf=%{version}-%{release}.%{arch}", package[0]],
-                stdout = subprocess.PIPE, # subprocess.PIPE & subprocess.PIPE are alias of 'capture_output = True'
-                stderr = subprocess.PIPE,
-                universal_newlines = True # Alias of 'text = True'
-            )
-
-            # Quit if an error occurred
-            if result.returncode != 0:
-                raise Exception('could not retrieve current version of package ' + package[0] + ': ' + result.stderr)
-
-            current_version = result.stdout.strip()
+            # Retrieve current version
+            current_version = self.get_current_version(package[0])
 
             list.append({
                 'name': package[0],
@@ -166,6 +162,29 @@ class Dnf:
 
     #-----------------------------------------------------------------------------------------------
     #
+    #   Return True if a package is installed
+    #
+    #-----------------------------------------------------------------------------------------------
+    def is_installed(self, package):
+        # Check if the package is installed
+        # e.g. dnf list installed wget
+        result = subprocess.run(
+            ['/usr/bin/rpm -q ' + package],
+            stdout = subprocess.PIPE, # subprocess.PIPE & subprocess.PIPE are alias of 'capture_output = True'
+            stderr = subprocess.PIPE,
+            universal_newlines = True, # Alias of 'text = True'
+            shell = True
+        )
+
+        # If return code is not 0, package is not installed
+        if result.returncode != 0:
+            return False
+        
+        return True
+
+
+    #-----------------------------------------------------------------------------------------------
+    #
     #   Clear dnf cache
     #
     #-----------------------------------------------------------------------------------------------
@@ -174,10 +193,11 @@ class Dnf:
         self.check_lock
 
         result = subprocess.run(
-            ["dnf", "clean", "all"],
+            [self.dnf_command + ' clean all'],
             stdout = subprocess.PIPE, # subprocess.PIPE & subprocess.PIPE are alias of 'capture_output = True'
             stderr = subprocess.PIPE,
-            universal_newlines = True # Alias of 'text = True'
+            universal_newlines = True, # Alias of 'text = True'
+            shell = True
         )
 
         # Quit if an error occurred
@@ -297,8 +317,8 @@ class Dnf:
 
         # Loop through the list of packages to update
         for pkg in packagesList:
-            # If the package is excluded, ignore it
-            if pkg['excluded']:
+            # If the package is marked as not to install, skip it
+            if pkg['install'] != True:
                 continue
 
             # If log file exists, remove it
@@ -310,21 +330,8 @@ class Dnf:
 
                 # Before updating, check if package is already in the latest version, if so, skip it
                 # It means that it has been updated previously by another package, probably because it was a dependency
-                # Get the current version of the package with dnf
-                # e.g. dnf repoquery --installed --qf="%{version}-%{release}.%{arch}" wget
-                result = subprocess.run(
-                    ["dnf", "repoquery", "--installed", "--qf=%{version}-%{release}.%{arch}", pkg['name']],
-                    stdout = subprocess.PIPE, # subprocess.PIPE & subprocess.PIPE are alias of 'capture_output = True'
-                    stderr = subprocess.PIPE,
-                    universal_newlines = True # Alias of 'text = True'
-                )
-
-                # Quit if an error occurred
-                if result.returncode != 0:
-                    raise Exception('Could not retrieve current version of package ' + pkg['name'] + ': ' + result.stderr)
-                
                 # Retrieve current version
-                current_version = result.stdout.strip()
+                current_version = self.get_current_version(pkg['name'])
 
                 # If current version is the same the target version, skip the update
                 if current_version == pkg['target_version']:
@@ -343,11 +350,11 @@ class Dnf:
                     continue
 
                 # Define the command to update the package
-                cmd = '/usr/bin/dnf update ' + pkg['name'] + '-' + pkg['target_version'] + ' -y'
+                cmd = self.dnf_command + ' update ' + pkg['name'] + '-' + pkg['target_version'] + ' -y'
 
                 # If dry_run is True, add the --setopt tsflags=test option to simulate the update
                 if dry_run == True:
-                    cmd += '--setopt tsflags=test'
+                    cmd += ' --setopt tsflags=test'
 
                 popen = subprocess.Popen(
                     cmd,
@@ -427,7 +434,7 @@ class Dnf:
     def get_history(self, order):
         # Get history IDs
         result = subprocess.run(
-            ["dnf history list | tail -n +3 | awk '{print $1}'"],
+            [self.dnf_command + " history list | tail -n +3 | awk '{print $1}'"],
             stdout = subprocess.PIPE, # subprocess.PIPE & subprocess.PIPE are alias of 'capture_output = True'
             stderr = subprocess.PIPE,
             universal_newlines = True, # Alias of 'text = True'
@@ -436,7 +443,7 @@ class Dnf:
 
         # Quit if an error occurred
         if result.returncode != 0:
-            raise Exception('could nt retrieve dnf history: ' + result.stderr)
+            raise Exception('could not retrieve dnf history: ' + result.stderr)
 
         # Retrieve history IDs
         ids = result.stdout.splitlines()
@@ -480,10 +487,11 @@ class Dnf:
             # Retrieve informations from dnf history
             # Force the locale to en_US.UTF-8 to avoid parsing issues
             result = subprocess.run(
-                ["dnf", "history", "info", id],
+                [self.dnf_command + ' history info ' + id],
                 stdout = subprocess.PIPE, # subprocess.PIPE & subprocess.PIPE are alias of 'capture_output = True'
                 stderr = subprocess.PIPE,
-                universal_newlines = True, # Alias of 'text = True'
+                universal_newlines = True,  # Alias of 'text = True'
+                shell = True,
                 env = {'LC_ALL': 'en_US.UTF-8'}
             )
 
