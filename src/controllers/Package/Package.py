@@ -38,9 +38,6 @@ class Package:
     #-----------------------------------------------------------------------------------------------
     def exclude(self, ignore_exclusions):
         try:
-            # Create a new empty list of packages to update
-            packagesToUpdateList = []
-
             # Retrieve the list of packages to exclude from the config file
             configuration = self.appConfigController.get_conf()
             excludeAlways = configuration['update']['packages']['exclude']['always']
@@ -48,7 +45,12 @@ class Package:
 
             # Loop through the list of packages to update
             for package in self.packagesToUpdateList:
-                excluded = False
+                install = True
+                install_decision_message = ''
+
+                # Ignore package if it is already marked as not to install
+                if 'install' in package and not package['install']:
+                    continue
 
                 # Check for exclusions and exclude packages only if the ignore_exclusions parameter is False
                 if not ignore_exclusions:
@@ -64,7 +66,8 @@ class Package:
                             # If the first digit is different then it is a major update, exclude the package
                             if package['current_version'].split('.')[0] != package['target_version'].split('.')[0]:
                                 self.myPackageManagerController.exclude(package['name'])
-                                excluded = True
+                                install = False
+                                install_decision_message = '✕ (excluded)'
 
                     # If the package is in the list of packages to exclude (always), exclude it
                     if excludeAlways:
@@ -75,20 +78,14 @@ class Package:
                         # Check if the package name matches the regex pattern
                         if re.match(regex, package['name']): 
                             self.myPackageManagerController.exclude(package['name'])
-                            excluded = True
+                            install = False
+                            install_decision_message = '✕ (excluded)'
 
-                # Add the package to the list of packages to update
-                packagesToUpdateList.append({
-                    'name': package['name'],
-                    'current_version': package['current_version'],
-                    'target_version': package['target_version'],
-                    'excluded': excluded
-                })
+                # Edit self.packagesToUpdateList and add excluded key to the package
+                self.packagesToUpdateList[self.packagesToUpdateList.index(package)]['install'] = install
+                self.packagesToUpdateList[self.packagesToUpdateList.index(package)]['install_decision_message'] = install_decision_message
 
-            # Replace the list of packages to update with the new list
-            self.packagesToUpdateList = packagesToUpdateList
-
-            del configuration, excludeAlways, excludeOnMajorUpdate, packagesToUpdateList
+            del configuration, excludeAlways, excludeOnMajorUpdate
         except Exception as e:
             raise Exception('error while excluding packages: ' + str(e))
 
@@ -183,24 +180,44 @@ class Package:
                 # For each package in the list, if no current version or target version is provided, retrieve it
                 # This is the case when the user uses the --update parameter
                 for package in packages_list:
-                    if 'current_version' not in package:
-                        package['current_version'] = self.myPackageManagerController.get_current_version(package['name'])
-                    if 'target_version' not in package:
-                        package['target_version'] = self.myPackageManagerController.get_available_version(package['name'])
- 
-                    # If current version or target version have not been found, skip the package
-                    if package['current_version'] == '' or package['target_version'] == '':
-                        continue
+                    # Default values
+                    current_version = ''
+                    target_version = ''
+                    install = True
+                    install_decision_message = ''
 
-                    # If current version and target version are the same, skip the package
-                    if package['current_version'] == package['target_version']:
-                        continue
+                    # First, check if package is installed, if not skip it
+                    is_installed = self.myPackageManagerController.is_installed(package['name'])
+
+                    # If package is not installed, mark it as not to install
+                    if not is_installed:
+                        current_version = '-'
+                        target_version = '-'
+                        install = False
+                        install_decision_message = '✕ Package is not installed'
+
+                    # If package is installed, retrieve the current and target versions
+                    if is_installed:
+                        if 'current_version' not in package:
+                            current_version = self.myPackageManagerController.get_current_version(package['name'])
+                        if 'target_version' not in package:
+                            target_version = self.myPackageManagerController.get_available_version(package['name'])
+
+                        # If current version or target version have not been found, skip the package
+                        if current_version == '' or target_version == '':
+                            continue
+
+                        # If current version and target version are the same, skip the package
+                        if current_version == target_version:
+                            continue
 
                     # Add the package to the list
                     packages_list_temp.append({
                         'name': package['name'],
-                        'current_version': package['current_version'],
-                        'target_version': package['target_version']
+                        'current_version': current_version,
+                        'target_version': target_version,
+                        'install': install,
+                        'install_decision_message': install_decision_message
                     })
 
                 self.packagesToUpdateList = packages_list_temp
@@ -214,32 +231,36 @@ class Package:
             # Check for package exclusions
             self.exclude(ignore_exclusions)
 
-            # Count packages to update and packages excluded
+            # Count packages to update and packages ignored
             self.packagesToUpdateCount = 0
-            self.packagesExcludedCount = 0
+            self.packagesIgnoredCount = 0
 
             for package in self.packagesToUpdateList:
-                if 'excluded' in package and package['excluded']:
-                    self.packagesExcludedCount += 1
+                if 'install' in package and not package['install']:
+                    self.packagesIgnoredCount += 1
                 else:
                     self.packagesToUpdateCount += 1
 
             # Print the number of packages to update
             if dry_run:
-                print('\n ' + Fore.YELLOW + '(dry run) ' + Fore.GREEN + str(self.packagesToUpdateCount) + Style.RESET_ALL + ' packages would be updated, ' + Fore.YELLOW + str(self.packagesExcludedCount) + Style.RESET_ALL + ' would be excluded \n')
+                print('\n ' + Fore.YELLOW + '(dry run) ' + Fore.GREEN + str(self.packagesToUpdateCount) + Style.RESET_ALL + ' packages would be updated, ' + Fore.YELLOW + str(self.packagesIgnoredCount) + Style.RESET_ALL + ' would be ignored \n')
             else:
-                print('\n ' + Fore.GREEN + str(self.packagesToUpdateCount) + Style.RESET_ALL + ' packages will be updated, ' + Fore.YELLOW + str(self.packagesExcludedCount) + Style.RESET_ALL + ' will be excluded \n')
+                print('\n ' + Fore.GREEN + str(self.packagesToUpdateCount) + Style.RESET_ALL + ' packages will be updated, ' + Fore.YELLOW + str(self.packagesIgnoredCount) + Style.RESET_ALL + ' will be ignored \n')
 
             # Convert the list of packages to a table
             table = []
             for package in self.packagesToUpdateList:
-                # If package is excluded
-                if 'excluded' in package and package['excluded']:
-                    installOrExclude = Fore.YELLOW + '✕ (excluded)' + Style.RESET_ALL
-                else:
-                    installOrExclude = Fore.GREEN + '✔' + Style.RESET_ALL
+                installDecisionMessage = Fore.GREEN + '✔' + Style.RESET_ALL
 
-                table.append(['', package['name'], package['current_version'], package['target_version'], installOrExclude])
+                # If package is marked as not to install, then display a warning
+                if 'install' in package and package['install'] != True:
+                    # If there is an install_decision_message, use it
+                    if 'install_decision_message' in package:
+                        installDecisionMessage = Fore.YELLOW + package['install_decision_message'] + Style.RESET_ALL
+                    else:
+                        installDecisionMessage = Fore.YELLOW + '✕ (ignored)' + Style.RESET_ALL
+
+                table.append(['', package['name'], package['current_version'], package['target_version'], installDecisionMessage])
 
             # Print the table list of packages to update
             # Check prettytable for table with width control https://pypi.org/project/prettytable/
@@ -264,11 +285,11 @@ class Package:
                 return
 
             # Print again the number of packages if total count is > 50 to avoid the user to scroll up to see it
-            if self.packagesToUpdateCount + self.packagesExcludedCount > 50:
+            if self.packagesToUpdateCount + self.packagesIgnoredCount > 50:
                 if dry_run:
-                    print('\n ' + Fore.YELLOW + '(dry run) ' + Fore.GREEN + str(self.packagesToUpdateCount) + Style.RESET_ALL + ' packages would be updated, ' + Fore.YELLOW + str(self.packagesExcludedCount) + Style.RESET_ALL + ' would be excluded \n')
+                    print('\n ' + Fore.YELLOW + '(dry run) ' + Fore.GREEN + str(self.packagesToUpdateCount) + Style.RESET_ALL + ' packages would be updated, ' + Fore.YELLOW + str(self.packagesIgnoredCount) + Style.RESET_ALL + ' would be ignored \n')
                 else:
-                    print('\n ' + Fore.GREEN + str(self.packagesToUpdateCount) + Style.RESET_ALL + ' packages will be updated, ' + Fore.YELLOW + str(self.packagesExcludedCount) + Style.RESET_ALL + ' will be excluded \n')
+                    print('\n ' + Fore.GREEN + str(self.packagesToUpdateCount) + Style.RESET_ALL + ' packages will be updated, ' + Fore.YELLOW + str(self.packagesIgnoredCount) + Style.RESET_ALL + ' will be ignored \n')
 
             # If --assume-yes param has not been specified, then ask for confirmation before installing the printed packages update list
             if not assume_yes:

@@ -352,6 +352,9 @@ class Args:
             # If --update param has been set
             #
             if args.update != "null":
+                if not args.update:
+                    raise ArgsException('Package(s) name must be specified when using --update')
+
                 try:
                     for package in args.update.split(','):
                         Args.packages_to_update.append({'name': package.strip()})
@@ -776,14 +779,14 @@ class Args:
                         '--exclude'
                     ],
                     'option': 'PACKAGE',
-                    'description': 'Set packages to exclude from update (separated by commas)'
+                    'description': 'Set packages to exclude from update (separated by commas). Regex pattern ".*" can be used to match multiple packages. Example: --exclude php.*'
                 },
                 {
                     'args': [
                         '--exclude-major'
                     ],
                     'option': 'PACKAGE',
-                    'description': 'Set packages to exclude from update (if package has a major version update) (separated by commas)'
+                    'description': 'Set packages to exclude from update (if package has a major version update) (separated by commas). Regex pattern ".*" can be used to match multiple packages. Example: --exclude-major php.*'
                 },
                 {
                     'args': [

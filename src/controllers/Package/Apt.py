@@ -143,6 +143,27 @@ class Apt:
 
     #-----------------------------------------------------------------------------------------------
     #
+    #   Return True if a package is installed
+    #
+    #-----------------------------------------------------------------------------------------------
+    def is_installed(self, package):
+        try:
+            # Open apt cache
+            self.aptcache.open(None)
+
+            # Get the package from the cache
+            for pkg in self.aptcache:
+                if pkg.name == package:
+                    return True
+
+            return False
+
+        except Exception as e:
+            raise Exception('could not check if package ' + package + ' is installed: ' + str(e))
+
+
+    #-----------------------------------------------------------------------------------------------
+    #
     #   Wait for dpkg lock to be released
     #   Default timeout is 60 seconds
     #
@@ -307,8 +328,8 @@ class Apt:
 
         # Loop through the list of packages to update
         for pkg in packagesList:
-            # If the package is excluded, ignore it
-            if pkg['excluded']:
+            # If the package is marked as not to install, skip it
+            if pkg['install'] != True:
                 continue
 
             # If log file exists, remove it

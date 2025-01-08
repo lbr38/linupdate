@@ -5,6 +5,14 @@ After=network.target
 [Service]
 Type=simple
 ExecStart=/opt/linupdate/service.py
+# Limit CPU usage to 50% of CPU time
+# CPUQuota=50%
+# Set CPU weight to 50 (lower priority compared to the default of 100)
+# CPUWeight=50
+# Limit memory usage to 1 GB
+# MemoryMax=1G
+# Adjust OOM score to 500 (more likely to be killed by OOM killer)
+# OOMScoreAdjust=500
 
 [Install]
 WantedBy=multi-user.target
