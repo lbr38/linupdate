@@ -349,6 +349,9 @@ class Agent:
                         # Send a summary to the reposerver, with the summary of the update (number of packages updated or failed)
                         summary = self.packageController.summary
 
+                        # Trigger package-info sending
+                        Trigger().create('package-info')
+
                     # Case the request is 'request-packages-update', then update a list of specific packages
                     # A list of packages must be provided in the message
                     elif message['request'] == 'request-packages-update':
@@ -376,6 +379,9 @@ class Agent:
 
                                 # Send a summary to the reposerver, with the summary of the installation (number of packages installed or failed)
                                 summary = self.packageController.summary
+
+                                # Trigger package-info sending
+                                Trigger().create('package-info')
 
                     # Case the request is 'update-profile', then retrieve profile configuration from the reposerver
                     elif message['request'] == 'update-profile':

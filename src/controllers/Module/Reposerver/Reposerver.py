@@ -1,12 +1,14 @@
 # coding: utf-8
 
 # Import classes
+from src.controllers.Package.Package import Package
 from src.controllers.Module.Reposerver.Config import Config as Config
 from src.controllers.Module.Reposerver.Args import Args
 from src.controllers.App.Trigger import Trigger
 
 class Reposerver:
     def __init__(self):
+        self.packageController = Package()
         self.configController = Config()
         self.argsController = Args()
 
@@ -56,6 +58,7 @@ class Reposerver:
 
         # Generaly "*-release" packages on Redhat/CentOS are resetting .repo files. So it is better to retrieve them again from the reposerver
         self.configController.get_profile_repos()
+        self.packageController.update_cache()
 
         # Trigger package-info sending
         Trigger().create('package-info')
