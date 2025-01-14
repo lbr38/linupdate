@@ -133,6 +133,19 @@ class Package:
 
     #-----------------------------------------------------------------------------------------------
     #
+    #   Update package cache
+    #
+    #-----------------------------------------------------------------------------------------------
+    def update_cache(self):
+        try:
+            self.myPackageManagerController.update_cache()
+
+        except Exception as e:
+            raise Exception('error while updating package cache: ' + str(e))
+
+
+    #-----------------------------------------------------------------------------------------------
+    #
     #   Update packages
     #   This can be a list of specific packages or all packages
     #

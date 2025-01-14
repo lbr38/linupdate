@@ -45,6 +45,7 @@ class Args:
         Args.dist_upgrade = False
         Args.keep_oldconf = True
         Args.dry_run = False
+        Args.debug = False
 
         myApp       = App()
         myAppConfig = Config()
@@ -60,6 +61,8 @@ class Args:
             parser.add_argument("--help", "-h", action="store_true", default="null")
             # Version
             parser.add_argument("--version", "-v", action="store_true", default="null")
+            # Debug
+            parser.add_argument("--debug", action="store_true", default="null")
             # Show raw config
             parser.add_argument("--show-config", "-sc", action="store_true", default="null")
 
@@ -188,6 +191,13 @@ class Args:
                 if args.version:
                     print(' Current version: ' + Fore.GREEN + myApp.get_version() + Style.RESET_ALL, end='\n\n')
                     myExit.clean_exit(0, False)
+
+            #
+            # If --debug param has been set
+            #
+            if args.debug != "null":
+                if args.debug:
+                    Args.debug = True
 
             #
             # If --show-config param has been set
@@ -629,6 +639,12 @@ class Args:
                         '-v'
                     ],
                     'description': 'Show version',
+                },
+                {
+                    'args': [
+                        '--debug'
+                    ],
+                    'description': 'Enable debug mode',
                 },
                 {
                     'title': 'Global configuration options'

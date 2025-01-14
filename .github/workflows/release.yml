@@ -183,10 +183,9 @@ jobs:
           tag_name: ${{ env.VERSION }}
           release_name: ${{ env.VERSION }}
           body: |
-            **Changes**:
-            - Fixed an error when trying to manually update a package which is not installed
-            - Fixed `--update` parameter. When specifying a package which is not installed, it is now ignored
-            - Fixed https://github.com/lbr38/linupdate/issues/82
+            **Changes**
+            - Added --debug parameter
+            - Reposerver module: added a trigger to send packages information after an update
           draft: false
           prerelease: false
 
