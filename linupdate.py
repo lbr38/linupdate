@@ -116,6 +116,9 @@ def main():
             # Execute post-update modules functions
             my_module.post(my_package.summary)
 
+            # Reload services
+            my_service.reload(my_package.summary, my_args.dry_run)
+
             # Restart services
             my_service.restart(my_package.summary, my_args.dry_run)
 

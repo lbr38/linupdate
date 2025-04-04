@@ -36,7 +36,16 @@ chmod 750 /opt/linupdate
 if [ -f "/usr/bin/systemctl" ];then
     # Copy systemd unit file if not exists
     if [ ! -f "/lib/systemd/system/linupdate.service" ];then
-        cp /opt/linupdate/service/linupdate.systemd.template /lib/systemd/system/linupdate.service
+        cp /opt/linupdate/templates/linupdate.systemd.template /lib/systemd/system/linupdate.service
+    fi
+
+    # Replace systemd unit file if some options are missing
+    if  ! grep -q "^CPUQuota"       /lib/systemd/system/linupdate.service || \
+        ! grep -q "^CPUWeight"      /lib/systemd/system/linupdate.service || \
+        ! grep -q "^MemoryMax"      /lib/systemd/system/linupdate.service || \
+        ! grep -q "^OOMScoreAdjust" /lib/systemd/system/linupdate.service;
+    then
+        \cp /opt/linupdate/templates/linupdate.systemd.template /lib/systemd/system/linupdate.service
     fi
 
     chmod 550 "$SERVICE"

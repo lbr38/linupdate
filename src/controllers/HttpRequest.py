@@ -42,6 +42,8 @@ class HttpRequest:
                                  headers = {'Authorization': 'Bearer ' + apiKey, 'Content-Type': 'application/json'},
                                  timeout = (connectionTimeout, readTimeout))
 
+        del data, apiKey, url
+
         # Parse response and return results if 200
         return self.request_parse_result(response)
 
@@ -57,6 +59,8 @@ class HttpRequest:
                                 data = json.dumps(data),
                                 headers = {'Authorization': 'Host ' + id + ':' + token},
                                 timeout = (connectionTimeout, readTimeout))
+        
+        del data, id, token, url
 
         # Parse response and return results if 200
         return self.request_parse_result(response)
@@ -72,6 +76,8 @@ class HttpRequest:
         response = requests.delete(url,
                                    headers = {'Authorization': 'Host ' + id + ':' + token},
                                    timeout = (connectionTimeout, readTimeout))
+        
+        del id, token, url
 
         # Parse response and return results if 200
         return self.request_parse_result(response)

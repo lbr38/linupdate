@@ -7,6 +7,7 @@ import sys
 import importlib
 import subprocess
 import time
+import configparser
 from colorama import Fore, Style
 from pathlib import Path
 
@@ -22,6 +23,9 @@ class Service:
         self.child_processes = []
         self.child_processes_started = []
         self.moduleController = Module()
+
+        # Systemd unit file path
+        self.systemd_unit_file = '/lib/systemd/system/linupdate.service'
 
 
     #-----------------------------------------------------------------------------------------------
@@ -236,3 +240,203 @@ class Service:
             sys.exit(0)
         except Exception as e:
             print('Error while stopping child processes: ' + str(e))
+
+
+    #-----------------------------------------------------------------------------------------------
+    #
+    #   Get current systemd service CPU priority
+    #
+    #-----------------------------------------------------------------------------------------------
+    def get_cpu_priority(self):
+        try:
+            config = configparser.ConfigParser()
+            config.optionxform = str
+            config.read(self.systemd_unit_file)
+
+            # Quit if CPUQuota is not found
+            if 'CPUQuota' not in config['Service']:
+                raise Exception('CPUQuota not found in systemd unit file')
+
+            # Quit if CPUWeight is not found
+            if 'CPUWeight' not in config['Service']:
+                raise Exception('CPUWeight not found in systemd unit file')
+            
+            if config['Service']['CPUWeight'] == '50':
+                return 'low'
+            if config['Service']['CPUWeight'] == '75':
+                return 'medium'
+            if config['Service']['CPUWeight'] == '100':
+                return 'high'
+        except Exception as e:
+            raise Exception('Could not get CPU priority: ' + str(e))
+
+
+    #-----------------------------------------------------------------------------------------------
+    #
+    #   Set systemd service CPU priority
+    #
+    #-----------------------------------------------------------------------------------------------
+    def set_cpu_priority(self, priority: str):
+        if priority not in ['low', 'medium', 'high']:
+            raise Exception('Priority must be low, medium or high')
+
+        try:
+            config = configparser.ConfigParser(interpolation=None)
+            config.optionxform = str
+            config.read(self.systemd_unit_file)
+
+            # Quit if CPUQuota is not found
+            if 'CPUQuota' not in config['Service']:
+                raise Exception('CPUQuota not found in systemd unit file')
+
+            # Quit if CPUWeight is not found
+            if 'CPUWeight' not in config['Service']:
+                raise Exception('CPUWeight not found in systemd unit file')
+            
+            # Set CPU priority
+            if priority == 'low':
+                # Set CPUQuota to 50%
+                config['Service']['CPUQuota'] = '50%'
+                # Set CPUWeight to 50
+                config['Service']['CPUWeight'] = '50'
+            if priority == 'medium':
+                # Set CPUQuota to 75%
+                config['Service']['CPUQuota'] = '75%'
+                # Set CPUWeight to 75
+                config['Service']['CPUWeight'] = '75'
+            if priority == 'high':
+                # Set CPUQuota to 100%
+                config['Service']['CPUQuota'] = '100%'
+                # Set CPUWeight to 100
+                config['Service']['CPUWeight'] = '100'
+
+            # Write to file
+            with open(self.systemd_unit_file, 'w') as f:
+                config.write(f)
+
+            # Reload systemd unit
+            self.reloadSystemUnit()
+        except Exception as e:
+            raise Exception('Could not set CPU priority: ' + str(e))
+
+
+    #-----------------------------------------------------------------------------------------------
+    #
+    #   Get current systemd service memory limit
+    #
+    #-----------------------------------------------------------------------------------------------
+    def get_memory_limit(self):
+        try:
+            config = configparser.ConfigParser()
+            config.optionxform = str
+            config.read(self.systemd_unit_file)
+
+            # Quit if MemoryMax is not found
+            if 'MemoryMax' not in config['Service']:
+                raise Exception('MemoryMax not found in systemd unit file')
+
+            # Get MemoryMax
+            return config['Service']['MemoryMax']
+        except Exception as e:
+            raise Exception('Could not get memory limit: ' + str(e))
+
+
+    #-----------------------------------------------------------------------------------------------
+    #
+    #   Set systemd service memory limit
+    #
+    #-----------------------------------------------------------------------------------------------
+    def set_memory_limit(self, limit: str):
+        if not limit:
+            raise Exception('Memory limit must be specified')
+
+        try:
+            config = configparser.ConfigParser()
+            config.optionxform = str
+            config.read(self.systemd_unit_file)
+
+            # Quit if MemoryMax is not found
+            if 'MemoryMax' not in config['Service']:
+                raise Exception('MemoryMax not found in systemd unit file')
+
+            # Set MemoryMax
+            config['Service']['MemoryMax'] = limit
+
+            # Write to file
+            with open(self.systemd_unit_file, 'w') as f:
+                config.write(f)
+
+            # Reload systemd unit
+            self.reloadSystemUnit()
+        except Exception as e:
+            raise Exception('Could not set memory limit: ' + str(e))
+
+
+    #-----------------------------------------------------------------------------------------------
+    #
+    #   Get current systemd service OOM score
+    #
+    #-----------------------------------------------------------------------------------------------
+    def get_oom_score(self):
+        try:
+            config = configparser.ConfigParser()
+            config.optionxform = str
+            config.read(self.systemd_unit_file)
+
+            # Quit if OOMScoreAdjust is not found
+            if 'OOMScoreAdjust' not in config['Service']:
+                raise Exception('OOMScoreAdjust not found in systemd unit file')
+
+            # Get OOMScoreAdjust
+            return config['Service']['OOMScoreAdjust']
+        except Exception as e:
+            raise Exception('Could not get OOM score: ' + str(e))
+
+
+    #-----------------------------------------------------------------------------------------------
+    #
+    #   Set systemd service OOM score
+    #
+    #-----------------------------------------------------------------------------------------------
+    def set_oom_score(self, score: int):
+        if int(score) < -1000 or int(score) > 1000:
+            raise Exception('OOM score must be between -1000 and 1000')
+
+        try:
+            config = configparser.ConfigParser()
+            config.optionxform = str
+            config.read(self.systemd_unit_file)
+
+            # Quit if OOMScoreAdjust is not found
+            if 'OOMScoreAdjust' not in config['Service']:
+                raise Exception('OOMScoreAdjust not found in systemd unit file')
+            
+            # Set OOMScoreAdjust
+            config['Service']['OOMScoreAdjust'] = str(score)
+
+            # Write to file
+            with open(self.systemd_unit_file, 'w') as f:
+                config.write(f)
+
+            # Reload systemd unit
+            self.reloadSystemUnit()
+        except Exception as e:
+            raise Exception('Could not set OOM score: ' + str(e))
+
+
+    #-----------------------------------------------------------------------------------------------
+    #
+    #   Reload linupdate systemd unit
+    #
+    #-----------------------------------------------------------------------------------------------
+    def reloadSystemUnit(self):
+        result = subprocess.run(
+            ['/usr/bin/systemctl', 'daemon-reload'],
+            stdout = subprocess.PIPE, # subprocess.PIPE & subprocess.PIPE are alias of 'capture_output = True'
+            stderr = subprocess.PIPE,
+            universal_newlines = True,  # Alias of 'text = True'
+        )
+
+        # Quit if an error occurred
+        if result.returncode != 0:
+            raise Exception('Error while reloading systemd unit: ' + result.stderr)

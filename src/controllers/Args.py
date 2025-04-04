@@ -12,6 +12,7 @@ from src.controllers.App.Config import Config
 from src.controllers.Module.Module import Module
 from src.controllers.Exit import Exit
 from src.controllers.ArgsException import ArgsException
+from src.controllers.App.Service import Service as AppService
 
 class Args:
 
@@ -106,12 +107,16 @@ class Args:
             parser.add_argument("--get-exclude", action="store", nargs='?', default="null")
             # Get excluded packages on major update
             parser.add_argument("--get-exclude-major", action="store", nargs='?', default="null")
+            # Get services to reload after package update
+            parser.add_argument("--get-service-reload", action="store", nargs='?', default="null")
             # Get services to restart after package update
             parser.add_argument("--get-service-restart", action="store", nargs='?', default="null")
             # Exclude
             parser.add_argument("--exclude", action="store", nargs='?', default="null")
             # Exclude on major update
             parser.add_argument("--exclude-major", action="store", nargs='?', default="null")
+            # Get services to reload after package update
+            parser.add_argument("--service-reload", action="store", nargs='?', default="null")
             # Services to restart after package update
             parser.add_argument("--service-restart", action="store", nargs='?', default="null")
 
@@ -121,6 +126,11 @@ class Args:
             parser.add_argument("--mod-enable", action="store", nargs='?', default="null")
             # Module disable
             parser.add_argument("--mod-disable", action="store", nargs='?', default="null")
+
+            # Service tuning
+            parser.add_argument("--cpu-priority", action="store", nargs='?', default="null")
+            parser.add_argument("--memory-limit", action="store", nargs='?', default="null")
+            parser.add_argument("--oom-score", action="store", nargs='?', default="null")
 
             # Parse arguments
             args, remaining_args = parser.parse_known_args()
@@ -468,6 +478,28 @@ class Args:
                     raise ArgsException('Could not get excluded packages on major update: ' + str(e))
 
             #
+            # If --get-service-reload param has been set
+            #
+            if args.get_service_reload != "null":
+                try:
+                    services = myAppConfig.get_service_to_reload()
+
+                    print(' Services to reload after package update: ' + Fore.GREEN)
+
+                    # If no service is set to reload
+                    if not services:
+                        print('  ▪ None')
+                    else:
+                        for service in services:
+                            print('  ▪ ' + service)
+
+                    print(Style.RESET_ALL, end='\n')
+
+                    myExit.clean_exit(0, False)
+                except Exception as e:
+                    raise ArgsException('Could not get services to reload: ' + str(e))
+
+            #
             # If --get-service-restart param has been set
             #
             if args.get_service_restart != "null":
@@ -542,6 +574,32 @@ class Args:
                     raise ArgsException('Could not exclude packages on major update: ' + str(e))
 
             #
+            # If --service-reload param has been set
+            #
+            if args.service_reload != "null":
+                try:
+                    # Set services to reload after package update
+                    myAppConfig.set_service_to_reload(args.service_reload)
+
+                    # Print services to reload
+                    services = myAppConfig.get_service_to_reload()
+
+                    print(' Setting services to reload after package update: ' + Fore.GREEN)
+
+                    # If no service is set to reload
+                    if not services:
+                        print('  ▪ None')
+                    else:
+                        for service in services:
+                            print('  ▪ ' + service)
+
+                    print(Style.RESET_ALL)
+
+                    myExit.clean_exit(0, False)
+                except Exception as e:
+                    raise ArgsException('Could not set services to reload after package update: ' + str(e))
+
+            #
             # If --service-restart param has been set
             #
             if args.service_restart != "null":
@@ -603,6 +661,57 @@ class Args:
                         raise ArgsException('Could not disable module: ' + str(e))
                 else:
                     raise ArgsException('Module name is required')
+                
+            #
+            # If --cpu-priority param has been set
+            #
+            if args.cpu_priority != "null":
+                try:
+                    # If no CPU priority is set, get the current CPU priority
+                    if not args.cpu_priority:
+                        print(' Current CPU priority is ' + Fore.GREEN + AppService().get_cpu_priority() + Style.RESET_ALL, end='\n\n')
+                    else:
+                        # Set CPU priority
+                        AppService().set_cpu_priority(args.cpu_priority)
+                        print(' CPU priority set to ' + Fore.GREEN + str(args.cpu_priority) + Style.RESET_ALL, end='\n\n')
+
+                    myExit.clean_exit(0, False)
+                except Exception as e:
+                    raise ArgsException(str(e))
+                
+            #
+            # If --memory-limit param has been set
+            #
+            if args.memory_limit != "null":
+                try:
+                    # If no memory limit is set, get the current memory limit
+                    if not args.memory_limit:
+                        print(' Current memory limit is ' + Fore.GREEN + AppService().get_memory_limit() + Style.RESET_ALL, end='\n\n')
+                    else:
+                        # Set memory limit
+                        AppService().set_memory_limit(args.memory_limit)
+                        print(' Memory limit set to ' + Fore.GREEN + str(args.memory_limit) + Style.RESET_ALL, end='\n\n')
+
+                    myExit.clean_exit(0, False)
+                except Exception as e:
+                    raise ArgsException(str(e))
+            
+            #
+            # If --oom-score param has been set
+            #
+            if args.oom_score != "null":
+                try:
+                    # If no OOM score is set, get the current OOM score
+                    if not args.oom_score:
+                        print(' Current OOM score is ' + Fore.GREEN + AppService().get_oom_score() + Style.RESET_ALL, end='\n\n')
+                    else:
+                        # Set OOM score
+                        AppService().set_oom_score(args.oom_score)
+                        print(' OOM score set to ' + Fore.GREEN + str(args.oom_score) + Style.RESET_ALL, end='\n\n')
+
+                    myExit.clean_exit(0, False)
+                except Exception as e:
+                    raise ArgsException(str(e))
 
         # Catch exceptions
         # Either ArgsException or Exception, it will always raise an ArgsException to the main script, this to avoid sending an email when an argument error occurs
@@ -786,6 +895,12 @@ class Args:
                 },
                 {
                     'args': [
+                        '--get-service-reload'
+                    ],
+                    'description': 'Get the current list of services to reload after package update'
+                },
+                {
+                    'args': [
                         '--get-service-restart'
                     ],
                     'description': 'Get the current list of services to restart after package update'
@@ -803,6 +918,13 @@ class Args:
                     ],
                     'option': 'PACKAGE',
                     'description': 'Set packages to exclude from update (if package has a major version update) (separated by commas). Regex pattern ".*" can be used to match multiple packages. Example: --exclude-major php.*'
+                },
+                {
+                    'args': [
+                        '--service-reload'
+                    ],
+                    'option': 'SERVICE',
+                    'description': 'Set services to reload after package update (separated by commas)'
                 },
                 {
                     'args': [
@@ -833,7 +955,31 @@ class Args:
                     ],
                     'option': 'MODULE',
                     'description': 'Disable a module'
-                }
+                },
+                {
+                    'title': 'Service tuning'
+                },
+                {
+                    'args': [
+                        '--cpu-priority'
+                    ],
+                    'option': 'high, medium, low',
+                    'description': 'Set CPU priority profile for the linupdate service. Lower priority means less CPU usage but also more time to complete service operations - default is high'
+                },
+                {
+                    'args': [
+                        '--memory-limit'
+                    ],
+                    'option': 'bytes',
+                    'description': 'Set memory limit for the linupdate service in bytes - default is 1G'
+                },
+                {
+                    'args': [
+                        '--oom-score'
+                    ],
+                    'option': '-1000 to 1000',
+                    'description': 'Set OOM (Out Of Memory) score for the linupdate service - the higher the value, the more likely the service will be killed by the OOM killer - default is 500'
+                },
             ]
 
             # Add options to table
@@ -861,6 +1007,8 @@ class Args:
             print(tabulate(table, headers=["", "Name", "Description"], tablefmt="simple"), end='\n\n')
 
             print(' Usage: linupdate [OPTIONS]', end='\n\n')
+
+            del table, options, args_str
 
         # Catch exceptions
         # Either ArgsException or Exception, it will always raise an ArgsException to the main script, this to avoid sending an email when an argument error occurs

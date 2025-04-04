@@ -78,6 +78,8 @@ class Agent:
             self.log_file = '/var/log/apt/history.log'
         else:
             raise Exception('no log file found for yum/dnf or apt')
+        
+        del enabled_modules
 
 
     #-----------------------------------------------------------------------------------------------
@@ -136,6 +138,8 @@ class Agent:
 
         # Send the response
         self.websocket.send(json.dumps(json_data))
+
+        del json_data
 
 
     #-----------------------------------------------------------------------------------------------
@@ -227,10 +231,15 @@ class Agent:
                     # Delete the directory and all its content
                     if Path(self.request_dir + '/' + request_id).is_dir():
                         rmtree(self.request_dir + '/' + request_id)
+
+                    del status, summary, error, logcontent, request_id, json_response
                 except Exception as e:
-                    raise Exception('could not send remaining requests logs for request id #' + request_id + ': ' + str(e))
+                    raise Exception('could not send remaining requests logs for request id #' + request_id + ': ' + str(e))                    
+
         except Exception as e:
             print('[reposerver-agent] Error: ' + str(e))
+
+        del requests_dirs
 
 
     #-----------------------------------------------------------------------------------------------
@@ -301,6 +310,8 @@ class Agent:
 
                         # Send a response to authenticate to the reposerver, with id and token
                         self.websocket.send(json.dumps({'response-to-request': {'request': 'authenticate', 'auth-id': id, 'token': token}}))
+
+                        del id, token
 
                     # Case the request is 'request-general-infos', then send general informations to the reposerver
                     elif message['request'] == 'request-general-infos':
@@ -415,13 +426,16 @@ class Agent:
                         if status:
                             with open(log_status, 'w') as file:
                                 file.write(status)
+                            del file
                         if summary:
                             with open(log_summary, 'w') as file:
                                 # Convert summary to string to write it to the file
                                 json.dump(summary, file)
+                            del file
                         if error:
                             with open(log_error, 'w') as file:
                                 file.write(error)
+                            del file
 
                         # Then try to send the response
 
@@ -452,6 +466,8 @@ class Agent:
 
                             json_response['response-to-request']['log'] = logcontent
 
+                            del logcontent
+
                         # Try to send the response to the reposerver
                         # Note: impossible to use try/except here, because no exception is raised directly, 
                         # if there is an error then it is the on_error function that is called
@@ -476,16 +492,19 @@ class Agent:
                             for data in message['data']:
                                 if Path(self.request_dir + '/' + request_id + '/' + data).is_file():
                                     Path(self.request_dir + '/' + request_id + '/' + data).unlink()
+                            del data
 
             # If the message contains 'error'
             if 'error' in message:
                 print('[reposerver-agent] Received error message from reposerver: ' + message['error'])
 
+            del request_id, summary, status, error, dry_run, ignore_exclusions, keep_oldconf, full_upgrade, message, log, json_response
         # If all goes well or if an exception is raised, then delete the lock file
         finally:
             # Delete the lock file
             if Path(lock).is_file():
                 Path(lock).unlink()
+            del lock
 
 
     #-----------------------------------------------------------------------------------------------
@@ -505,8 +524,11 @@ class Agent:
     def websocket_on_close(self, ws, close_status_code, close_msg):
         print('[reposerver-agent] Reposerver websocket connection closed with status code: ' + str(close_status_code) + ' and message: ' + close_msg)
         self.authenticated = False
-        raise Exception('reposerver websocket connection closed')
 
+        del close_status_code, close_msg
+
+        raise Exception('reposerver websocket connection closed')
+    
 
     #-----------------------------------------------------------------------------------------------
     #

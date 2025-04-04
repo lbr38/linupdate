@@ -440,6 +440,8 @@ class Apt:
                 # Print a success message
                 print(Fore.GREEN + ' ✔ ' + Style.RESET_ALL + pkg['name'] + ' updated successfully.')
 
+        del log, packagesList, pkg, temp_apt_cache, cmd, popen, line, parts, buffer, log_content
+
 
     #-----------------------------------------------------------------------------------------------
     #
@@ -455,6 +457,8 @@ class Apt:
                 files.reverse()
         except Exception as e:
             raise Exception('could not get apt history log files: ' + str(e))
+
+        del order
 
         return files
 
@@ -623,6 +627,17 @@ class Apt:
 
                 limit_counter += 1
 
+                del installed_packages, upgraded_packages, removed_packages, purged_packages
+                del downgraded_packages, reinstalled_packages, installed_packages_json
+                del upgraded_packages_json, removed_packages_json, purged_packages_json
+                del downgraded_packages_json, reinstalled_packages_json, event
+                del date_start, time_start, date_end, time_end
+                del command
+
+            del history_file, result, start_dates
+
+        del history_files
+
         return events
 
 
@@ -682,6 +697,10 @@ class Apt:
                 'name': name,
                 'version': version
             })
+
+            del name, version, char, arch
+
+        del packages, action
 
         # Return the list of packages as JSON
         return packages_json

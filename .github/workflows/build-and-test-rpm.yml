@@ -71,7 +71,7 @@ jobs:
           cp ${GITHUB_WORKSPACE}/linupdate.py /opt/linupdate/linupdate.py
           cp ${GITHUB_WORKSPACE}/service.py /opt/linupdate/service.py
           cp ${GITHUB_WORKSPACE}/version /opt/linupdate/version
-          cp -r ${GITHUB_WORKSPACE}/service/linupdate.systemd.template /lib/systemd/system/linupdate.service
+          cp ${GITHUB_WORKSPACE}/templates/linupdate.systemd.template /lib/systemd/system/linupdate.service
 
       - name: Copy spec file
         run: |
@@ -201,6 +201,9 @@ jobs:
       - name: "Run test: get package exclusions on major update"
         run: python3 /opt/linupdate/linupdate.py --get-exclude-major
 
+      - name: "Run test: set services to reload after update"
+        run: python3 /opt/linupdate/linupdate.py --service-reload "nginx"
+
       - name: "Run test: set services to restart after update"
         run: python3 /opt/linupdate/linupdate.py --service-restart "httpd,mysql"
 
@@ -210,8 +213,11 @@ jobs:
       - name: "Run test: check updates"
         run: python3 /opt/linupdate/linupdate.py --check-updates
 
-      - name: "Run text: update specific packages"
+      - name: "Run test: update specific packages"
         run: python3 /opt/linupdate/linupdate.py --update curl,wget,httpd --assume-yes
+
+      - name: "Run test: update all packages"
+        run: python3 /opt/linupdate/linupdate.py --assume-yes
 
       - name: "Run test: list available modules"
         run: python3 /opt/linupdate/linupdate.py --mod-list
@@ -311,6 +317,9 @@ jobs:
       - name: "Run test: get package exclusions on major update"
         run: python3 /opt/linupdate/linupdate.py --get-exclude-major
 
+      - name: "Run test: set services to reload after update"
+        run: python3 /opt/linupdate/linupdate.py --service-reload "nginx"
+
       - name: "Run test: set services to restart after update"
         run: python3 /opt/linupdate/linupdate.py --service-restart "httpd,mysql"
 
@@ -320,8 +329,11 @@ jobs:
       - name: "Run test: check updates"
         run: python3 /opt/linupdate/linupdate.py --check-updates
 
-      - name: "Run text: update specific packages"
+      - name: "Run test: update specific packages"
         run: python3 /opt/linupdate/linupdate.py --update curl,wget,httpd --assume-yes
+
+      - name: "Run test: update all packages"
+        run: python3 /opt/linupdate/linupdate.py --assume-yes
 
       - name: "Run test: list available modules"
         run: python3 /opt/linupdate/linupdate.py --mod-list
