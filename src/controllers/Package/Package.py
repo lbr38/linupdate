@@ -235,6 +235,8 @@ class Package:
 
                 self.packagesToUpdateList = packages_list_temp
 
+                del packages_list_temp
+
             # Otherwise, retrieve the list of all available packages
             else:
                 # Retrieve available packages passing the dist_upgrade parameter
@@ -274,6 +276,8 @@ class Package:
                         installDecisionMessage = Fore.YELLOW + '✕ (ignored)' + Style.RESET_ALL
 
                 table.append(['', package['name'], package['current_version'], package['target_version'], installDecisionMessage])
+
+                del installDecisionMessage
 
             # Print the table list of packages to update
             # Check prettytable for table with width control https://pypi.org/project/prettytable/
@@ -338,6 +342,8 @@ class Package:
 
             # Update the summary status
             self.summary['update']['status'] = 'done'
+
+            del restart_file, update_running_file, configuration, packages_list, ignore_exclusions
 
         except Exception as e:
             print('\n' + Fore.RED + ' Packages update failed: ' + str(e) + Style.RESET_ALL)

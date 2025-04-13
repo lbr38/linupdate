@@ -12,6 +12,7 @@ from src.controllers.Yaml import Yaml
 class Config:
     def __init__(self):
         self.config_file = '/etc/linupdate/linupdate.yml'
+        self.update_file = '/etc/linupdate/update.yml'
 
     #-----------------------------------------------------------------------------------------------
     #
@@ -20,7 +21,7 @@ class Config:
     #-----------------------------------------------------------------------------------------------
     def get_conf(self):
         # Open main YAML config file:
-        with open('/etc/linupdate/linupdate.yml') as stream:
+        with open(self.config_file) as stream:
             try:
                 # Read YAML and return configuration
                 main = yaml.safe_load(stream)
@@ -29,7 +30,7 @@ class Config:
                 raise Exception(str(e))
 
         # Open update YAML config file:
-        with open('/etc/linupdate/update.yml') as stream:
+        with open(self.update_file) as stream:
             try:
                 # Read YAML and return configuration
                 update = yaml.safe_load(stream)
@@ -55,8 +56,8 @@ class Config:
                 raise Exception('configuration file ' + self.config_file + ' is missing')
 
             # Check if update config file exists
-            if not Path(self.config_file).is_file():
-                raise Exception('configuration file ' + self.config_file + ' is missing')
+            if not Path(self.update_file).is_file():
+                raise Exception('configuration file ' + self.update_file + ' is missing')
 
             # Retrieve configuration
             configuration = self.get_conf()
@@ -136,13 +137,22 @@ class Config:
             # Check if post_update.services section is set
             if 'services' not in configuration['post_update']:
                 raise Exception('post_update.services key is missing in ' + self.config_file)
+            
+            # If post_update.services.reload is not set, set it to empty list
+            if 'reload' not in configuration['post_update']['services']:
+                configuration['post_update']['services']['reload'] = []
 
-            # Check if post_update.services.restart is set in
+            # If post_update.services.restart is not set, set it to empty list
             if 'restart' not in configuration['post_update']['services']:
-                raise Exception('post_update.services.restart key is missing in ' + self.config_file)
+                configuration['post_update']['services']['restart'] = []
 
         except Exception as e:
             raise Exception('Fatal configuration file error: ' + str(e))
+        
+        #
+        # Re-write configuration to file to ensure all required parameters are present
+        #
+        self.write_conf(configuration)
 
 
     #-----------------------------------------------------------------------------------------------
@@ -152,25 +162,20 @@ class Config:
     #-----------------------------------------------------------------------------------------------
     def generate_conf(self):
         # If main config file does not exist, generate it
-        if not Path('/etc/linupdate/linupdate.yml').is_file():
+        if not Path(self.config_file).is_file():
             # Copy default configuration file
             try:
-                shutil.copy2('/opt/linupdate/templates/linupdate.template.yml', '/etc/linupdate/linupdate.yml')
+                shutil.copy2('/opt/linupdate/templates/linupdate.template.yml', self.config_file)
             except Exception as e:
-                raise Exception('Could not generate configuration file /etc/linupdate/linupdate.yml: ' + str(e))
+                raise Exception('Could not generate configuration file ' + self.config_file + ': ' + str(e))
 
         # If update config file does not exist, generate it
-        if not Path('/etc/linupdate/update.yml').is_file():
+        if not Path(self.update_file).is_file():
             # Copy default configuration file
             try:
-                shutil.copy2('/opt/linupdate/templates/update.template.yml', '/etc/linupdate/update.yml')
+                shutil.copy2('/opt/linupdate/templates/update.template.yml', self.update_file)
             except Exception as e:
-                raise Exception('Could not generate configuration file /etc/linupdate/update.yml: ' + str(e))
-        
-        # TODO: to remove in some time
-        # If old linupdate (bash version) config file exists, migrate it
-        if Path('/etc/linupdate/linupdate.conf').is_file():
-            self.migrate_conf()
+                raise Exception('Could not generate configuration file ' + self.update_file + ': ' + str(e))
 
 
     #-----------------------------------------------------------------------------------------------
@@ -205,15 +210,15 @@ class Config:
             # TODO: When OS based on RHEL8 will not be used anymore, use 'sort_keys=False' to keep the order of the keys when writing the file
             # e.g. yaml.dump(main_config, file, default_flow_style=False, sort_keys=False)
             # But for now use the custom Yaml class to keep the order of the keys, and dict(main_config) to convert it back to a dict, because python3-yaml on RHEL8 does not support sort_keys=False
-            yaml.write(main_config, '/etc/linupdate/linupdate.yml')
+            yaml.write(main_config, self.config_file)
         except Exception as e:
-            raise Exception('Could not write configuration file /etc/linupdate/linupdate.yml: ' + str(e))
+            raise Exception('Could not write configuration file ' + self.config_file + ': ' + str(e))
 
         # Write to update config file
         try:
-            yaml.write(update_config, '/etc/linupdate/update.yml')
+            yaml.write(update_config, self.update_file)
         except Exception as e:
-            raise Exception('Could not write configuration file /etc/linupdate/update.yml: ' + str(e))
+            raise Exception('Could not write configuration file ' + self.update_file + ': ' + str(e))
 
 
     #-----------------------------------------------------------------------------------------------
@@ -224,7 +229,7 @@ class Config:
     def show_config(self):
         try:
             # Open main YAML config file:
-            with open('/etc/linupdate/linupdate.yml') as stream:
+            with open(self.config_file) as stream:
                 try:
                     # Read YAML and return configuration
                     main = yaml.safe_load(stream)
@@ -233,7 +238,7 @@ class Config:
                     raise Exception(str(e))
 
             # Open update YAML config file:
-            with open('/etc/linupdate/update.yml') as stream:
+            with open(self.update_file) as stream:
                 try:
                     # Read YAML and return configuration
                     update = yaml.safe_load(stream)
@@ -559,6 +564,42 @@ class Config:
 
     #-----------------------------------------------------------------------------------------------
     #
+    #   Get services to reload
+    #
+    #-----------------------------------------------------------------------------------------------
+    def get_service_to_reload(self):
+        # Get current configuration
+        configuration = self.get_conf()
+
+        return configuration['post_update']['services']['reload']
+    
+
+    #-----------------------------------------------------------------------------------------------
+    #
+    #   Set services to reload
+    #
+    #-----------------------------------------------------------------------------------------------
+    def set_service_to_reload(self, services: str = None):
+        # Get current configuration
+        configuration = self.get_conf()
+
+        # If no service to reload, set empty list
+        if not services:
+            configuration['post_update']['services']['reload'] = []
+
+        else:
+            # For each service to reload, append it to the list if not already in
+            for item in services.split(","):
+                if item not in configuration['post_update']['services']['reload']:
+                    # Append service
+                    configuration['post_update']['services']['reload'].append(item)
+
+        # Write config file
+        self.write_conf(configuration)
+
+
+    #-----------------------------------------------------------------------------------------------
+    #
     #   Get services to restart
     #
     #-----------------------------------------------------------------------------------------------
@@ -624,63 +665,3 @@ class Config:
         # Write config file
         self.write_conf(configuration)
 
-
-    #-----------------------------------------------------------------------------------------------
-    #
-    #   Migration of old linupdate configuration file
-    #
-    #-----------------------------------------------------------------------------------------------
-    def migrate_conf(self):
-        # Old config file are like ini file
-
-        print(' Detected old configuration file /etc/linupdate/linupdate.conf, migrating...')
-
-        try:
-            # Open old config file
-            with open('/etc/linupdate/linupdate.conf', 'r') as file:
-                lines = file.readlines()
-
-                for line in lines:
-                    # If profile is set, set it in the new config file
-                    if 'PROFILE=' in line:
-                        profile = line.split('=')[1].replace('"', '').strip()
-                        self.set_profile(profile)
-
-                    # If environment is set, set it in the new config file
-                    if 'ENV=' in line:
-                        environment = line.split('=')[1].replace('"', '').strip()
-                        self.set_environment(environment)
-
-                    # If mail alert is enabled, set it in the new config file
-                    if 'MAIL_ENABLED=' in line:
-                        mail_alert = line.split('=')[1].replace('"', '').strip()
-                        if (mail_alert in ['true', 'True']):
-                            self.set_mail_enable(True)
-                        else:
-                            self.set_mail_enable(False)
-
-                    # If mail recipient is set, set it in the new config file
-                    if 'MAIL_RECIPIENT=' in line:
-                        mail_recipient = line.split('=')[1].replace('"', '').strip()
-                        self.set_mail_recipient(mail_recipient)
-                
-                    # If exclude major is set, set it in the new config file
-                    if 'EXCLUDE_MAJOR=' in line:
-                        major_exclusion = line.split('=')[1].replace('"', '').strip()
-                        self.set_major_exclusion(major_exclusion)
-
-                    # If exclude is set, set it in the new config file
-                    if 'EXCLUDE=' in line:
-                        exclusion = line.split('=')[1].replace('"', '').strip()
-                        self.set_exclusion(exclusion)
-
-                    # If services to restart are set, set them in the new config file
-                    if 'SERVICE_RESTART=' in line:
-                        services = line.split('=')[1].replace('"', '').strip()
-                        self.set_service_to_restart(services)
-
-                # Move old file
-                shutil.move('/etc/linupdate/linupdate.conf', '/etc/linupdate/linupdate.conf.migrated')
-        
-        except Exception as e:
-            raise Exception('Could not migrate configuration file /etc/linupdate/linupdate.conf: ' + str(e))

@@ -109,11 +109,15 @@ class Dnf:
                     'version': version
                 })
 
+                del package, name, version
+
             # Sort the list by package name
             list.sort(key=lambda x: x['name'])
 
         except Exception as e:
             raise Exception('could not get installed packages: ' + str(e))
+
+        del result
 
         return list
 
@@ -156,6 +160,10 @@ class Dnf:
                 'target_version': package[1],
                 'repository': package[2]
             })
+
+            del package, current_version
+
+        del result
 
         return list
 
@@ -203,6 +211,8 @@ class Dnf:
         # Quit if an error occurred
         if result.returncode != 0:
             raise Exception('Error while clearing dnf cache: ' + result.stderr)
+        
+        del result
     
 
     #-----------------------------------------------------------------------------------------------
@@ -233,8 +243,12 @@ class Dnf:
         if not dnf_config.has_option('main', 'exclude'):
             return []
         
+        exclude = dnf_config.get('main', 'exclude').split(' ')
+
+        del dnf_config
+
         # Else return the list of excluded packages
-        return dnf_config.get('main', 'exclude').split(' ')
+        return exclude
 
 
     #-----------------------------------------------------------------------------------------------
@@ -262,6 +276,8 @@ class Dnf:
         try:
             with open('/etc/dnf/dnf.conf', 'w') as configfile:
                 dnf_config.write(configfile)
+
+            del dnf_config
         except Exception as e:
             raise Exception('could not write to /etc/dnf/dnf.conf: ' + str(e))
 
@@ -288,6 +304,8 @@ class Dnf:
         try:
             with open('/etc/dnf/dnf.conf', 'w') as configfile:
                 dnf_config.write(configfile)
+
+            del dnf_config
         except Exception as e:
             raise Exception('could not write to /etc/dnf/dnf.conf: ' + str(e))
 
@@ -369,6 +387,7 @@ class Dnf:
                 for line in popen.stdout:
                     line = line.replace('\r', '')
                     print(' | ' + line, end='')
+                    del line
 
                 # Wait for the command to finish
                 popen.wait()
@@ -412,6 +431,9 @@ class Dnf:
                 # Print a success message
                 print(Fore.GREEN + ' ✔ ' + Style.RESET_ALL + pkg['name'] + ' updated successfully.')
 
+            del current_version, cmd, popen, log_content
+
+        del log
 
     #-----------------------------------------------------------------------------------------------
     #
@@ -451,6 +473,8 @@ class Dnf:
         # If order is oldest, then sort by date in ascending order
         if order == 'oldest':
             ids.reverse()
+
+        del result
 
         return ids
 
@@ -668,6 +692,8 @@ class Dnf:
                 # TODO
                 # if operation == 'obsoleting':
 
+                del package_and_version, package_name, package_version, repository, operation, package_version_and_repository
+
             # Create the event JSON object
             event = {
                 'date_start': date,
@@ -699,5 +725,12 @@ class Dnf:
             events.append(event)
 
             limit_counter += 1
+
+            del event, date_time, command, packages_altered, date_time_parsed, date, time
+            del installed_packages_json, installed_dependencies_json
+            del upgraded_packages_json, removed_packages_json
+            del downgraded_packages_json, reinstalled_packages_json
+
+        del limit_counter, ids
 
         return events

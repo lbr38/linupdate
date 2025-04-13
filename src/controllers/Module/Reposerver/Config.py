@@ -37,11 +37,6 @@ class Config:
             except Exception as e:
                 raise Exception('error while generating reposerver configuration file ' + self.config_file + ': ' + str(e))
 
-        # TODO: to remove in some time
-        # If old linupdate (bash version) config file exists, migrate it
-        if Path('/etc/linupdate/modules/reposerver.conf').is_file():
-            self.migrate_conf()
-
 
     #-----------------------------------------------------------------------------------------------
     #
@@ -469,6 +464,14 @@ class Config:
             # Then, set the new exclude major list
             self.appConfigController.set_major_exclusion(results[0]['Package_exclude_major'])
 
+        # Service to reload after an update
+        if results[0]['Service_reload'] != "null":
+            # First clear the services to reload
+            self.appConfigController.set_service_to_reload()
+            
+            # Then set the new services to reload
+            self.appConfigController.set_service_to_reload(results[0]['Service_reload'])
+
         # Service to restart after an update
         if results[0]['Service_restart'] != "null":
             # First clear the services to restart
@@ -628,50 +631,3 @@ class Config:
         except Exception as e:
             raise Exception('could not set agent listening enable to ' + str(value) + ': ' + str(e))
 
-
-    #-----------------------------------------------------------------------------------------------
-    #
-    #   Migration of old reposerver configuration file
-    #
-    #-----------------------------------------------------------------------------------------------
-    def migrate_conf(self):
-        # Old config file are like ini file
-    
-        print(' Detected old configuration file /etc/linupdate/modules/reposerver.conf, migrating...')
-
-        try:
-            # Open old config file
-            with open('/etc/linupdate/modules/reposerver.conf', 'r') as file:
-                lines = file.readlines()
-
-                for line in lines:
-                    # If url is set
-                    if 'URL' in line:
-                        url = line.split('=')[1].replace('"', '').strip()
-                        self.setUrl(url)
-   
-                    # If id is set
-                    if 'ID' in line:
-                        id = line.split('=')[1].replace('"', '').strip()
-                        self.setId(id)
-
-                    # If token is set
-                    if 'TOKEN' in line:
-                        token = line.split('=')[1].replace('"', '').strip()
-                        self.setToken(token)
-
-                    # If get_packages_conf_from_reposerver is set
-                    if 'GET_PROFILE_PKG_CONF_FROM_REPOSERVER' in line:
-                        get_packages_conf_from_reposerver = line.split('=')[1].replace('"', '').strip()
-                        self.set_get_packages_conf_from_reposerver(True if get_packages_conf_from_reposerver == 'true' else False)
-                    
-                    # If get_repos_from_reposerver is set
-                    if 'GET_PROFILE_REPOS_FROM_REPOSERVER' in line:
-                        get_repos_from_reposerver = line.split('=')[1].replace('"', '').strip()
-                        self.set_get_repos_from_reposerver(True if get_repos_from_reposerver == 'true' else False)
-
-                # Move old file
-                Path('/etc/linupdate/modules/reposerver.conf').rename('/etc/linupdate/modules/reposerver.conf.migrated')
-
-        except Exception as e:
-            raise Exception('error while migrating old reposerver configuration file: ' + str(e))

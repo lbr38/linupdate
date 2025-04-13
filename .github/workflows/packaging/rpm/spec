@@ -25,6 +25,10 @@ Requires: python3-websocket-client
 %description
 Linupdate 3 (python version) - Packages updater and Repomanager client side agent
 
+#
+# Scriptlets doc: https://docs.fedoraproject.org/en-US/packaging-guidelines/Scriptlets/#_syntax
+#
+
 %prep
 # Save current configuration files if exists
 if [ -f "/etc/linupdate/linupdate.yml" ];then
@@ -89,7 +93,16 @@ chmod 750 /opt/linupdate
 if [ -f "/usr/bin/systemctl" ];then
     # Copy systemd unit file if not exists
     if [ ! -f "/lib/systemd/system/linupdate.service" ];then
-        cp /opt/linupdate/service/linupdate.systemd.template /lib/systemd/system/linupdate.service
+        cp /opt/linupdate/templates/linupdate.systemd.template /lib/systemd/system/linupdate.service
+    fi
+
+    # Replace systemd unit file if some options are missing
+    if  ! grep -q "^CPUQuota"       /lib/systemd/system/linupdate.service || \
+        ! grep -q "^CPUWeight"      /lib/systemd/system/linupdate.service || \
+        ! grep -q "^MemoryMax"      /lib/systemd/system/linupdate.service || \
+        ! grep -q "^OOMScoreAdjust" /lib/systemd/system/linupdate.service;
+    then
+        \cp /opt/linupdate/templates/linupdate.systemd.template /lib/systemd/system/linupdate.service
     fi
 
     chmod 550 "$SERVICE"
@@ -118,6 +131,6 @@ fi
 %files
 /opt/linupdate/
 /etc/linupdate/
-/lib/systemd/system/linupdate.service
+/lib/systemd/system/linupdate.service %config(noreplace)
 
 %changelog

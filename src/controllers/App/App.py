@@ -101,7 +101,6 @@ class App:
             Path('/etc/linupdate').mkdir(parents=True, exist_ok=True)
             Path('/etc/linupdate/modules').mkdir(parents=True, exist_ok=True)
             Path('/opt/linupdate').mkdir(parents=True, exist_ok=True)
-            Path('/opt/linupdate/service').mkdir(parents=True, exist_ok=True)
             Path('/var/log/linupdate').mkdir(parents=True, exist_ok=True)
         except Exception as e:
             raise Exception('Could not create base directories: ' + str(e))
@@ -110,7 +109,6 @@ class App:
         try:
             Path('/opt/linupdate').chmod(0o750)
             Path('/opt/linupdate/src').chmod(0o750)
-            Path('/opt/linupdate/service').chmod(0o750)
             Path('/etc/linupdate').chmod(0o750)
             Path('/etc/linupdate/modules').chmod(0o750)
             Path('/var/log/linupdate').chmod(0o750)

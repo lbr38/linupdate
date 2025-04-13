@@ -1,0 +1,19 @@
+[Unit]
+Description=Linupdate main service
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/opt/linupdate/service.py
+# Limit CPU usage (% of CPU time) (default 100%)
+# Example: CPUQuota=20% ensures that the executed processes will never get more than 20% CPU time on one CPU
+CPUQuota=100%
+# CPU weight (default 100)
+CPUWeight=100
+# Limit memory usage
+MemoryMax=1G
+# OOM score
+OOMScoreAdjust=500
+
+[Install]
+WantedBy=multi-user.target

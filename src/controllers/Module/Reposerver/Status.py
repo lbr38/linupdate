@@ -61,6 +61,8 @@ class Status:
             self.httpRequestController.put(url + '/api/v2/host/status', id, token, data, 5, 10)
         except Exception as e:
             raise Exception('error while sending general status to reposerver: ' + str(e))
+        
+        del url, id, token, data
 
 
     #-----------------------------------------------------------------------------------------------
@@ -136,6 +138,8 @@ class Status:
         self.httpRequestController.quiet = False
         self.httpRequestController.put(url + '/api/v2/host/packages/available', id, token, data, 5, 10)
 
+        del url, id, token, available_packages, packages, data
+
 
     #-----------------------------------------------------------------------------------------------
     #
@@ -185,6 +189,8 @@ class Status:
 
         self.httpRequestController.quiet = False
         self.httpRequestController.put(url + '/api/v2/host/packages/installed', id, token, data, 5, 10)
+
+        del url, id, token, installed_packages, packages, data
 
 
     #-----------------------------------------------------------------------------------------------
@@ -236,3 +242,5 @@ class Status:
 
         self.httpRequestController.quiet = False
         self.httpRequestController.put(url + '/api/v2/host/packages/event', id, token, events, 5, 10)
+
+        del url, id, token, history_order, history_entries, events
