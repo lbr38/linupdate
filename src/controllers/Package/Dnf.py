@@ -5,10 +5,10 @@ import os
 import subprocess
 import time
 import re
-from colorama import Fore, Style
-from dateutil import parser as dateutil_parser
-from pathlib import Path
 import configparser
+from pathlib import Path
+from dateutil import parser as dateutil_parser
+from colorama import Fore, Style
 
 # Import classes
 from src.controllers.Log import Log
@@ -40,6 +40,36 @@ class Dnf:
             raise Exception('could not retrieve current version of package ' + package + ': ' + result.stderr)
 
         return result.stdout.strip()
+
+
+    #-----------------------------------------------------------------------------------------------
+    #
+    #   Return the source repository of a package and its version
+    #
+    #-----------------------------------------------------------------------------------------------
+    def get_source_repository(self, package, version):
+        repository = 'Unknown'
+
+        try:
+            result = subprocess.run(
+                [self.dnf_command + ' repoquery --upgrades --latest-limit 1 -q -a --qf="%{repoid}" ' + package + '-' + version],
+                stdout = subprocess.PIPE, # subprocess.PIPE & subprocess.PIPE are alias of 'capture_output = True'
+                stderr = subprocess.PIPE,
+                universal_newlines = True, # Alias of 'text = True'
+                shell = True
+            )
+
+            # Quit if an error occurred
+            if result.returncode != 0:
+                raise Exception('error while parsing dnf repoquery output: ' + result.stderr)
+
+            # If the package is not found, return 'Unknown'
+            if result.stdout:
+                repository = result.stdout.strip()
+        except Exception as e:
+            raise Exception('could not get source repository for package ' + package + ' version ' + version + ': ' + str(e))
+
+        return repository
 
 
     #-----------------------------------------------------------------------------------------------
@@ -187,7 +217,7 @@ class Dnf:
         # If return code is not 0, package is not installed
         if result.returncode != 0:
             return False
-        
+
         return True
 
 
@@ -211,9 +241,9 @@ class Dnf:
         # Quit if an error occurred
         if result.returncode != 0:
             raise Exception('Error while clearing dnf cache: ' + result.stderr)
-        
+
         del result
-    
+
 
     #-----------------------------------------------------------------------------------------------
     #
@@ -223,7 +253,7 @@ class Dnf:
     def update_cache(self):
         # Useless because dnf update command already updates the cache
         return
-    
+
 
     #-----------------------------------------------------------------------------------------------
     #
@@ -231,18 +261,18 @@ class Dnf:
     #
     #-----------------------------------------------------------------------------------------------
     def get_exclusion(self):
-        # Get dnf.conf file content        
+        # Get dnf.conf file content
         try:
             # Parse the content of dnf.conf, it's like a ini file
             dnf_config = configparser.ConfigParser()
             dnf_config.read('/etc/dnf/dnf.conf')
         except Exception as e:
             raise Exception('could not retrieve /etc/dnf/dnf.conf content: ' + str(e))
-                            
+
         # If exclude is not present in the file, return an empty list
         if not dnf_config.has_option('main', 'exclude'):
             return []
-        
+
         exclude = dnf_config.get('main', 'exclude').split(' ')
 
         del dnf_config
@@ -257,7 +287,7 @@ class Dnf:
     #
     #-----------------------------------------------------------------------------------------------
     def exclude(self, package):
-        # Get dnf.conf file content        
+        # Get dnf.conf file content
         try:
             # Parse the content of dnf.conf, it's like a ini file
             dnf_config = configparser.ConfigParser()
@@ -288,14 +318,14 @@ class Dnf:
     #
     #-----------------------------------------------------------------------------------------------
     def remove_all_exclusions(self):
-        # Get dnf.conf file content        
+        # Get dnf.conf file content
         try:
             # Parse the content of dnf.conf, it's like a ini file
             dnf_config = configparser.ConfigParser()
             dnf_config.read('/etc/dnf/dnf.conf')
         except Exception as e:
             raise Exception('could not retrieve /etc/dnf/dnf.conf content: ' + str(e))
-        
+
         # Remove the exclude option from the file
         if dnf_config.has_option('main', 'exclude'):
             dnf_config.remove_option('main', 'exclude')
@@ -529,7 +559,7 @@ class Dnf:
             # Remove '**' is present in the event string
             # ** means that the transaction did not complete successfully
             event = event.replace('**', '')
-            
+
             # Skip if cannot retrieve event date and time
             if not re.search(r'^Begin time(.+)', event, re.MULTILINE):
                 raise Exception('error parsing dnf event id #' + id + ': could not retrieve event date and time')
@@ -647,7 +677,7 @@ class Dnf:
 
                 if package_version == '':
                     raise Exception('error parsing dnf event id #' + id + ': cannot retrieve package version for line:\n' + line)
-                
+
                 # Add package to the corresponding list
                 if operation == 'install':
                     installed_packages_json.append({

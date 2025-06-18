@@ -41,5 +41,5 @@ class Trigger:
     def exists(self, name):
         if Path(self.trigger_path + '.' + name).is_file():
             return True
-        
+
         return False

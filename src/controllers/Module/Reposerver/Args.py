@@ -1,9 +1,9 @@
 # coding: utf-8
 
 # Import libraries
+import argparse
 from colorama import Fore, Style
 from tabulate import tabulate
-import argparse
 
 # Import classes
 from src.controllers.Exit import Exit
@@ -35,13 +35,15 @@ class Args:
             parser.add_argument("--api-key", action="store", nargs='?', default="null")
             # IP
             parser.add_argument("--ip", action="store", nargs='?', default="null")
-        
+
             # Enable or disable packages configuration update
             parser.add_argument("--get-packages-conf-from-reposerver", action="store", nargs='?', default="null")
             # Enable or disable repos update
             parser.add_argument("--get-repos-from-reposerver", action="store", nargs='?', default="null")
             # Enable or disable the removing of existing repos
             parser.add_argument("--remove-existing-repos", action="store", nargs='?', default="null")
+            # Source repo format
+            parser.add_argument("--source-repo-format", action="store", nargs='?', default="null")
 
             # Agent enable
             parser.add_argument("--agent-enable", action="store", nargs='?', default="null")
@@ -57,7 +59,7 @@ class Args:
             parser.add_argument("--get-profile-packages-conf", action="store_true", default="null")
             # Retrieve profile repositories from reposerver
             parser.add_argument("--get-profile-repos", action="store_true", default="null")
-            
+
             # Send general info
             parser.add_argument("--send-general-info", action="store_true", default="null")
             # Send packages status
@@ -77,7 +79,7 @@ class Args:
             if remaining_args:
                 self.help()
                 raise ArgsException('Unknown argument(s): ' + str(remaining_args))
-            
+
         # Catch exceptions
         # Either ArgsException or Exception, it will always raise an ArgsException to the main script, this to avoid sending an email when an argument error occurs
         except ArgsException as e:
@@ -125,7 +127,7 @@ class Args:
 
                 self.exitController.clean_exit(0, False)
 
-            # 
+            #
             # If --agent-listen-enable param has been set
             #
             if args.agent_listen_enable != "null":
@@ -145,7 +147,7 @@ class Args:
                 else:
                     self.configController.set_get_packages_conf_from_reposerver(False)
                 self.exitController.clean_exit(0, False)
-        
+
             #
             # If --get-repos-from-reposerver param has been set
             #
@@ -164,6 +166,19 @@ class Args:
                     self.configController.set_remove_existing_repos(True)
                 else:
                     self.configController.set_remove_existing_repos(False)
+                self.exitController.clean_exit(0, False)
+
+            #
+            # If --source-repo-format param has been set
+            #
+            if args.source_repo_format != "null":
+                if not args.source_repo_format:
+                    print(' Current source repository format: ' + Fore.GREEN + self.configController.get_source_repo_format() + Style.RESET_ALL, end='\n\n')
+                else:
+                    # Set the source repo format
+                    self.configController.set_source_repo_format(args.source_repo_format)
+                    print(' Source repository format set to ' + Fore.GREEN + args.source_repo_format + Style.RESET_ALL, end='\n\n')
+
                 self.exitController.clean_exit(0, False)
 
             #
@@ -225,7 +240,7 @@ class Args:
                 status.send_general_info()
                 status.send_packages_info()
                 self.exitController.clean_exit(0, False)
-    
+
         # Catch exceptions
         # Either ArgsException or Exception, it will always raise an ArgsException to the main script, this to avoid sending an email when an argument error occurs
         except ArgsException as e:
@@ -308,6 +323,13 @@ class Args:
                     ],
                     'option': 'true|false',
                     'description': 'If enabled, existing repositories will be removed before adding the new ones',
+                },
+                {
+                    'args': [
+                        '--source-repo-format'
+                    ],
+                    'option': 'standard, deb822',
+                    'description': 'Specify the source repository format to use under /etc/apt/sources.list.d/ (for Debian based OS only) (default: standard)',
                 },
                 {
                     'title': 'Retrieving data from reposerver'

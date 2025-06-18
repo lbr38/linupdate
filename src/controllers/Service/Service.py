@@ -3,8 +3,8 @@
 # Import libraries
 import subprocess
 import re
-from colorama import Fore, Style
 from pathlib import Path
+from colorama import Fore, Style
 
 # Import classes
 from src.controllers.App.Config import Config

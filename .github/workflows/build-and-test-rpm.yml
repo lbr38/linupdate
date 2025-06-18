@@ -214,7 +214,7 @@ jobs:
         run: python3 /opt/linupdate/linupdate.py --check-updates
 
       - name: "Run test: update specific packages"
-        run: python3 /opt/linupdate/linupdate.py --update curl,wget,httpd --assume-yes
+        run: python3 /opt/linupdate/linupdate.py --update curl,wget,httpd --assume-yes --debug
 
       - name: "Run test: update all packages"
         run: python3 /opt/linupdate/linupdate.py --assume-yes
@@ -330,7 +330,7 @@ jobs:
         run: python3 /opt/linupdate/linupdate.py --check-updates
 
       - name: "Run test: update specific packages"
-        run: python3 /opt/linupdate/linupdate.py --update curl,wget,httpd --assume-yes
+        run: python3 /opt/linupdate/linupdate.py --update curl,wget,httpd --assume-yes --debug
 
       - name: "Run test: update all packages"
         run: python3 /opt/linupdate/linupdate.py --assume-yes

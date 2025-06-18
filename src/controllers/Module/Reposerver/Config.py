@@ -1,12 +1,12 @@
 # coding: utf-8
 
 # Import libraries
-from pathlib import Path
-from colorama import Fore, Style
-import yaml
 import ipaddress
 import shutil
 import socket
+from pathlib import Path
+import yaml
+from colorama import Fore, Style
 
 # Import classes
 from src.controllers.System import System
@@ -50,13 +50,13 @@ class Config:
         # Check if url exists in configuration and is not empty
         if 'url' not in configuration['reposerver']:
             raise Exception('reposerver URL not found in ' + self.config_file)
-        
+
         if configuration['reposerver']['url'] == '':
             raise Exception('no reposerver URL set. Please set a URL with --url <url> option')
 
         # Return URL
         return configuration['reposerver']['url']
-        
+
 
     #-----------------------------------------------------------------------------------------------
     #
@@ -131,7 +131,7 @@ class Config:
         # Check if reposerver is set
         if 'reposerver' not in configuration:
             raise Exception('reposerver key not found in ' + self.config_file)
-        
+
         # Check if reposerver.url is set
         if 'url' not in configuration['reposerver']:
             raise Exception('reposerver.url key not found in ' + self.config_file)
@@ -139,7 +139,7 @@ class Config:
         # Check if client is set
         if 'client' not in configuration:
             raise Exception('client key not found in ' + self.config_file)
-        
+
         # Check if client.auth is set
         if 'auth' not in configuration['client']:
             raise Exception('client.auth key not found in ' + self.config_file)
@@ -147,19 +147,19 @@ class Config:
         # Check if client.auth.id is set
         if 'id' not in configuration['client']['auth']:
             raise Exception('client.auth.id key not found in ' + self.config_file)
-        
+
         # Check if client.auth.token is set
         if 'token' not in configuration['client']['auth']:
             raise Exception('client.auth.token key not found in ' + self.config_file)
-        
+
         # Check if client.get_packages_conf_from_reposerver is set
         if 'get_packages_conf_from_reposerver' not in configuration['client']:
             raise Exception('client.get_packages_conf_from_reposerver key not found in ' + self.config_file)
-        
+
         # Check if client.get_packages_conf_from_reposerver.enabled is set
         if 'enabled' not in configuration['client']['get_packages_conf_from_reposerver']:
             raise Exception('client.get_packages_conf_from_reposerver.enabled key not found in ' + self.config_file)
-        
+
         # Check if client.get_packages_conf_from_reposerver.enabled is set (True or False)
         if configuration['client']['get_packages_conf_from_reposerver']['enabled'] not in [True, False]:
             raise Exception('client.get_packages_conf_from_reposerver.enabled key must be set to true or false')
@@ -171,7 +171,7 @@ class Config:
         # Check if client.get_repos_from_reposerver.enabled is set
         if 'enabled' not in configuration['client']['get_repos_from_reposerver']:
             raise Exception('client.get_repos_from_reposerver.enabled key not found in ' + self.config_file)
-        
+
         # Check if client.get_repos_from_reposerver.enabled is set (True or False)
         if configuration['client']['get_repos_from_reposerver']['enabled'] not in [True, False]:
             raise Exception('client.get_repos_from_reposerver.enabled key must be set to true or false')
@@ -179,15 +179,23 @@ class Config:
         # Check if client.get_repos_from_reposerver.remove_existing_repos is set
         if 'remove_existing_repos' not in configuration['client']['get_repos_from_reposerver']:
             raise Exception('client.get_repos_from_reposerver.remove_existing_repos key not found in ' + self.config_file)
-        
+
         # Check if client.get_repos_from_reposerver.remove_existing_repos is set (True or False)
         if configuration['client']['get_repos_from_reposerver']['remove_existing_repos'] not in [True, False]:
             raise Exception('client.get_repos_from_reposerver.remove_existing_repos key must be set to true or false')
-        
+
+        # If client.get_repos_from_reposerver.format is not set, then set it to standard
+        if 'format' not in configuration['client']['get_repos_from_reposerver']:
+            configuration['client']['get_repos_from_reposerver']['format'] = 'standard'
+
+        # Check if client.get_repos_from_reposerver.format is set to standard or deb822
+        if configuration['client']['get_repos_from_reposerver']['format'] not in ['standard', 'deb822']:
+            raise Exception('client.get_repos_from_reposerver.format key must be set to standard or deb822')
+
         # Check if agent is set
         if 'agent' not in configuration:
             raise Exception('agent key not found in ' + self.config_file)
-        
+
         # Check if agent.enabled is set and is set (True or False)
         if 'enabled' not in configuration['agent']:
             raise Exception('agent.enabled key not found in ' + self.config_file)
@@ -195,19 +203,22 @@ class Config:
         # Check if agent.enabled is set and is set (True or False)
         if configuration['agent']['enabled'] not in [True, False]:
             raise Exception('agent.enabled key must be set to true or false')
-        
+
         # Check if agent.listen is set
         if 'listen' not in configuration['agent']:
             raise Exception('agent.listen key not found in ' + self.config_file)
-        
+
         # Check if agent.listen.enabled is set
         if 'enabled' not in configuration['agent']['listen']:
             raise Exception('agent.listen.enabled key not found in ' + self.config_file)
-        
+
         # Check if agent.listen.enabled is set (True or False)
         if configuration['agent']['listen']['enabled'] not in [True, False]:
             raise Exception('agent.listen.enabled key must be set to true or false')
-            
+
+        # Write configuration file if everything is ok
+        self.write_conf(configuration)
+
 
     #-----------------------------------------------------------------------------------------------
     #
@@ -249,7 +260,7 @@ class Config:
 
         try:
             results = self.httpRequestController.post_token(url + '/api/v2/host/registering', api_key, data)
-        except Exception as e:
+        except Exception:
             raise Exception('Registering failed')
 
         # If registration is successful, the server will return an Id and a token, set Id and token in configuration
@@ -279,14 +290,14 @@ class Config:
         # Check if Id and token are not null
         if id == '':
             raise Exception('no auth Id found in configuration')
-        
+
         if token == '':
             raise Exception('no auth token found in configuration')
-        
+
         try:
             # Unregister from server using Id and token (DELETE)
             self.httpRequestController.delete(url + '/api/v2/host/registering', id, token)
-        except Exception as e:
+        except Exception:
             raise Exception('Unregistering failed')
 
 
@@ -351,6 +362,39 @@ class Config:
             print(' Removing existing repositories is ' + Fore.GREEN + 'enabled' + Style.RESET_ALL, end='\n\n')
         else:
             print(' Removing existing repositories is ' + Fore.YELLOW + 'disabled' + Style.RESET_ALL, end='\n\n')
+
+
+    #-----------------------------------------------------------------------------------------------
+    #
+    #   Get current source repo format
+    #
+    #-----------------------------------------------------------------------------------------------
+    def get_source_repo_format(self):
+        # Get current configuration
+        configuration = self.get_conf()
+
+        # Return format
+        return configuration['client']['get_repos_from_reposerver']['format']
+
+
+    #-----------------------------------------------------------------------------------------------
+    #
+    #   Set source repo format
+    #
+    #-----------------------------------------------------------------------------------------------
+    def set_source_repo_format(self, format: str):
+        # Get current configuration
+        configuration = self.get_conf()
+
+        # Check if format is valid
+        if format not in ['standard', 'deb822']:
+            raise Exception('source repo format must be set to "standard" or "deb822"')
+
+        # Set format
+        configuration['client']['get_repos_from_reposerver']['format'] = format
+
+        # Write config file
+        self.write_conf(configuration)
 
 
     #-----------------------------------------------------------------------------------------------
@@ -438,7 +482,7 @@ class Config:
         # Check if profile is not empty
         if not profile:
             raise Exception('no profile set. Please set a profile with --profile <profile> option')
-        
+
         # Check if Id and token are not empty
         if not id or not token:
             raise Exception('no auth Id or token found in configuration')
@@ -468,7 +512,7 @@ class Config:
         if results[0]['Service_reload'] != "null":
             # First clear the services to reload
             self.appConfigController.set_service_to_reload()
-            
+
             # Then set the new services to reload
             self.appConfigController.set_service_to_reload(results[0]['Service_reload'])
 
@@ -476,7 +520,7 @@ class Config:
         if results[0]['Service_restart'] != "null":
             # First clear the services to restart
             self.appConfigController.set_service_to_restart()
-            
+
             # Then set the new services to restart
             self.appConfigController.set_service_to_restart(results[0]['Service_restart'])
 
@@ -511,11 +555,11 @@ class Config:
         # Check if profile is not empty
         if not profile:
             raise Exception('no profile set. Please set a profile with --profile <profile> option')
-        
+
         # Check if environment is not empty
         if not env:
             raise Exception('no environment set. Please set an environment with --env <environment> option')
-        
+
         # Check if Id and token are not empty
         if not id or not token:
             raise Exception('no auth Id or token found in configuration')
@@ -529,7 +573,7 @@ class Config:
         if not results:
             print(Fore.YELLOW + 'No repositories configured ' + Style.RESET_ALL)
             return
-        
+
         # Remove current repositories files if enabled
         if configuration['client']['get_repos_from_reposerver']['remove_existing_repos']:
             # Debian
@@ -537,9 +581,13 @@ class Config:
                 # Clear /etc/apt/sources.list
                 with open('/etc/apt/sources.list', 'w') as file:
                     file.write('')
-                
-                # Delete all files in /etc/apt/sources.list.d
+
+                # Delete all .list files in /etc/apt/sources.list.d/
                 for file in Path('/etc/apt/sources.list.d/').glob('*.list'):
+                    file.unlink()
+
+                # Delete all .sources files in /etc/apt/sources.list.d/
+                for file in Path('/etc/apt/sources.list.d/').glob('*.sources'):
                     file.unlink()
 
             # Redhat
@@ -554,14 +602,32 @@ class Config:
 
             # Debian
             if self.systemController.get_os_family() == 'Debian':
-                reposRoot = '/etc/apt/sources.list.d'
+                # Build source repo file depending on the format
+
+                # Standard format
+                if configuration['client']['get_repos_from_reposerver']['format'] == 'standard':
+                    repo_file = '/etc/apt/sources.list.d/' + result['filename_prefix'] + result['repo_name'] + '.list'
+                    content = 'deb ' + result['repo_url'] + ' ' + result['repo_distribution'] + ' ' + result['repo_component']
+
+                # Deb822 format
+                if configuration['client']['get_repos_from_reposerver']['format'] == 'deb822':
+                    repo_file = '/etc/apt/sources.list.d/' + result['filename_prefix'] + result['repo_name'] + '.sources'
+                    content = 'Types: deb\n'
+                    content += 'URIs: ' + result['repo_url'] + '\n'
+                    content += 'Suites: ' + result['repo_distribution'] + '\n'
+                    content += 'Components: ' + result['repo_component'] + '\n'
+                    content += 'Description: ' + result['description'] + '\n'
+                    content += 'Enabled: yes\n'
 
             # Redhat
             if self.systemController.get_os_family() == 'Redhat':
-                reposRoot = '/etc/yum.repos.d'
-
-            # Target repo file
-            repo_file = reposRoot + '/' + result['filename']
+                repo_file = '/etc/yum.repos.d/' + result['filename_prefix'] + result['repo_name'] + '.repo'
+                content =  '[' + result['filename_prefix'] + result['repo_name'] + '___ENV__]\n'
+                content += 'name=' + result['repo_name'] + ' repo on ' + result['reposerver'] + '\n'
+                content += 'baseurl=' + result['repo_url'] + '\n'
+                content += 'enabled=1\n'
+                content += 'gpgkey=' + result['gpgkey_url'] + '\n'
+                content += 'gpgcheck=1'
 
             # If the file does not exist, create it and insert description at the top of the file, then content
             if not Path(repo_file).is_file():
@@ -572,7 +638,7 @@ class Config:
             # Add content to the file, if not already in it
             with open(repo_file, 'r+') as file:
                 # Replace __ENV__ with current environment on the fly
-                content = result['content'].replace('__ENV__', env)
+                content = content.replace('__ENV__', env)
 
                 # If the content is not already in the file, add it
                 if content not in file.read():
@@ -580,6 +646,9 @@ class Config:
 
             # Set file permissions
             Path(repo_file).chmod(0o660)
+
+        # Update package cache
+        self.packageController.update_cache()
 
         print('[' + Fore.GREEN + ' OK ' + Style.RESET_ALL + ']')
 
@@ -630,4 +699,3 @@ class Config:
                 print(' Agent listening ' + Fore.YELLOW + 'disabled' + Style.RESET_ALL, end='\n\n')
         except Exception as e:
             raise Exception('could not set agent listening enable to ' + str(value) + ': ' + str(e))
-

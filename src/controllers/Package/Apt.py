@@ -1,7 +1,6 @@
 # coding: utf-8
 
 # Import libraries
-import apt
 import subprocess
 import glob
 import os
@@ -9,8 +8,9 @@ import re
 import sys
 import time
 import fcntl
-from colorama import Fore, Style
 from pathlib import Path
+import apt
+from colorama import Fore, Style
 
 # Import classes
 from src.controllers.Log import Log
@@ -52,6 +52,41 @@ class Apt:
 
     #-----------------------------------------------------------------------------------------------
     #
+    #   Return the source repository of a package and its version
+    #
+    #-----------------------------------------------------------------------------------------------
+    def get_source_repository(self, package, version):
+        repository = 'Unknown'
+
+        try:
+            result = subprocess.run(
+                # ['/usr/bin/apt-cache policy ' + package + ' | /usr/bin/grep "' + version + '" -A1 | /usr/bin/grep -E "http(s)?://"'],
+                ['/usr/bin/apt show ' + package + '=' + version + ' 2>/dev/null | /usr/bin/grep "APT-Sources"'],
+                stdout = subprocess.PIPE, # subprocess.PIPE & subprocess.PIPE are alias of 'capture_output = True'
+                stderr = subprocess.PIPE,
+                universal_newlines = True, # Alias of 'text = True'
+                shell = True
+            )
+
+            # If the command failed, it means that no result matching the package and version was found
+            # In this case, we return the repository as 'Unknown'
+            if result.returncode != 0:
+                # raise Exception('no result matching package and version')
+                return repository
+
+            # If the command succeeded, get the repository URL from the output
+            if result.stdout:
+                # The output is in the format " 500 http://archive.ubuntu.com/ubuntu focal-updates/main amd64 Packages"
+                # We want to extract the URL, which is the first part of the line
+                repository = result.stdout.split()[1].strip()
+        except Exception as e:
+            raise Exception('could not get source repository for package ' + package + ' version ' + version + ': ' + str(e))
+
+        return repository
+
+
+    #-----------------------------------------------------------------------------------------------
+    #
     #   Return the available version of a package
     #
     #-----------------------------------------------------------------------------------------------
@@ -83,8 +118,6 @@ class Apt:
         list = []
 
         # Clear, update cache and open it
-        # TODO to fix: cache is updated twice because of a weird bug I cannot fix. It seems that the cache is not updated correctly the first time and leads to an empty list of packages.
-        self.update_cache()
         self.update_cache()
 
         try:
@@ -96,10 +129,10 @@ class Apt:
                         'name': pkg.name,
                         'version': pkg.installed.version,
                     })
-            
+
             # Sort the list by package name
             list.sort(key=lambda x: x['name'])
-        
+
         except Exception as e:
             raise Exception('could not get installed packages: ' + str(e))
 
@@ -115,9 +148,6 @@ class Apt:
         list = []
 
         # Clear, update cache and open it
-        # TODO to fix: cache is updated twice because of a weird bug I cannot fix. It seems that the cache is not updated correctly the first time and leads to an empty list of packages.
-        # Might be because /etc/apt/sources.list is empty
-        self.update_cache()
         self.update_cache()
 
         # Simulate an upgrade to get the list of available packages
@@ -125,19 +155,25 @@ class Apt:
 
         # Loop through all packages marked for upgrade
         for pkg in self.aptcache.get_changes():
+            repository = 'Unknown'
+
+            # Get the repository URL
+            repository = self.get_source_repository(pkg.name, pkg.candidate.version)
+
             # If the package is upgradable, add it to the list of available packages
             if pkg.is_upgradable:
                 myPackage = {
                     'name': pkg.name,
                     'current_version': pkg.installed.version,
-                    'target_version': pkg.candidate.version
+                    'target_version': pkg.candidate.version,
+                    'repository': repository
                 }
 
                 list.append(myPackage)
-        
+
         # Sort the list by package name
         list.sort(key=lambda x: x['name'])
-        
+
         return list
 
 
@@ -234,8 +270,16 @@ class Apt:
             raise Exception('could not update apt cache: ' + str(e))
 
         try:
+            # Close cache
+            self.aptcache.close()
+        except Exception as e:
+            raise Exception('could not close apt cache: ' + str(e))
+
+        try:
             # Reopen cache
             self.wait_for_dpkg_lock()
+            # Recreate the cache instance after update
+            self.aptcache = apt.Cache()
             self.aptcache.open(None)
         except Exception as e:
             raise Exception('could not open apt cache: ' + str(e))
@@ -275,8 +319,8 @@ class Apt:
 
         if result.returncode != 0:
             raise Exception('could not exclude ' + package + ' package from update: ' + result.stderr)
-        
-    
+
+
     #-----------------------------------------------------------------------------------------------
     #
     #   Remove all package exclusions (unhold)
@@ -397,7 +441,7 @@ class Apt:
 
                 # Deal with the carriage return of the last line
                 sys.stdout.write('\r')
-            
+
                 # Wait for the command to finish
                 popen.wait()
 
@@ -550,7 +594,7 @@ class Apt:
                     continue
                 if not re.search(r'End-Date: (.+)', event):
                     continue
-                
+
                 date_start = re.search(r'^Start-Date: (.+)', event).group(1).split()[0].strip()
                 time_start = re.search(r'^Start-Date: (.+)', event).group(1).split()[1].strip()
                 date_end = re.search(r'End-Date: (.+)', event).group(1).split()[0].strip()
@@ -575,7 +619,7 @@ class Apt:
                     downgraded_packages = re.search(r'Downgrade: (.+)', event).group(1).strip()
                 if re.search(r'Reinstall: (.+)', event):
                     reinstalled_packages = re.search(r'Reinstall: (.+)', event).group(1).strip()
-   
+
                 # Parse packages lists and convert them to JSON
                 if installed_packages != '':
                     installed_packages_json = self.parse_packages_line_to_json(installed_packages, 'install')
@@ -650,12 +694,12 @@ class Apt:
         packages_json = []
 
         # If there is more than one package on the same line
-        # e.g. 
+        # e.g.
         # libc6-i386:amd64 (2.35-0ubuntu3.7, 2.35-0ubuntu3.8), libc6:amd64 (2.35-0ubuntu3.7, 2.35-0ubuntu3.8), libc6:i386 (2.35-0ubuntu3.7, 2.35-0ubuntu3.8), libc-dev-bin:amd64 (2.35-0ubuntu3.7, 2.35-0ubuntu3.8), libc6-dbg:amd64 (2.35-0ubuntu3.7, 2.35-0ubuntu3.8), libc6-dev:amd64 (2.35-0ubuntu3.7, 2.35-0ubuntu3.8)
         if re.search(r"\),", packages):
             # Split all the packages from the same line into a list
             packages = re.sub(r"\),", "\n", packages).split('\n')
-        
+
         # Else if there is only one package on the same line, just split the line into a list
         else:
             packages = packages.split('\n')
@@ -683,7 +727,7 @@ class Apt:
             for arch in [':amd64', ':i386', ':all', ':arm64', ':armhf', ':armel', ':ppc64el', ':s390x', ':mips', ':mips64el', ':mipsel', ':powerpc', ':powerpcspe', ':riscv64', ':s390', ':sparc', ':sparc64']:
                 if arch in name:
                     name = name.replace(arch, '')
-        
+
             # If package name is empty (should not happen), ignore it
             if name == '':
                 continue

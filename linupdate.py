@@ -4,10 +4,10 @@
 # Import libraries
 import socket
 import signal
+import traceback
 from pathlib import Path
 from datetime import datetime
 from colorama import Fore, Style
-import traceback
 
 # Import classes
 from src.controllers.Log import Log
@@ -134,7 +134,7 @@ def main():
         print('\n' + Fore.RED + ' ✕ ' + Style.RESET_ALL + str(e) + '\n')
         # If debug mode is enabled, print the stack trace
         if Args.debug:
-            print('Stack trace:' + '\n' + traceback.format_exc())        
+            print('Stack trace:' + '\n' + traceback.format_exc())
 
     # If an exception is raised, print the error message and send an email
     except Exception as e:
@@ -143,8 +143,8 @@ def main():
         print('\n' + Fore.RED + ' ✕ ' + Style.RESET_ALL + str(e) + '\n')
         # If debug mode is enabled, print the stack trace
         if Args.debug:
-            print('Stack trace:' + '\n' + traceback.format_exc())  
-    
+            print('Stack trace:' + '\n' + traceback.format_exc())
+
     # If the user presses Ctrl+C or the script is killed, do not send an email and exit with code 2
     except KeyboardInterrupt as e:
         send_mail = False

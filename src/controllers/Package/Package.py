@@ -4,9 +4,9 @@
 
 # Import libraries
 import re
+from pathlib import Path
 from tabulate import tabulate
 from colorama import Fore, Style
-from pathlib import Path
 
 # Import classes
 from src.controllers.System import System
@@ -76,7 +76,7 @@ class Package:
                         regex = '(?:% s)' % '|'.join(excludeAlways)
 
                         # Check if the package name matches the regex pattern
-                        if re.match(regex, package['name']): 
+                        if re.match(regex, package['name']):
                             self.myPackageManagerController.exclude(package['name'])
                             install = False
                             install_decision_message = '✕ (excluded)'
@@ -112,7 +112,7 @@ class Package:
         try:
             # Get a list of installed packages
             return self.myPackageManagerController.get_installed_packages()
-        
+
         except Exception as e:
             raise Exception('error while getting installed packages: ' + str(e))
 
@@ -185,7 +185,7 @@ class Package:
 
             # Remove all exclusions before starting (could be some left from a previous run that failed)
             self.remove_all_exclusions()
-    
+
             # If a list of packages to update has been provided, use it
             if len(packages_list) > 0:
                 packages_list_temp = []
@@ -196,6 +196,7 @@ class Package:
                     # Default values
                     current_version = ''
                     target_version = ''
+                    repository = ''
                     install = True
                     install_decision_message = ''
 
@@ -206,6 +207,7 @@ class Package:
                     if not is_installed:
                         current_version = '-'
                         target_version = '-'
+                        repository = '-'
                         install = False
                         install_decision_message = '✕ Package is not installed'
 
@@ -224,11 +226,16 @@ class Package:
                         if current_version == target_version:
                             continue
 
+                        # Retrieve the source repository
+                        if 'repository' not in package:
+                            repository = self.myPackageManagerController.get_source_repository(package['name'], target_version)
+
                     # Add the package to the list
                     packages_list_temp.append({
                         'name': package['name'],
                         'current_version': current_version,
                         'target_version': target_version,
+                        'repository': repository,
                         'install': install,
                         'install_decision_message': install_decision_message
                     })
@@ -275,13 +282,13 @@ class Package:
                     else:
                         installDecisionMessage = Fore.YELLOW + '✕ (ignored)' + Style.RESET_ALL
 
-                table.append(['', package['name'], package['current_version'], package['target_version'], installDecisionMessage])
+                table.append(['', package['name'], package['current_version'], package['target_version'], package['repository'], installDecisionMessage])
 
                 del installDecisionMessage
 
             # Print the table list of packages to update
             # Check prettytable for table with width control https://pypi.org/project/prettytable/
-            print(tabulate(table, headers=["", "Package", "Current version", "Target version", "Install decision"], tablefmt="simple"), end='\n\n')
+            print(tabulate(table, headers=["", "Package", "Current version", "Target version", "Repository", "Install decision"], tablefmt="simple"), end='\n\n')
 
             # If there are no packages to update
             if self.packagesToUpdateCount == 0:
