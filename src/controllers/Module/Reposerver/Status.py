@@ -1,8 +1,8 @@
 # coding: utf-8
 
 # Import libraries
-from colorama import Fore, Style
 import socket
+from colorama import Fore, Style
 
 # Import classes
 from src.controllers.System import System
@@ -61,7 +61,7 @@ class Status:
             self.httpRequestController.put(url + '/api/v2/host/status', id, token, data, 5, 10)
         except Exception as e:
             raise Exception('error while sending general status to reposerver: ' + str(e))
-        
+
         del url, id, token, data
 
 
@@ -76,7 +76,7 @@ class Status:
             self.send_packages_history()
             self.sendAvailablePackagesStatus()
             self.sendInstalledPackagesStatus()
-        except Exception as e:           
+        except Exception as e:
             raise Exception('error while sending packages status to reposerver: ' + str(e))
 
 
@@ -183,7 +183,7 @@ class Status:
         except Exception as e:
             # Raise an exception to set status to 'error'
             raise Exception('error while retrieving installed packages: ' + str(e))
-        
+
         # Send installed packages to Reposerver
         print('  ▪ Sending installed packages to ' + Fore.YELLOW + url + Style.RESET_ALL + ':')
 
@@ -210,7 +210,7 @@ class Status:
         print('\n  ▪ Building packages history...')
 
         # If limit is set (not the default 999999), history parsing will start from the newest to the oldest
-        if entries_limit != 999999:        
+        if entries_limit != 999999:
             history_order = 'newest'
 
         try:

@@ -1,0 +1,24 @@
+name: pylint
+
+on:
+  push:
+    branches: [ devel ]
+  pull_request:
+    push:
+      branches: [ main ]
+jobs:
+  pylint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install pylint
+        run: pip install pylint
+
+      - name: Print pylint version
+        run: pylint --version
+
+      # For now, exit with 0 to avoid failing the workflow
+      - name: Detect coding standard violations
+        run: pylint --recursive=y $GITHUB_WORKSPACE --disable=line-too-long,missing-function-docstring,missing-module-docstring,missing-class-docstring | exit 0

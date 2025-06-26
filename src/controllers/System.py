@@ -2,9 +2,9 @@
 
 # Import libraries
 import os
+import subprocess
 import platform
 import distro
-import subprocess
 
 class System:
     #-----------------------------------------------------------------------------------------------

@@ -8,8 +8,8 @@ import importlib
 import subprocess
 import time
 import configparser
-from colorama import Fore, Style
 from pathlib import Path
+from colorama import Fore, Style
 
 # Import classes
 from src.controllers.Module.Module import Module
@@ -260,7 +260,7 @@ class Service:
             # Quit if CPUWeight is not found
             if 'CPUWeight' not in config['Service']:
                 raise Exception('CPUWeight not found in systemd unit file')
-            
+
             if config['Service']['CPUWeight'] == '50':
                 return 'low'
             if config['Service']['CPUWeight'] == '75':
@@ -292,7 +292,7 @@ class Service:
             # Quit if CPUWeight is not found
             if 'CPUWeight' not in config['Service']:
                 raise Exception('CPUWeight not found in systemd unit file')
-            
+
             # Set CPU priority
             if priority == 'low':
                 # Set CPUQuota to 50%
@@ -410,7 +410,7 @@ class Service:
             # Quit if OOMScoreAdjust is not found
             if 'OOMScoreAdjust' not in config['Service']:
                 raise Exception('OOMScoreAdjust not found in systemd unit file')
-            
+
             # Set OOMScoreAdjust
             config['Service']['OOMScoreAdjust'] = str(score)
 

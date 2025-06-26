@@ -137,7 +137,7 @@ class Config:
             # Check if post_update.services section is set
             if 'services' not in configuration['post_update']:
                 raise Exception('post_update.services key is missing in ' + self.config_file)
-            
+
             # If post_update.services.reload is not set, set it to empty list
             if 'reload' not in configuration['post_update']['services']:
                 configuration['post_update']['services']['reload'] = []
@@ -148,7 +148,7 @@ class Config:
 
         except Exception as e:
             raise Exception('Fatal configuration file error: ' + str(e))
-        
+
         #
         # Re-write configuration to file to ensure all required parameters are present
         #
@@ -252,7 +252,7 @@ class Config:
                 print(yaml.dump(main, default_flow_style=False, sort_keys=False))
             except TypeError:
                 print(yaml.dump(main, default_flow_style=False))
-        
+
             print(Style.BRIGHT + 'Update configuration: ' + Style.RESET_ALL, end='\n\n')
 
             try:
@@ -281,7 +281,7 @@ class Config:
 
                         except FileNotFoundError:
                             print('No configuration file found for module ' + module)
-        
+
         except Exception as e:
             raise Exception('Could not show configuration: ' + str(e))
 
@@ -572,7 +572,7 @@ class Config:
         configuration = self.get_conf()
 
         return configuration['post_update']['services']['reload']
-    
+
 
     #-----------------------------------------------------------------------------------------------
     #
@@ -664,4 +664,3 @@ class Config:
 
         # Write config file
         self.write_conf(configuration)
-

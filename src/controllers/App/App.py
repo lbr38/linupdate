@@ -21,7 +21,7 @@ class App:
             file = open('/opt/linupdate/version', 'r')
             version = file.read()
             file.close()
-        except Exception as e:
+        except Exception:
             version = 'unknown'
 
         return version
@@ -82,7 +82,7 @@ class App:
             if Path(lock).is_file():
                 try:
                     Path(lock).unlink()
-                except Exception as e:
+                except Exception:
                     failed_locks.append(lock)
 
         # If there are failed locks, raise an exception
@@ -162,5 +162,5 @@ class App:
         print(' Profile:             ' + Fore.YELLOW + myAppConfig.get_profile() + Style.RESET_ALL)
         print(' Environment:         ' + Fore.YELLOW + myAppConfig.get_environment() + Style.RESET_ALL)
         print(' Execution date:      ' + Fore.YELLOW + datetime.now().strftime('%d-%m-%Y %H:%M:%S') + Style.RESET_ALL)
-        print(' Executed by user:    ' + Fore.YELLOW + getpass.getuser() + Style.RESET_ALL + '\n')
-        print(' Execution method:    ' + Fore.YELLOW + exec_method + Style.RESET_ALL)
+        print(' Executed by user:    ' + Fore.YELLOW + getpass.getuser() + Style.RESET_ALL)
+        print(' Execution method:    ' + Fore.YELLOW + exec_method + Style.RESET_ALL + '\n')

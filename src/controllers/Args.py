@@ -1,10 +1,10 @@
 # coding: utf-8
 
 # Import libraries
-from tabulate import tabulate
-from colorama import Fore, Style
 import sys
 import argparse
+from tabulate import tabulate
+from colorama import Fore, Style
 
 # Import classes
 from src.controllers.App.App import App
@@ -325,7 +325,7 @@ class Args:
                     myExit.clean_exit(0, False)
                 except Exception as e:
                     raise ArgsException('Could not set mail recipient(s): ' + str(e))
-                
+
             #
             # If --get-mail-smtp-host param has been set
             #
@@ -335,7 +335,7 @@ class Args:
                     myExit.clean_exit(0, False)
                 except Exception as e:
                     raise ArgsException('Could not get mail SMTP host: ' + str(e))
-            
+
             #
             # If --set-mail-smtp-host param has been set
             #
@@ -346,7 +346,7 @@ class Args:
                     myExit.clean_exit(0, False)
                 except Exception as e:
                     raise ArgsException('Could not set mail SMTP host: ' + str(e))
-                
+
             #
             # If --get-mail-smtp-port param has been set
             #
@@ -356,7 +356,7 @@ class Args:
                     myExit.clean_exit(0, False)
                 except Exception as e:
                     raise ArgsException('Could not get mail SMTP port: ' + str(e))
-                
+
             #
             # If --set-mail-smtp-port param has been set
             #
@@ -380,7 +380,7 @@ class Args:
                         Args.packages_to_update.append({'name': package.strip()})
                 except Exception as e:
                     raise ArgsException('Could not parse update list: ' + str(e))
-                
+
             #
             # If --dry-run param has been set
             #
@@ -661,7 +661,7 @@ class Args:
                         raise ArgsException('Could not disable module: ' + str(e))
                 else:
                     raise ArgsException('Module name is required')
-                
+
             #
             # If --cpu-priority param has been set
             #
@@ -678,7 +678,7 @@ class Args:
                     myExit.clean_exit(0, False)
                 except Exception as e:
                     raise ArgsException(str(e))
-                
+
             #
             # If --memory-limit param has been set
             #
@@ -695,7 +695,7 @@ class Args:
                     myExit.clean_exit(0, False)
                 except Exception as e:
                     raise ArgsException(str(e))
-            
+
             #
             # If --oom-score param has been set
             #

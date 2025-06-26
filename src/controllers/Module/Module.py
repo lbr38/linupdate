@@ -39,8 +39,8 @@ class Module:
             # Ignore cache files
             if module == '__pycache__':
                 continue
-            
-            # Ignore non directories 
+
+            # Ignore non directories
             if not os.path.isdir('/opt/linupdate/src/controllers/Module/' + module):
                 continue
 
@@ -63,7 +63,7 @@ class Module:
             # Check if module exists
             if not self.exists(mod):
                 raise Exception('Module ' + mod + ' does not exist')
-            
+
             # Continue if module is already enabled
             if mod not in configuration['modules']['enabled']:
                 # Add enabled module in configuration
@@ -96,7 +96,7 @@ class Module:
             # Check if module exists
             if not self.exists(mod):
                 raise Exception('Module ' + mod + ' does not exist')
-            
+
             # Disable module
             if mod in configuration['modules']['enabled']:
                 self.configController.remove_module(mod)
@@ -139,7 +139,7 @@ class Module:
         # Check if module class file exists
         if not os.path.exists('/opt/linupdate/src/controllers/Module/' + module.capitalize() + '/' + module.capitalize() + '.py'):
             return False
-        
+
         return True
 
 
@@ -155,9 +155,9 @@ class Module:
         # Quit if no modules are enabled
         if not configuration['modules']['enabled']:
             return
-        
+
         print(' Loading modules')
-    
+
         # Loop through modules
         for module in configuration['modules']['enabled']:
             try:

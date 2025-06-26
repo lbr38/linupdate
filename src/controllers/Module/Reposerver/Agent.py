@@ -1,15 +1,15 @@
 # coding: utf-8
 
 # Import libraries
-import time
-import pyinotify
-import threading
-import websocket
-import json
 import sys
 import os
+import time
+import threading
+import json
 from pathlib import Path
 from shutil import rmtree
+import pyinotify
+import websocket
 
 # Import classes
 from src.controllers.Log import Log
@@ -68,7 +68,7 @@ class Agent:
         if not self.configuration['agent']['enabled']:
             print('[reposerver-agent] Reposerver agent is disabled. Quitting.')
             sys.exit(0)
-        
+
         # Checking that a log file exists for yum/dnf or apt
         if Path('/var/log/yum.log').is_file():
             self.log_file = '/var/log/yum.log'
@@ -78,7 +78,7 @@ class Agent:
             self.log_file = '/var/log/apt/history.log'
         else:
             raise Exception('no log file found for yum/dnf or apt')
-        
+
         del enabled_modules
 
 
@@ -234,7 +234,7 @@ class Agent:
 
                     del status, summary, error, logcontent, request_id, json_response
                 except Exception as e:
-                    raise Exception('could not send remaining requests logs for request id #' + request_id + ': ' + str(e))                    
+                    raise Exception('could not send remaining requests logs for request id #' + request_id + ': ' + str(e))
 
         except Exception as e:
             print('[reposerver-agent] Error: ' + str(e))
@@ -462,14 +462,14 @@ class Agent:
                                     logcontent = Utils().clean_log(file.read())
                             except Exception as e:
                                 # If content could not be read, then generate an error message
-                                logcontent = 'Error: could not read log file: ' + str(e)                        
+                                logcontent = 'Error: could not read log file: ' + str(e)
 
                             json_response['response-to-request']['log'] = logcontent
 
                             del logcontent
 
                         # Try to send the response to the reposerver
-                        # Note: impossible to use try/except here, because no exception is raised directly, 
+                        # Note: impossible to use try/except here, because no exception is raised directly,
                         # if there is an error then it is the on_error function that is called
                         self.websocket.send(json.dumps(json_response))
 
@@ -528,7 +528,7 @@ class Agent:
         del close_status_code, close_msg
 
         raise Exception('reposerver websocket connection closed')
-    
+
 
     #-----------------------------------------------------------------------------------------------
     #
@@ -561,7 +561,7 @@ class Agent:
 
             # Set to True for debugging
             websocket.enableTrace(False)
-            
+
             # Open websocket connection
             # Using lambda to pass arguments to the functions, this is necessary for older versions of python websocket
             self.websocket = websocket.WebSocketApp(reposerver_ws_url + '/ws',
@@ -569,7 +569,7 @@ class Agent:
                             on_message=lambda ws, message: self.websocket_on_message(ws, message),
                             on_error=lambda ws, error: self.websocket_on_error(ws, error),
                             on_close=lambda ws, close_status_code, close_msg: self.websocket_on_close(ws, close_status_code, close_msg))
-            
+
             # Clean version but not working with older versions of python websocket:
             # Open websocket connection
             # self.websocket = websocket.WebSocketApp(reposerver_ws_url + '/ws',
@@ -590,7 +590,7 @@ class Agent:
             self.websocket_is_running = False
             self.websocket_exception = str(e)
             self.authenticated = False
-        
+
 
     #-----------------------------------------------------------------------------------------------
     #

@@ -15,11 +15,11 @@ class Utils:
             json.loads(jsonString)
         except json.decoder.JSONDecodeError:
             return False
-        except ValueError as e:
+        except ValueError:
             return False
 
         return True
-    
+
     #-----------------------------------------------------------------------------------------------
     #
     #   Remove ANSI escape codes from a string
@@ -30,9 +30,9 @@ class Utils:
             ansi_escape = re.compile(r'(?:\x1B[@-_]|[\x80-\x9F])[0-?]*[ -/]*[@-~]')
             return ansi_escape.sub('', text)
         # If an exception occurs, simply return the original text as it is
-        except Exception as e:
+        except Exception:
             return text
-    
+
     #-----------------------------------------------------------------------------------------------
     #
     #   Clean log text
@@ -55,7 +55,7 @@ class Utils:
     #   Convert a string to a boolean
     #
     #-----------------------------------------------------------------------------------------------
-    def stringToBoolean(self, value: str):       
+    def stringToBoolean(self, value: str):
         if value == 'true' or value == 'True':
             return True
 

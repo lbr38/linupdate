@@ -1,9 +1,9 @@
 # coding: utf-8
 
 # Import libraries
-from colorama import Fore, Style
-import requests
 import json
+import requests
+from colorama import Fore, Style
 
 # Import classes
 from src.controllers.App.Utils import Utils
@@ -59,7 +59,7 @@ class HttpRequest:
                                 data = json.dumps(data),
                                 headers = {'Authorization': 'Host ' + id + ':' + token},
                                 timeout = (connectionTimeout, readTimeout))
-        
+
         del data, id, token, url
 
         # Parse response and return results if 200
@@ -76,7 +76,7 @@ class HttpRequest:
         response = requests.delete(url,
                                    headers = {'Authorization': 'Host ' + id + ':' + token},
                                    timeout = (connectionTimeout, readTimeout))
-        
+
         del id, token, url
 
         # Parse response and return results if 200
