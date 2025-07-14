@@ -10,6 +10,6 @@ client:
     enabled: true
   get_repos_from_reposerver:
     enabled: true
-    remove_existing_repos: true
+    remove_existing_repos: false
 reposerver:
   url: ''

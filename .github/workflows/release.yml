@@ -182,8 +182,7 @@ jobs:
           release_name: ${{ env.VERSION }}
           body: |
             **Changes**
-            - Added a "Repository" column to the list of available updates
-            - Reposerver module: added support for deb822 format repositories https://github.com/lbr38/linupdate/issues/86 (Repomanager `4.21.0` required)
+            - Fixed https://github.com/lbr38/linupdate/issues/89 (Repomanager `4.22.0` required)
           draft: false
           prerelease: false
 
