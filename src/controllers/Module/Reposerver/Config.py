@@ -623,7 +623,7 @@ class Config:
             if self.systemController.get_os_family() == 'Redhat':
                 repo_file = '/etc/yum.repos.d/' + result['filename_prefix'] + result['repo_name'] + '.repo'
                 content =  '[' + result['filename_prefix'] + result['repo_name'] + '___ENV__]\n'
-                content += 'name=' + result['repo_name'] + ' repo on ' + result['reposerver'] + '\n'
+                content += 'name=' + result['repo_name'] + ' repo on ' + result['repo_server'] + '\n'
                 content += 'baseurl=' + result['repo_url'] + '\n'
                 content += 'enabled=1\n'
                 content += 'gpgkey=' + result['gpgkey_url'] + '\n'
