@@ -622,26 +622,41 @@ class Config:
             # Redhat
             if self.systemController.get_os_family() == 'Redhat':
                 repo_file = '/etc/yum.repos.d/' + result['filename_prefix'] + result['repo_name'] + '.repo'
-                content =  '[' + result['filename_prefix'] + result['repo_name'] + '___ENV__]\n'
+                content =  '[' + result['filename_prefix'] + result['repo_name'] + '_' + env + ']\n'
                 content += 'name=' + result['repo_name'] + ' repo on ' + result['repo_server'] + '\n'
                 content += 'baseurl=' + result['repo_url'] + '\n'
                 content += 'enabled=1\n'
                 content += 'gpgkey=' + result['gpgkey_url'] + '\n'
                 content += 'gpgcheck=1'
 
-            # If the file does not exist, create it and insert description at the top of the file, then content
-            if not Path(repo_file).is_file():
+            # Replace __ENV__ in URL with current environment on the fly
+            content = content.replace('__ENV__', env)
+
+            # Add content to the file
+
+            # Debian
+            # Allow to append content if the file already exists
+            # Useful when a repository has multiple distributions or components
+            if self.systemController.get_os_family() == 'Debian':
+                # If the file does not exist, create it with the content
+                if not Path(repo_file).is_file():
+                    with open(repo_file, 'w') as file:
+                        file.write(content + '\n')
+                    continue
+
+                # If the file exists, check if the content is already in the file
+                with open(repo_file, 'r') as file:
+                    if content in file.read():
+                        continue
+
+                    # If the content is not in the file, append it
+                    with open(repo_file, 'a') as file:
+                        file.write(content + '\n')
+
+            # Redhat
+            # Overwrite the file with the new content
+            if self.systemController.get_os_family() == 'Redhat':
                 with open(repo_file, 'w') as file:
-                    # Insert description
-                    file.write('# ' + result['description'] + '\n')
-
-            # Add content to the file, if not already in it
-            with open(repo_file, 'r+') as file:
-                # Replace __ENV__ with current environment on the fly
-                content = content.replace('__ENV__', env)
-
-                # If the content is not already in the file, add it
-                if content not in file.read():
                     file.write(content + '\n')
 
             # Set file permissions
