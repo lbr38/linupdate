@@ -40,7 +40,7 @@ def main():
         date = todaydatetime.strftime('%Y-%m-%d')
         time = todaydatetime.strftime('%Hh%Mm%Ss')
         logsdir = '/var/log/linupdate'
-        logfile = date + '_' + time + '_linupdate_' + socket.getfqdn() + '.log'
+        logfile = date + '_' + time + '_linupdate_' + socket.gethostname() + '.log'
 
         # Create logs directory
         Path(logsdir).mkdir(parents=True, exist_ok=True)
@@ -61,7 +61,7 @@ def main():
 
         # If --from-agent param is passed, then add -agent to the log filename and make it hidden
         if my_args.from_agent:
-            logfile = '.' + date + '_' + time + '_linupdate_' + socket.getfqdn() + '-agent.log'
+            logfile = '.' + date + '_' + time + '_linupdate_' + socket.gethostname() + '-agent.log'
 
         # Create log file with correct permissions
         Path(logsdir + '/' + logfile).touch()
