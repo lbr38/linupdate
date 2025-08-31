@@ -182,7 +182,7 @@ jobs:
           release_name: ${{ env.VERSION }}
           body: |
             **Changes**
-            - Fixed https://github.com/lbr38/linupdate/issues/89 (Repomanager `4.22.0` required)
+              - Reposerver module: always overwrite RPM repo files content when retrieving them from the server.
           draft: false
           prerelease: false
 
