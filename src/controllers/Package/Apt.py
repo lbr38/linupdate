@@ -18,9 +18,6 @@ from src.controllers.App.Utils import Utils
 
 class Apt:
     def __init__(self):
-        # Create an instance of the apt cache
-        self.aptcache = apt.Cache()
-
         # Define some default options
         self.dist_upgrade = False
         self.keep_oldconf = True
@@ -34,10 +31,14 @@ class Apt:
     def get_current_version(self, package):
         try:
             # Open apt cache
-            self.aptcache.open(None)
+            aptcache = apt.Cache()
+            aptcache.open(None)
 
             # Get the package from the cache
-            pkg = self.aptcache[package]
+            pkg = aptcache[package]
+
+            # Close the cache
+            aptcache.close()
 
             # If the package is not installed, return an empty string
             if not pkg.is_installed:
@@ -93,10 +94,14 @@ class Apt:
     def get_available_version(self, package):
         try:
             # Open apt cache
-            self.aptcache.open(None)
+            aptcache = apt.Cache()
+            aptcache.open(None)
 
             # Get the package from the cache
-            pkg = self.aptcache[package]
+            pkg = aptcache[package]
+
+            # Close the cache
+            aptcache.close()
 
             # If the package is not installed, return an empty string
             if not pkg.is_installed:
@@ -117,12 +122,12 @@ class Apt:
     def get_installed_packages(self):
         list = []
 
-        # Clear, update cache and open it
-        self.update_cache()
+        # Get updated cache
+        aptcache = self.update_cache()
 
         try:
             # Loop through all installed packages
-            for pkg in self.aptcache:
+            for pkg in aptcache:
                 # If the package is installed, add it to the list of installed packages
                 if pkg.is_installed:
                     list.append({
@@ -133,6 +138,8 @@ class Apt:
             # Sort the list by package name
             list.sort(key=lambda x: x['name'])
 
+            # Close the cache
+            aptcache.close()
         except Exception as e:
             raise Exception('could not get installed packages: ' + str(e))
 
@@ -147,14 +154,14 @@ class Apt:
     def get_available_packages(self, dist_upgrade: bool = False):
         list = []
 
-        # Clear, update cache and open it
-        self.update_cache()
+        # Get updated cache
+        aptcache = self.update_cache()
 
         # Simulate an upgrade to get the list of available packages
-        self.aptcache.upgrade(dist_upgrade)
+        aptcache.upgrade(dist_upgrade)
 
         # Loop through all packages marked for upgrade
-        for pkg in self.aptcache.get_changes():
+        for pkg in aptcache.get_changes():
             repository = 'Unknown'
 
             # Get the repository URL
@@ -174,6 +181,9 @@ class Apt:
         # Sort the list by package name
         list.sort(key=lambda x: x['name'])
 
+        # Close the cache
+        aptcache.close()
+
         return list
 
 
@@ -185,10 +195,11 @@ class Apt:
     def is_installed(self, package):
         try:
             # Open apt cache
-            self.aptcache.open(None)
+            aptcache = apt.Cache()
+            aptcache.open(None)
 
             # Get the package from the cache
-            for pkg in self.aptcache:
+            for pkg in aptcache:
                 if pkg.name == package:
                     return True
 
@@ -244,45 +255,47 @@ class Apt:
             # Wait for the lock to be released
             self.wait_for_dpkg_lock()
 
-            self.aptcache.clear()
+            aptcache = apt.Cache()
+            aptcache.clear()
+            aptcache.close()
         except Exception as e:
             raise Exception('could not clear apt cache: ' + str(e))
 
 
     #-----------------------------------------------------------------------------------------------
     #
-    #   Update apt cache
+    #   Update apt cache and return the updated cache
     #
     #-----------------------------------------------------------------------------------------------
     def update_cache(self):
         try:
+            self.wait_for_dpkg_lock()
+            aptcache = apt.Cache()
+        except Exception as e:
+            raise Exception('could not open apt cache')
+
+        try:
             # Clear cache
             self.wait_for_dpkg_lock()
-            self.clear_cache()
+            aptcache.clear()
         except Exception as e:
-            raise Exception('unable to clear apt cache: ' + str(e))
+            raise Exception('could not clear apt cache')
 
         try:
             # Update cache
             self.wait_for_dpkg_lock()
-            self.aptcache.update()
+            aptcache.update()
         except Exception as e:
-            raise Exception('could not update apt cache: ' + str(e))
+            raise Exception('could not update apt cache')
 
         try:
-            # Close cache
-            self.aptcache.close()
-        except Exception as e:
-            raise Exception('could not close apt cache: ' + str(e))
-
-        try:
-            # Reopen cache
+            # Re-open cache
             self.wait_for_dpkg_lock()
-            # Recreate the cache instance after update
-            self.aptcache = apt.Cache()
-            self.aptcache.open(None)
+            aptcache.open(None)
         except Exception as e:
-            raise Exception('could not open apt cache: ' + str(e))
+            raise Exception('could not re-open apt cache')
+
+        return aptcache
 
 
     #-----------------------------------------------------------------------------------------------
@@ -389,8 +402,9 @@ class Apt:
                 try:
                     temp_apt_cache = apt.Cache()
                     temp_apt_cache.open(None)
+                    temp_apt_cache.update()
 
-                    # If version in cache is the same the target version, skip the update
+                    # If the version in cache is the same as the target version, skip the update
                     if temp_apt_cache[pkg['name']].installed.version == pkg['target_version']:
                         print(Fore.GREEN + ' ✔ ' + Style.RESET_ALL + pkg['name'] + ' is already up to date (updated with another package).')
 
