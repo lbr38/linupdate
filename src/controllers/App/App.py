@@ -142,18 +142,15 @@ class App:
     #   Print system and app summary
     #
     #-----------------------------------------------------------------------------------------------
-    def print_summary(self, fromAgent: bool = False):
+    def print_summary(self):
         myAppConfig = Config()
         mySystem = System()
 
         # Define execution method
-        if fromAgent:
-            exec_method = 'automatic (agent)'
+        if not sys.stdin.isatty():
+            exec_method = 'automatic (no tty)'
         else:
-            if not sys.stdin.isatty():
-                exec_method = 'automatic (no tty)'
-            else:
-                exec_method = 'manual (tty)'
+            exec_method = 'manual (tty)'
 
         print(' Hostname:            ' + Fore.YELLOW + socket.getfqdn() + Style.RESET_ALL)
         print(' OS:                  ' + Fore.YELLOW + mySystem.get_os_name() + ' ' + mySystem.get_os_version() + Style.RESET_ALL)

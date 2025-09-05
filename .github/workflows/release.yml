@@ -182,7 +182,9 @@ jobs:
           release_name: ${{ env.VERSION }}
           body: |
             **Changes**
-              - Reposerver module: always overwrite RPM repo files content when retrieving them from the server.
+              - Still fighting against shitty apt cache, here is another fix
+              - Removed deprecated argument
+              - Various bug fixes
           draft: false
           prerelease: false
 

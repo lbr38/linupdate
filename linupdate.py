@@ -56,13 +56,6 @@ def main():
         my_package    = Package()
         my_service    = Service()
 
-        # Pre-parse arguments to check if --from-agent param is passed
-        my_args.pre_parse()
-
-        # If --from-agent param is passed, then add -agent to the log filename and make it hidden
-        if my_args.from_agent:
-            logfile = '.' + date + '_' + time + '_linupdate_' + socket.getfqdn() + '-agent.log'
-
         # Create log file with correct permissions
         Path(logsdir + '/' + logfile).touch()
         Path(logsdir + '/' + logfile).chmod(0o640)
@@ -96,7 +89,7 @@ def main():
             my_args.parse()
 
             # Print system & app summary
-            my_app.print_summary(my_args.from_agent)
+            my_app.print_summary()
 
             # Load modules
             my_module.load()

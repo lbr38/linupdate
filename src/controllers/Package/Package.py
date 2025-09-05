@@ -361,12 +361,13 @@ class Package:
             self.remove_all_exclusions()
 
         # Update the summary with the number of packages updated and failed
-        self.summary['update']['success']['count'] = self.myPackageManagerController.summary['update']['success']['count']
-        self.summary['update']['failed']['count'] = self.myPackageManagerController.summary['update']['failed']['count']
+        if hasattr(self.myPackageManagerController, 'summary'):
+            self.summary['update']['success']['count'] = self.myPackageManagerController.summary['update']['success']['count']
+            self.summary['update']['failed']['count'] = self.myPackageManagerController.summary['update']['failed']['count']
 
-        # Also retrieve the list of packages updated and failed, with their version and log
-        self.summary['update']['success']['packages'] = self.myPackageManagerController.summary['update']['success']['packages']
-        self.summary['update']['failed']['packages'] = self.myPackageManagerController.summary['update']['failed']['packages']
+            # Also retrieve the list of packages updated and failed, with their version and log
+            self.summary['update']['success']['packages'] = self.myPackageManagerController.summary['update']['success']['packages']
+            self.summary['update']['failed']['packages'] = self.myPackageManagerController.summary['update']['failed']['packages']
 
         # Print the number of packages updated and failed
         # If there was a failed package, print the number in red
@@ -376,7 +377,7 @@ class Package:
             print('\n ' + Fore.GREEN + str(self.summary['update']['success']['count']) + Style.RESET_ALL + ' packages updated, ' + str(self.summary['update']['failed']['count']) + ' packages failed' + Style.RESET_ALL)
 
         # If there was a failed package update and the package update error is critical (set to true), then raise an exception to exit
-        if exit_on_package_update_error == True and self.summary['update']['failed']['count'] > 0:
+        if exit_on_package_update_error == True and (self.summary['update']['failed']['count'] > 0 or self.summary['update']['status'] == 'failed'):
             raise Exception('Critical error: package update failed')
 
 

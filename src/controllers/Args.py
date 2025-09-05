@@ -15,23 +15,6 @@ from src.controllers.ArgsException import ArgsException
 from src.controllers.App.Service import Service as AppService
 
 class Args:
-
-    #-----------------------------------------------------------------------------------------------
-    #
-    #   Pre-parse arguments
-    #
-    #-----------------------------------------------------------------------------------------------
-    def pre_parse(self):
-        # Default values
-        Args.from_agent = False
-
-        #
-        # If --from-agent param has been set
-        #
-        if '--from-agent' in sys.argv:
-            Args.from_agent = True
-
-
     #-----------------------------------------------------------------------------------------------
     #
     #   Parse arguments
