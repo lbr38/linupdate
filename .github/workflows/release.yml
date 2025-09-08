@@ -182,9 +182,7 @@ jobs:
           release_name: ${{ env.VERSION }}
           body: |
             **Changes**
-              - Still fighting against shitty apt cache, here is another fix
-              - Removed deprecated argument
-              - Various bug fixes
+              - Reposerver: send cpu, memory and uptime info in status report
           draft: false
           prerelease: false
 

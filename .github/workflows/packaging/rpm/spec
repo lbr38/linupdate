@@ -21,6 +21,7 @@ Requires: python3-distro
 Requires: python3-requests
 Requires: python3-inotify
 Requires: python3-websocket-client
+Requires: python3-psutil
 
 %description
 Linupdate 3 (python version) - Packages updater and Repomanager client side agent

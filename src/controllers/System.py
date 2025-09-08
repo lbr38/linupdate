@@ -5,6 +5,7 @@ import os
 import subprocess
 import platform
 import distro
+import psutil
 
 class System:
     #-----------------------------------------------------------------------------------------------
@@ -97,6 +98,61 @@ class System:
                 virt = "Bare-metal"
 
         return virt
+
+
+    #-----------------------------------------------------------------------------------------------
+    #
+    #   Return the host uptime in seconds
+    #
+    #-----------------------------------------------------------------------------------------------
+    def get_uptime(self):
+        try:
+            return psutil.boot_time()
+        except Exception as e:
+            raise Exception('could not get system uptime: ' + str(e))
+
+
+    #-----------------------------------------------------------------------------------------------
+    #
+    #   Return the CPU information
+    #
+    #-----------------------------------------------------------------------------------------------
+    def get_cpu_info(self):
+        cpu_info = 'unknown'
+
+        # Get 'model name' line from /proc/cpuinfo
+        try:
+            with open('/proc/cpuinfo', 'r') as f:
+                for line in f:
+                    if 'model name' in line:
+                        cpu_info = line.split(':')[1].strip()
+                        break
+        except Exception as e:
+            raise Exception('could not get CPU info: ' + str(e))
+
+        # Get number of CPU cores
+        try:
+            cpu_cores = os.cpu_count()
+            if cpu_cores:
+                cpu_info += ' (' + str(cpu_cores) + ' cores)'
+        except Exception as e:
+            raise Exception('could not get number of CPU cores: ' + str(e))
+
+        return cpu_info
+    
+
+    #-----------------------------------------------------------------------------------------------
+    #
+    #   Return the total memory in GB
+    #
+    #-----------------------------------------------------------------------------------------------
+    def get_memory_info(self):
+        try:
+            mem = psutil.virtual_memory()
+            total_mem_gb = mem.total / (1024 ** 3)  # Convert bytes to GB
+            return f"{total_mem_gb:.2f} GB"
+        except Exception as e:
+            raise Exception('could not get memory info: ' + str(e))
 
 
     #-----------------------------------------------------------------------------------------------
