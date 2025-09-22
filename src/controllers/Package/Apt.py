@@ -30,6 +30,8 @@ class Apt:
     #-----------------------------------------------------------------------------------------------
     def get_current_version(self, package):
         try:
+            self.wait_for_dpkg_lock()
+
             # Open apt cache
             aptcache = apt.Cache()
             aptcache.open(None)
@@ -398,30 +400,24 @@ class Apt:
 
                 # Before updating, check If package is already in the latest version, if so, skip it
                 # It means that it has been updated previously by another package, probably because it was a dependency
-                # Get the current version of the package from apt cache. Use a new temporary apt cache to be sure it is up to date
-                try:
-                    temp_apt_cache = apt.Cache()
-                    temp_apt_cache.open(None)
-                    temp_apt_cache.update()
+                # Retrieve current version
+                current_version = self.get_current_version(pkg['name'])
 
-                    # If the version in cache is the same as the target version, skip the update
-                    if temp_apt_cache[pkg['name']].installed.version == pkg['target_version']:
-                        print(Fore.GREEN + ' ✔ ' + Style.RESET_ALL + pkg['name'] + ' is already up to date (updated with another package).')
+                # If current version is the same the target version, skip the update
+                if current_version == pkg['target_version']:
+                    print(Fore.GREEN + ' ✔ ' + Style.RESET_ALL + pkg['name'] + ' is already up to date (updated with another package).')
 
-                        # Mark the package as already updated
-                        self.summary['update']['success']['count'] += 1
+                    # Mark the package as already updated
+                    self.summary['update']['success']['count'] += 1
 
-                        # Also add the package to the list of successful packages
-                        self.summary['update']['success']['packages'][pkg['name']] = {
-                            'version': pkg['target_version'],
-                            'log': 'Already up to date (updated with another package).'
-                        }
+                    # Also add the package to the list of successful packages
+                    self.summary['update']['success']['packages'][pkg['name']] = {
+                        'version': pkg['target_version'],
+                        'log': 'Already up to date (updated with another package).'
+                    }
 
-                        # Continue to the next package
-                        continue
-
-                except Exception as e:
-                    raise Exception('Could not retrieve current version of package ' + pkg['name'] + ': ' + str(e))
+                    # Continue to the next package
+                    continue
 
                 # Define the command to update the package
                 cmd = 'DEBIAN_FRONTEND=noninteractive /usr/bin/apt-get install ' + pkg['name'] + '=' + pkg['target_version'] +  ' -y'
@@ -498,7 +494,7 @@ class Apt:
                 # Print a success message
                 print(Fore.GREEN + ' ✔ ' + Style.RESET_ALL + pkg['name'] + ' updated successfully.')
 
-        del log, packagesList, pkg, temp_apt_cache, cmd, popen, line, parts, buffer, log_content
+        del log, packagesList, pkg, cmd, popen, line, parts, buffer, log_content
 
 
     #-----------------------------------------------------------------------------------------------

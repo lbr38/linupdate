@@ -642,16 +642,13 @@ class Config:
                 if not Path(repo_file).is_file():
                     with open(repo_file, 'w') as file:
                         file.write(content + '\n')
-                    continue
-
                 # If the file exists, check if the content is already in the file
-                with open(repo_file, 'r') as file:
-                    if content in file.read():
-                        continue
-
-                    # If the content is not in the file, append it
-                    with open(repo_file, 'a') as file:
-                        file.write(content + '\n')
+                else:
+                    with open(repo_file, 'r') as file:
+                        # If the content is not in the file, append it
+                        if not content in file.read():
+                            with open(repo_file, 'a') as file:
+                                file.write(content + '\n')
 
             # Redhat
             # Overwrite the file with the new content
