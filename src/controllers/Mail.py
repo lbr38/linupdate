@@ -10,6 +10,7 @@ from colorama import Fore, Style
 # Import classes
 from src.controllers.App.Config import Config
 from src.controllers.App.Utils import Utils
+from src.controllers.Status import update_status
 
 class Mail():
     #-----------------------------------------------------------------------------------------------
@@ -23,15 +24,14 @@ class Mail():
             msg = EmailMessage()
             attach_content = ''
 
-            print('\n Sending email:', end=' ')
-
             # Get mail enabled
             mail_enabled = configController.get_mail_enabled()
 
             # If mail is not enabled, then quit
             if not mail_enabled:
-                print(Fore.YELLOW + 'disabled' + Style.RESET_ALL)
                 return
+
+            update_status('Sending email...')
 
             # Get recipient(s) list
             recipient = configController.get_mail_recipient()
@@ -79,7 +79,6 @@ class Mail():
             s.send_message(msg)
             s.quit()
 
-            print(Fore.GREEN + 'sent' + Style.RESET_ALL)
         except Exception as e:
             print(Fore.YELLOW + str(e) + Style.RESET_ALL)
-            raise Exception(str(e))
+            raise Exception(' An error occurred while sending email: ' + str(e))

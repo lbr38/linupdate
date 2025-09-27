@@ -6,7 +6,7 @@ import sys
 # https://stackoverflow.com/a/57008553
 
 # Context manager that copies stdout and any exceptions to a log file
-class Log(object):
+class LogToFile(object):
     def __init__(self, filename):
         self.file = open(filename, 'w')
         self.stdout = sys.stdout

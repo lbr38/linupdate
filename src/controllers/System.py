@@ -43,7 +43,7 @@ class System:
         if (distro.name() in ['Debian GNU/Linux', 'Debian', 'Ubuntu', 'Kubuntu', 'Xubuntu', 'Linux Mint']):
             return 'Debian'
 
-        if (distro.name() in ['Red Hat Enterprise Linux', 'CentOS Linux', 'CentOS Stream', 'Fedora', 'Alma Linux', 'Rocky Linux', 'Oracle Linux Server']):
+        if (distro.name() in ['Red Hat Enterprise Linux', 'CentOS Linux', 'CentOS Stream', 'Fedora', 'AlmaLinux', 'Alma Linux', 'RockyLinux', 'Rocky Linux', 'Oracle Linux Server']):
             return 'Redhat'
 
         raise Exception('This program does not support your Linux distribution "' + distro.name() + '" yet.')

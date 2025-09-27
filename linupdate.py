@@ -8,9 +8,11 @@ import traceback
 from pathlib import Path
 from datetime import datetime
 from colorama import Fore, Style
+from rich.console import Console
+import sys
 
 # Import classes
-from src.controllers.Log import Log
+from src.controllers.Logging import StreamToLogger
 from src.controllers.App.App import App
 from src.controllers.App.Config import Config
 from src.controllers.Args import Args
@@ -20,6 +22,7 @@ from src.controllers.Package.Package import Package
 from src.controllers.Service.Service import Service
 from src.controllers.Exit import Exit
 from src.controllers.ArgsException import ArgsException
+from src.controllers.Status import status_manager
 
 
 #-----------------------------------------------------------------------------------------------
@@ -46,6 +49,10 @@ def main():
         Path(logsdir).mkdir(parents=True, exist_ok=True)
         Path(logsdir).chmod(0o750)
 
+        # Create log file with correct permissions
+        Path(logsdir + '/' + logfile).touch()
+        Path(logsdir + '/' + logfile).chmod(0o640)
+
         # Instanciate classes
         my_exit       = Exit()
         my_app        = App()
@@ -56,12 +63,8 @@ def main():
         my_package    = Package()
         my_service    = Service()
 
-        # Create log file with correct permissions
-        Path(logsdir + '/' + logfile).touch()
-        Path(logsdir + '/' + logfile).chmod(0o640)
-
-        # Log everything to the log file
-        with Log(logsdir + '/' + logfile):
+        # Use logging context manager to redirect stdout and stderr to log file
+        with StreamToLogger(logsdir + '/' + logfile):
             # Print Logo
             my_app.print_logo()
 
@@ -147,4 +150,14 @@ def main():
     my_exit.clean_exit(exit_code, send_mail, logsdir + '/' + logfile)
 
 # Run main function
-main()
+console = Console(file=sys.__stdout__)
+
+# Create status and register it with StatusManager
+rich_status = console.status("Running...")
+status_manager.set_status(rich_status)
+
+with rich_status:
+    main()
+
+# Clear status when done
+status_manager.clear()

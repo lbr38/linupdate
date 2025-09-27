@@ -13,8 +13,9 @@ import apt
 from colorama import Fore, Style
 
 # Import classes
-from src.controllers.Log import Log
+from src.controllers.LogToFile import LogToFile
 from src.controllers.App.Utils import Utils
+from src.controllers.Status import update_status, save_status, restore_status
 
 class Apt:
     def __init__(self):
@@ -156,6 +157,8 @@ class Apt:
     def get_available_packages(self, dist_upgrade: bool = False):
         list = []
 
+        update_status("Getting available packages")
+
         # Get updated cache
         aptcache = self.update_cache()
 
@@ -225,6 +228,9 @@ class Apt:
             '/var/lib/apt/lists/lock'
         ]
 
+        # Save status message
+        save_status()
+
         start_time = time.time()
 
         while time.time() - start_time < timeout:
@@ -239,10 +245,12 @@ class Apt:
                         break
 
             if not locks_held:
+                # Restore status message
+                restore_status()
                 return
 
-            print(' Waiting for dpkg lock to be released...')
-            time.sleep(5)
+            update_status("Waiting for dpkg lock to be released")
+            time.sleep(2)
 
         raise Exception(f'Could not acquire dpkg lock within {timeout} seconds')
 
@@ -395,7 +403,7 @@ class Apt:
             if Path(log).is_file():
                 Path(log).unlink()
 
-            with Log(log):
+            with LogToFile(log):
                 print('\n ▪ Updating ' + Fore.GREEN + pkg['name'] + Style.RESET_ALL + ' (' + pkg['current_version'] + ' → ' + pkg['target_version'] + '):')
 
                 # Before updating, check If package is already in the latest version, if so, skip it

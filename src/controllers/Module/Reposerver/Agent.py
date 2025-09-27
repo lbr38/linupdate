@@ -12,7 +12,7 @@ import pyinotify
 import websocket
 
 # Import classes
-from src.controllers.Log import Log
+from src.controllers.LogToFile import LogToFile
 from src.controllers.Module.Module import Module
 from src.controllers.Module.Reposerver.Status import Status
 from src.controllers.Module.Reposerver.Config import Config
@@ -316,7 +316,9 @@ class Agent:
                     # Case the request is 'request-general-infos', then send general informations to the reposerver
                     elif message['request'] == 'request-general-infos':
                         print('[reposerver-agent] Reposerver requested general informations')
-                        with Log(log):
+
+                        # Log everything to the log file
+                        with LogToFile(log):
                             self.reposerverStatusController.send_general_info()
 
                     # Case the request is 'request-packages-infos', then send packages informations to the reposerver
@@ -327,7 +329,7 @@ class Agent:
                         self.set_request_status(request_id, 'running')
 
                         # Log everything to the log file
-                        with Log(log):
+                        with LogToFile(log):
                             self.reposerverStatusController.send_packages_info()
 
                     # Case the request is 'request-all-packages-update', then update all packages
@@ -350,7 +352,7 @@ class Agent:
                         self.set_request_status(request_id, 'running')
 
                         # Log everything to the log file
-                        with Log(log):
+                        with LogToFile(log):
                             self.packageController.update([], True, ignore_exclusions, False, full_upgrade, keep_oldconf, dry_run)
 
                             # TODO
@@ -385,7 +387,7 @@ class Agent:
                                 self.set_request_status(request_id, 'running')
 
                                 # Log everything to the log file
-                                with Log(log):
+                                with LogToFile(log):
                                     self.packageController.update(message['data']['packages'], True, ignore_exclusions, False, full_upgrade, keep_oldconf, dry_run)
 
                                 # Send a summary to the reposerver, with the summary of the installation (number of packages installed or failed)
@@ -402,7 +404,7 @@ class Agent:
                         self.set_request_status(request_id, 'running')
 
                         # Log everything to the log file
-                        with Log(log):
+                        with LogToFile(log):
                             self.configController.get_profile_packages_conf()
                             self.configController.get_profile_repos()
 
