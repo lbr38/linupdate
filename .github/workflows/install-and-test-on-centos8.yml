@@ -1,0 +1,143 @@
+# Try to install package on CentOS 8 and run some basic commands to check if it's working
+on:
+  workflow_call:
+
+jobs:
+  install-centos8:
+    runs-on: ubuntu-latest
+    container:
+      image: centos:8
+      options: --user root
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Get linupdate version
+        run: echo "VERSION=$(cat ${GITHUB_WORKSPACE}/version)" >> $GITHUB_ENV
+
+      - name: Install CentOS8 archive repositories
+        run: |
+          cat > /etc/yum.repos.d/CentOS-Linux-AppStream.repo << EOF
+          [appstream]
+          name=CentOS Linux \$releasever - AppStream
+          baseurl=http://vault.centos.org/\$contentdir/\$releasever/AppStream/\$basearch/os/
+          gpgcheck=1
+          enabled=1
+          gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-centosofficial
+          EOF
+
+          cat > /etc/yum.repos.d/CentOS-Linux-BaseOS.repo << EOF
+          [baseos]
+          name=CentOS Linux \$releasever - BaseOS
+          baseurl=http://vault.centos.org/\$contentdir/\$releasever/BaseOS/\$basearch/os/
+          gpgcheck=1
+          enabled=1
+          gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-centosofficial
+          EOF
+
+          cat > /etc/yum.repos.d/CentOS-Linux-Extras.repo << EOF
+          [extras]
+          name=CentOS Linux \$releasever - Extras
+          baseurl=http://vault.centos.org/\$contentdir/\$releasever/extras/\$basearch/os/
+          gpgcheck=1
+          enabled=1
+          gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-centosofficial
+          EOF
+
+          dnf install epel-release -y
+
+          dnf clean all
+
+      - name: Update system
+        run: dnf update -y --exclude=centos-release
+
+      # Download builded rpm package artifact
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: linupdate-test-build-${{ env.VERSION }}.noarch.rpm
+
+      - name: Install package
+        run: dnf --nogpgcheck localinstall -y ./linupdate-test-build-${{ env.VERSION }}.noarch.rpm
+
+      # Tests some params
+      - name: "Run test: print help"
+        run: python3 /opt/linupdate/linupdate.py --help
+
+      - name: "Run test: print configuration"
+        run: python3 /opt/linupdate/linupdate.py --show-config
+
+      - name: "Run test: print version"
+        run: python3 /opt/linupdate/linupdate.py --version
+
+      - name: "Run test: switch profile"
+        run: python3 /opt/linupdate/linupdate.py --profile container
+
+      - name: "Run test: switch environment"
+        run: python3 /opt/linupdate/linupdate.py --env test
+
+      - name: "Run test: disable mail"
+        run: python3 /opt/linupdate/linupdate.py --mail-enable false
+
+      - name: "Run test: set mail recipient"
+        run: python3 /opt/linupdate/linupdate.py --set-mail-recipient test@mail.com,test2@mail.com
+
+      - name: "Run test: set mail smtp host"
+        run: python3 /opt/linupdate/linupdate.py --set-mail-smtp-host localhost
+
+      - name: "Run test: get mail smtp host"
+        run: python3 /opt/linupdate/linupdate.py --get-mail-smtp-host
+
+      - name: "Run test: set mail smtp port"
+        run: python3 /opt/linupdate/linupdate.py --set-mail-smtp-port 25
+
+      - name: "Run test: get mail smtp port"
+        run: python3 /opt/linupdate/linupdate.py --get-mail-smtp-port
+
+      - name: "Run test: set package exclusions"
+        run: python3 /opt/linupdate/linupdate.py --exclude "kernel.*"
+
+      - name: "Run test: get package exclusions"
+        run: python3 /opt/linupdate/linupdate.py --get-exclude
+
+      - name: "Run test: set package exclusions on major update"
+        run: python3 /opt/linupdate/linupdate.py --exclude-major "httpd,mysql.*"
+
+      - name: "Run test: get package exclusions on major update"
+        run: python3 /opt/linupdate/linupdate.py --get-exclude-major
+
+      - name: "Run test: set services to reload after update"
+        run: python3 /opt/linupdate/linupdate.py --service-reload "nginx"
+
+      - name: "Run test: set services to restart after update"
+        run: python3 /opt/linupdate/linupdate.py --service-restart "httpd,mysql"
+
+      - name: "Run test: get services to restart after update"
+        run: python3 /opt/linupdate/linupdate.py --get-service-restart
+
+      - name: "Run test: check updates"
+        run: python3 /opt/linupdate/linupdate.py --check-updates
+
+      - name: "Run test: update specific packages"
+        run: python3 /opt/linupdate/linupdate.py --update curl,wget,httpd --assume-yes --debug
+
+      - name: "Run test: update all packages"
+        run: python3 /opt/linupdate/linupdate.py --assume-yes
+
+      - name: "Run test: list available modules"
+        run: python3 /opt/linupdate/linupdate.py --mod-list
+
+      - name: "Run test: enable reposerver module"
+        run: python3 /opt/linupdate/linupdate.py --mod-enable reposerver
+
+      - name: "Run test: configure reposerver module"
+        run: python3 /opt/linupdate/linupdate.py --mod-configure reposerver --url ${{ secrets.REPOSITORY_URL }}
+
+      - name: "Run test: register to reposerver"
+        run: python3 /opt/linupdate/linupdate.py --mod-configure reposerver --api-key ${{ secrets.REPOSITORY_TOKEN }} --register
+
+      - name: "Run test: send all informations to reposerver"
+        run: python3 /opt/linupdate/linupdate.py --mod-configure reposerver --send-all-info
+
+      - name: "Run test: unregister from reposerver"
+        run: python3 /opt/linupdate/linupdate.py --mod-configure reposerver --unregister

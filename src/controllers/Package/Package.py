@@ -12,6 +12,8 @@ from colorama import Fore, Style
 from src.controllers.System import System
 from src.controllers.App.Config import Config
 from src.controllers.Exit import Exit
+from src.controllers.App.Utils import Utils
+from src.controllers.Status import update_status
 
 class Package:
     def __init__(self):
@@ -173,6 +175,8 @@ class Package:
         }
 
         try:
+            update_status("Initialising updates...")
+            
             # Create a temporary file in /tmp to indicate that the update process is running
             if not Path(update_running_file).is_file():
                 Path(update_running_file).touch()
@@ -317,22 +321,22 @@ class Package:
 
             # If --assume-yes param has not been specified, then ask for confirmation before installing the printed packages update list
             if not assume_yes:
-                # Ask for confirmation
+                confirmMsg = 'Update now'
+
                 if dry_run:
-                    print('\n ' + Fore.YELLOW + 'Update now (dry-run) [y/N]' + Style.RESET_ALL, end=' ')
-                else:
-                    print('\n ' + Fore.YELLOW + 'Update now [y/N]' + Style.RESET_ALL, end=' ')
+                    confirmMsg += ' (dry-run)'
 
-                answer = input()
+                update_status('Waiting for user confirmation...')
 
-                # Quit if the answer is not 'y'
-                if answer.lower() != 'y':
+                # Ask for user confirmation and quit if the answer is not 'y'
+                if not Utils().confirm(confirmMsg):
                     print(Fore.YELLOW + ' Cancelled' + Style.RESET_ALL)
                     # Remove all exclusions before exiting
                     self.remove_all_exclusions()
                     self.exitController.clean_exit(0, False)
-
-            print('\n Updating packages...')
+                
+            # If assume_yes, just print the message
+            update_status(' ')
 
             # If 'linupdate' is in the list of packages to update, then add a temporary file in /tmp to
             # indicate that a service restart is needed. The service will be restarted by the linupdate service itself.

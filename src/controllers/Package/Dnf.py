@@ -11,8 +11,9 @@ from dateutil import parser as dateutil_parser
 from colorama import Fore, Style
 
 # Import classes
-from src.controllers.Log import Log
+from src.controllers.LogToFile import LogToFile
 from src.controllers.App.Utils import Utils
+from src.controllers.Status import update_status, save_status, restore_status
 
 class Dnf:
     def __init__(self):
@@ -159,6 +160,8 @@ class Dnf:
     #-----------------------------------------------------------------------------------------------
     def get_available_packages(self, useless_dist_upgrade: bool = False):
         list = []
+
+        update_status("Getting available packages")
 
         # Get list of packages to update sorted by name
         # e.g. dnf repoquery --upgrades --latest-limit 1 -q -a --qf="%{name} %{version}-%{release}.%{arch} %{repoid}"
@@ -373,7 +376,7 @@ class Dnf:
             if Path(log).is_file():
                 Path(log).unlink()
 
-            with Log(log):
+            with LogToFile(log):
                 print('\n ▪ Updating ' + Fore.GREEN + pkg['name'] + Style.RESET_ALL + ' (' + pkg['current_version'] + ' → ' + pkg['target_version'] + '):')
 
                 # Before updating, check if package is already in the latest version, if so, skip it
@@ -471,11 +474,18 @@ class Dnf:
     #
     #-----------------------------------------------------------------------------------------------
     def check_lock(self):
+        # Save status message
+        save_status()
+
+        # If dnf lock is present, wait until it is released
         if os.path.isfile('/var/run/dnf.pid'):
-            print(' Waiting for dnf lock...', end=' ')
+            update_status("Waiting for dnf lock to be released")
 
             while os.path.isfile('/var/run/dnf.pid'):
                 time.sleep(2)
+
+        # Restore status message
+        restore_status()
 
 
     #-----------------------------------------------------------------------------------------------

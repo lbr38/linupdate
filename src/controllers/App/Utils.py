@@ -3,6 +3,10 @@
 # Import libraries
 import json
 import re
+import tty
+import termios
+import sys
+from colorama import Fore, Style
 
 class Utils:
     #-----------------------------------------------------------------------------------------------
@@ -60,3 +64,30 @@ class Utils:
             return True
 
         return False
+
+    #-----------------------------------------------------------------------------------------------
+    #
+    #   Get user confirmation
+    #
+    #-----------------------------------------------------------------------------------------------
+    def confirm(self, message):
+        print(' ' + Fore.YELLOW + message + ' (y/n): ' + Style.RESET_ALL, end='', flush=True)
+
+        # Save the terminal settings
+        fd = sys.stdin.fileno()
+        old_settings = termios.tcgetattr(fd)
+
+        try:
+            # Set the terminal to raw mode to capture single keypress
+            tty.setraw(sys.stdin.fileno())
+
+            while True:
+                ch = sys.stdin.read(1)
+                if ch in ('y', 'Y'):
+                    print('y')
+                    return True
+
+                return False
+        finally:
+            # Restore the terminal settings
+            termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)

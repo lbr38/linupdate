@@ -167,7 +167,7 @@ jobs:
         run: python3 /opt/linupdate/linupdate.py --mod-enable reposerver
 
       - name: "Run test: configure reposerver module"
-        run: python3 /opt/linupdate/linupdate.py --mod-configure reposerver --url https://packages.repomanager.net
+        run: python3 /opt/linupdate/linupdate.py --mod-configure reposerver --url ${{ secrets.REPOSITORY_URL }}
 
       - name: "Run test: register to reposerver"
         run: python3 /opt/linupdate/linupdate.py --mod-configure reposerver --api-key ${{ secrets.REPOSITORY_TOKEN }} --register
@@ -276,7 +276,7 @@ jobs:
         run: python3 /opt/linupdate/linupdate.py --mod-enable reposerver
 
       - name: "Run test: configure reposerver module"
-        run: python3 /opt/linupdate/linupdate.py --mod-configure reposerver --url https://packages.repomanager.net
+        run: python3 /opt/linupdate/linupdate.py --mod-configure reposerver --url ${{ secrets.REPOSITORY_URL }}
 
       - name: "Run test: register to reposerver"
         run: python3 /opt/linupdate/linupdate.py --mod-configure reposerver --api-key ${{ secrets.REPOSITORY_TOKEN }} --register
@@ -385,7 +385,7 @@ jobs:
         run: python3 /opt/linupdate/linupdate.py --mod-enable reposerver
 
       - name: "Run test: configure reposerver module"
-        run: python3 /opt/linupdate/linupdate.py --mod-configure reposerver --url https://packages.repomanager.net
+        run: python3 /opt/linupdate/linupdate.py --mod-configure reposerver --url ${{ secrets.REPOSITORY_URL }}
 
       - name: "Run test: register to reposerver"
         run: python3 /opt/linupdate/linupdate.py --mod-configure reposerver --api-key ${{ secrets.REPOSITORY_TOKEN }} --register
@@ -495,7 +495,7 @@ jobs:
         run: sudo python3 /opt/linupdate/linupdate.py --mod-enable reposerver
 
       - name: "Run test: configure reposerver module"
-        run: sudo python3 /opt/linupdate/linupdate.py --mod-configure reposerver --url https://packages.repomanager.net
+        run: sudo python3 /opt/linupdate/linupdate.py --mod-configure reposerver --url ${{ secrets.REPOSITORY_URL }}
 
       - name: "Run test: register to reposerver"
         run: sudo python3 /opt/linupdate/linupdate.py --mod-configure reposerver --api-key ${{ secrets.REPOSITORY_TOKEN }} --register
