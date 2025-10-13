@@ -100,7 +100,7 @@ class HttpRequest:
                 # If response is a JSON with a 'message' key, then print it
                 if myUtils.is_json(response.text) and 'message' in response.json():
                     for message in response.json()['message']:
-                        print('   ' + Fore.GREEN + '✔' + Style.RESET_ALL + ' ' + message)
+                        print('  ' + Fore.GREEN + '✔' + Style.RESET_ALL + ' ' + message)
 
             # If response is a JSON with a 'results' key, return it
             if myUtils.is_json(response.text) and 'results' in response.json():
@@ -112,7 +112,7 @@ class HttpRequest:
             # If response is a JSON with a 'message_error' key, return it
             if myUtils.is_json(response.text) and 'message_error' in response.json():
                 for message in response.json()['message_error']:
-                    print('   ' + Fore.YELLOW + '✕' + Style.RESET_ALL + ' ' + message)
+                    print('  ' + Fore.YELLOW + '✕' + Style.RESET_ALL + ' ' + message)
                     raise Exception()
             else:
                 raise Exception('HTTP request error: ' + str(e))

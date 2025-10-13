@@ -71,7 +71,7 @@ class Utils:
     #
     #-----------------------------------------------------------------------------------------------
     def confirm(self, message):
-        print(' ' + Fore.YELLOW + message + ' (y/n): ' + Style.RESET_ALL, end='', flush=True)
+        print(Fore.YELLOW + message + ' (y/n): ' + Style.RESET_ALL, end='', flush=True)
 
         # Save the terminal settings
         fd = sys.stdin.fileno()

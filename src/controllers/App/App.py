@@ -152,12 +152,12 @@ class App:
         else:
             exec_method = 'manual (tty)'
 
-        print(' Hostname:            ' + Fore.YELLOW + socket.getfqdn() + Style.RESET_ALL)
-        print(' OS:                  ' + Fore.YELLOW + mySystem.get_os_name() + ' ' + mySystem.get_os_version() + Style.RESET_ALL)
-        print(' Kernel:              ' + Fore.YELLOW + mySystem.get_kernel() + Style.RESET_ALL)
-        print(' Virtualization:      ' + Fore.YELLOW + mySystem.get_virtualization() + Style.RESET_ALL)
-        print(' Profile:             ' + Fore.YELLOW + myAppConfig.get_profile() + Style.RESET_ALL)
-        print(' Environment:         ' + Fore.YELLOW + myAppConfig.get_environment() + Style.RESET_ALL)
-        print(' Execution date:      ' + Fore.YELLOW + datetime.now().strftime('%d-%m-%Y %H:%M:%S') + Style.RESET_ALL)
-        print(' Executed by user:    ' + Fore.YELLOW + getpass.getuser() + Style.RESET_ALL)
-        print(' Execution method:    ' + Fore.YELLOW + exec_method + Style.RESET_ALL + '\n')
+        print('Hostname:            ' + Fore.YELLOW + socket.getfqdn() + Style.RESET_ALL)
+        print('OS:                  ' + Fore.YELLOW + mySystem.get_os_name() + ' ' + mySystem.get_os_version() + Style.RESET_ALL)
+        print('Kernel:              ' + Fore.YELLOW + mySystem.get_kernel() + Style.RESET_ALL)
+        print('Virtualization:      ' + Fore.YELLOW + mySystem.get_virtualization() + Style.RESET_ALL)
+        print('Profile:             ' + Fore.YELLOW + myAppConfig.get_profile() + Style.RESET_ALL)
+        print('Environment:         ' + Fore.YELLOW + myAppConfig.get_environment() + Style.RESET_ALL)
+        print('Execution date:      ' + Fore.YELLOW + datetime.now().strftime('%d-%m-%Y %H:%M:%S') + Style.RESET_ALL)
+        print('Executed by user:    ' + Fore.YELLOW + getpass.getuser() + Style.RESET_ALL)
+        print('Execution method:    ' + Fore.YELLOW + exec_method + Style.RESET_ALL + '\n')

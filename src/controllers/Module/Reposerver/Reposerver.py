@@ -53,7 +53,7 @@ class Reposerver:
 
         # Quit if there was no packages updates
         if updateSummary['update']['status'] == 'nothing-to-do':
-            print('  ▪ Nothing to do as no packages have been updated')
+            print(' ▪ Nothing to do as no packages have been updated')
             return
 
         # Generaly "*-release" packages on Redhat/CentOS are resetting .repo files. So it is better to retrieve them again from the reposerver
