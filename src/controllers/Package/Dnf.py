@@ -161,8 +161,6 @@ class Dnf:
     def get_available_packages(self, useless_dist_upgrade: bool = False):
         list = []
 
-        update_status("Getting available packages")
-
         # Get list of packages to update sorted by name
         # e.g. dnf repoquery --upgrades --latest-limit 1 -q -a --qf="%{name} %{version}-%{release}.%{arch} %{repoid}"
         result = subprocess.run(
@@ -349,6 +347,8 @@ class Dnf:
     #
     #-----------------------------------------------------------------------------------------------
     def update(self, packagesList, exit_on_package_update_error: bool = True, dry_run: bool = False):
+        counter = 0
+
         # Log file to store each package update output
         log = '/tmp/linupdate-update-package.log'
 
@@ -366,18 +366,27 @@ class Dnf:
             }
         }
 
+        # Count the number of packages to update
+        packages_to_update_count = 0
+        for pkg in packagesList:
+            if pkg['install'] == True:
+                packages_to_update_count += 1
+
         # Loop through the list of packages to update
         for pkg in packagesList:
             # If the package is marked as not to install, skip it
             if pkg['install'] != True:
                 continue
 
+            counter += 1
+            update_status("Updating packages (" + str(counter) + '/' + str(packages_to_update_count ) + ')')
+
             # If log file exists, remove it
             if Path(log).is_file():
                 Path(log).unlink()
 
             with LogToFile(log):
-                print('\n ▪ Updating ' + Fore.GREEN + pkg['name'] + Style.RESET_ALL + ' (' + pkg['current_version'] + ' → ' + pkg['target_version'] + '):')
+                print('\n▪ Updating ' + Fore.GREEN + pkg['name'] + Style.RESET_ALL + ' (' + pkg['current_version'] + ' → ' + pkg['target_version'] + '):')
 
                 # Before updating, check if package is already in the latest version, if so, skip it
                 # It means that it has been updated previously by another package, probably because it was a dependency
@@ -386,7 +395,7 @@ class Dnf:
 
                 # If current version is the same the target version, skip the update
                 if current_version == pkg['target_version']:
-                    print(Fore.GREEN + ' ✔ ' + Style.RESET_ALL + pkg['name'] + ' is already up to date (updated with another package).')
+                    print(Fore.GREEN + '✔ ' + Style.RESET_ALL + pkg['name'] + ' is already up to date (updated with another package).')
 
                     # Mark the package as already updated
                     self.summary['update']['success']['count'] += 1
@@ -419,7 +428,7 @@ class Dnf:
                 # Print lines as they are read
                 for line in popen.stdout:
                     line = line.replace('\r', '')
-                    print(' | ' + line, end='')
+                    print('| ' + line, end='')
                     del line
 
                 # Wait for the command to finish
@@ -446,7 +455,7 @@ class Dnf:
 
                     # Else continue to the next package
                     else:
-                        print(Fore.RED + ' ✕ ' + Style.RESET_ALL + 'Error while updating ' + pkg['name'] + '.')
+                        print(Fore.RED + '✕ ' + Style.RESET_ALL + 'Error while updating ' + pkg['name'] + '.')
                         continue
 
                 # Close the pipe
@@ -462,7 +471,7 @@ class Dnf:
                 }
 
                 # Print a success message
-                print(Fore.GREEN + ' ✔ ' + Style.RESET_ALL + pkg['name'] + ' updated successfully.')
+                print(Fore.GREEN + '✔ ' + Style.RESET_ALL + pkg['name'] + ' updated successfully.')
 
             del current_version, cmd, popen, log_content
 

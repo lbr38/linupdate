@@ -112,6 +112,8 @@ class Package:
     #-----------------------------------------------------------------------------------------------
     def get_installed_packages(self):
         try:
+            update_status("Getting installed packages")
+
             # Get a list of installed packages
             return self.myPackageManagerController.get_installed_packages()
 
@@ -126,6 +128,8 @@ class Package:
     #-----------------------------------------------------------------------------------------------
     def get_available_packages(self, dist_upgrade: bool = False):
         try:
+            update_status("Getting available packages")
+
             # Get a list of available packages
             return self.myPackageManagerController.get_available_packages(dist_upgrade)
 
@@ -269,9 +273,9 @@ class Package:
 
             # Print the number of packages to update
             if dry_run:
-                print('\n ' + Fore.YELLOW + '(dry run) ' + Fore.GREEN + str(self.packagesToUpdateCount) + Style.RESET_ALL + ' packages would be updated, ' + Fore.YELLOW + str(self.packagesIgnoredCount) + Style.RESET_ALL + ' would be ignored \n')
+                print('\n' + Fore.YELLOW + '(dry run) ' + Fore.GREEN + str(self.packagesToUpdateCount) + Style.RESET_ALL + ' packages would be updated, ' + Fore.YELLOW + str(self.packagesIgnoredCount) + Style.RESET_ALL + ' would be ignored \n')
             else:
-                print('\n ' + Fore.GREEN + str(self.packagesToUpdateCount) + Style.RESET_ALL + ' packages will be updated, ' + Fore.YELLOW + str(self.packagesIgnoredCount) + Style.RESET_ALL + ' will be ignored \n')
+                print('\n' + Fore.GREEN + str(self.packagesToUpdateCount) + Style.RESET_ALL + ' packages will be updated, ' + Fore.YELLOW + str(self.packagesIgnoredCount) + Style.RESET_ALL + ' will be ignored \n')
 
             # Convert the list of packages to a table
             table = []
@@ -330,7 +334,7 @@ class Package:
 
                 # Ask for user confirmation and quit if the answer is not 'y'
                 if not Utils().confirm(confirmMsg):
-                    print(Fore.YELLOW + ' Cancelled' + Style.RESET_ALL)
+                    print(Fore.YELLOW + 'Cancelled' + Style.RESET_ALL)
                     # Remove all exclusions before exiting
                     self.remove_all_exclusions()
                     self.exitController.clean_exit(0, False)
@@ -376,9 +380,9 @@ class Package:
         # Print the number of packages updated and failed
         # If there was a failed package, print the number in red
         if self.summary['update']['failed']['count'] > 0:
-            print('\n ' + Fore.GREEN + str(self.summary['update']['success']['count']) + Style.RESET_ALL + ' packages updated, ' + Fore.RED + str(self.summary['update']['failed']['count']) + Style.RESET_ALL + ' packages failed' + Style.RESET_ALL)
+            print('\n' + Fore.GREEN + str(self.summary['update']['success']['count']) + Style.RESET_ALL + ' packages updated, ' + Fore.RED + str(self.summary['update']['failed']['count']) + Style.RESET_ALL + ' packages failed' + Style.RESET_ALL)
         else:
-            print('\n ' + Fore.GREEN + str(self.summary['update']['success']['count']) + Style.RESET_ALL + ' packages updated, ' + str(self.summary['update']['failed']['count']) + ' packages failed' + Style.RESET_ALL)
+            print('\n' + Fore.GREEN + str(self.summary['update']['success']['count']) + Style.RESET_ALL + ' packages updated, ' + str(self.summary['update']['failed']['count']) + ' packages failed' + Style.RESET_ALL)
 
         # If there was a failed package update and the package update error is critical (set to true), then raise an exception to exit
         if exit_on_package_update_error == True and (self.summary['update']['failed']['count'] > 0 or self.summary['update']['status'] == 'failed'):

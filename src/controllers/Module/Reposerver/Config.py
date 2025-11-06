@@ -472,7 +472,7 @@ class Config:
         id = self.getId()
         token = self.getToken()
 
-        print('  ▪ Getting ' + Fore.YELLOW + profile + Style.RESET_ALL + ' profile packages configuration:', end=' ')
+        print(' ▪ Getting ' + Fore.YELLOW + profile + Style.RESET_ALL + ' profile packages configuration:', end=' ')
 
         # Check if getting profile packages configuration from reposerver is enabled
         if configuration['client']['get_packages_conf_from_reposerver']['enabled'] == False:
@@ -545,7 +545,7 @@ class Config:
         id = self.getId()
         token = self.getToken()
 
-        print('  ▪ Getting ' + Fore.YELLOW + profile + Style.RESET_ALL + ' profile repositories:', end=' ')
+        print(' ▪ Getting ' + Fore.YELLOW + profile + Style.RESET_ALL + ' profile repositories:', end=' ')
 
         # Check if getting profile packages configuration from reposerver is enabled
         if configuration['client']['get_repos_from_reposerver']['enabled'] == False:

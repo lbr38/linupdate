@@ -36,7 +36,7 @@ class Service:
             print('\n systemctl is not installed, skipping service reload')
             return
 
-        print('\n Reloading services')
+        print('\nReloading services:')
 
         # Reload services
         for service in services:
@@ -54,10 +54,10 @@ class Service:
 
             # If dry-run is enabled, just print the service that would be reloaded
             if dry_run:
-                print('  ▪ Would reload ' + Fore.YELLOW + service + Style.RESET_ALL)
+                print(' ▪ Would reload ' + Fore.YELLOW + service + Style.RESET_ALL)
                 continue
 
-            print('  ▪ Reloading ' + Fore.YELLOW + service + Style.RESET_ALL + ':', end=' ')
+            print(' ▪ Reloading ' + Fore.YELLOW + service + Style.RESET_ALL + ':', end=' ')
 
             # Check if service is active
             result = subprocess.run(
@@ -136,10 +136,10 @@ class Service:
 
             # If dry-run is enabled, just print the service that would be restarted
             if dry_run:
-                print('  ▪ Would restart ' + Fore.YELLOW + service + Style.RESET_ALL)
+                print(' ▪ Would restart ' + Fore.YELLOW + service + Style.RESET_ALL)
                 continue
 
-            print('  ▪ Restarting ' + Fore.YELLOW + service + Style.RESET_ALL + ':', end=' ')
+            print(' ▪ Restarting ' + Fore.YELLOW + service + Style.RESET_ALL + ':', end=' ')
 
             # Check if service is active
             result = subprocess.run(

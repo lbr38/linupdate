@@ -33,7 +33,7 @@ class Module:
     #-----------------------------------------------------------------------------------------------
     def list(self):
         # List all modules
-        print(' Available modules:')
+        print('Available modules:')
 
         for module in os.listdir('/opt/linupdate/src/controllers/Module'):
             # Ignore cache files
@@ -44,7 +44,7 @@ class Module:
             if not os.path.isdir('/opt/linupdate/src/controllers/Module/' + module):
                 continue
 
-            print(Fore.GREEN + '  ▪ ' + module.lower())
+            print(Fore.GREEN + ' ▪ ' + module.lower())
 
         print(Style.RESET_ALL, end='\n')
 
@@ -77,7 +77,7 @@ class Module:
                     raise Exception('Could not generate module ' + mod + ' configuration file /etc/linupdate/modules/' + mod + '.yml: ' + str(e))
 
             # Print enabled module
-            print(' Module ' + mod + Fore.GREEN + ' enabled' + Style.RESET_ALL)
+            print('Module ' + mod + Fore.GREEN + ' enabled' + Style.RESET_ALL)
 
         print('\n')
 
@@ -102,7 +102,7 @@ class Module:
                 self.configController.remove_module(mod)
 
             # Print disabled modules
-            print(' Module ' + mod + Fore.YELLOW + ' disabled' + Style.RESET_ALL)
+            print('Module ' + mod + Fore.YELLOW + ' disabled' + Style.RESET_ALL)
 
         print('\n')
 
@@ -156,7 +156,7 @@ class Module:
         if not configuration['modules']['enabled']:
             return
 
-        print(' Loading modules')
+        print('Loading modules:')
 
         # Loop through modules
         for module in configuration['modules']['enabled']:
@@ -172,7 +172,7 @@ class Module:
                 myModule = moduleClass()
                 myModule.load()
 
-                print(Fore.GREEN + '  ✔ ' + Style.RESET_ALL + module + ' module loaded ')
+                print(Fore.GREEN + ' ✔ ' + Style.RESET_ALL + module + ' module loaded ')
 
                 # Add module to the list of loaded modules
                 self.loadedModules.append(module)
@@ -189,7 +189,7 @@ class Module:
     def pre(self):
         for module in self.loadedModules:
             try:
-                print('\n Executing ' + Fore.YELLOW + module + Style.RESET_ALL + ' pre-update actions:')
+                print('\nExecuting ' + Fore.YELLOW + module + Style.RESET_ALL + ' pre-update actions:')
                 # Convert module name to uppercase first letter
                 moduleName = module.capitalize()
 
@@ -214,7 +214,7 @@ class Module:
     def post(self, updateSummary):
         for module in self.loadedModules:
             try:
-                print('\n Executing ' + Fore.YELLOW + module + Style.RESET_ALL + ' post-update actions:')
+                print('\nExecuting ' + Fore.YELLOW + module + Style.RESET_ALL + ' post-update actions:')
                 # Convert module name to uppercase first letter
                 moduleName = module.capitalize()
 

@@ -182,7 +182,7 @@ class Args:
             #
             if args.version != "null":
                 if args.version:
-                    print(' Current version: ' + Fore.GREEN + myApp.get_version() + Style.RESET_ALL, end='\n\n')
+                    print('Current version: ' + Fore.GREEN + myApp.get_version() + Style.RESET_ALL, end='\n\n')
                     myExit.clean_exit(0, False)
 
             #
@@ -211,14 +211,14 @@ class Args:
                         currentProfile = myAppConfig.get_profile()
 
                         # Print profile change
-                        print(' Switching from profile ' + Fore.GREEN + currentProfile + Style.RESET_ALL + ' to ' + Fore.GREEN + args.profile + Style.RESET_ALL, end='\n\n')
+                        print('Switching from profile ' + Fore.GREEN + currentProfile + Style.RESET_ALL + ' to ' + Fore.GREEN + args.profile + Style.RESET_ALL, end='\n\n')
 
                         # Set new profile
                         myAppConfig.set_profile(args.profile)
 
                     # Else print the current profile
                     else:
-                        print(' Current profile: ' + Fore.GREEN + myAppConfig.get_profile() + Style.RESET_ALL, end='\n\n')
+                        print('Current profile: ' + Fore.GREEN + myAppConfig.get_profile() + Style.RESET_ALL, end='\n\n')
 
                     myExit.clean_exit(0, False)
 
@@ -236,13 +236,13 @@ class Args:
                         currentEnvironment = myAppConfig.get_environment()
 
                         # Print environment change
-                        print(' Switching from environment ' + Fore.GREEN + currentEnvironment + Style.RESET_ALL + ' to ' + Fore.GREEN + args.env + Style.RESET_ALL, end='\n\n')
+                        print('Switching from environment ' + Fore.GREEN + currentEnvironment + Style.RESET_ALL + ' to ' + Fore.GREEN + args.env + Style.RESET_ALL, end='\n\n')
 
                         # Set new environment
                         myAppConfig.set_environment(args.env)
                     # Else print the current environment
                     else:
-                        print(' Current environment: ' + Fore.GREEN + myAppConfig.get_environment() + Style.RESET_ALL, end='\n\n')
+                        print('Current environment: ' + Fore.GREEN + myAppConfig.get_environment() + Style.RESET_ALL, end='\n\n')
 
                     myExit.clean_exit(0, False)
 
@@ -256,10 +256,10 @@ class Args:
                 try:
                     if args.mail_enable == 'true':
                         myAppConfig.set_mail_enable(True)
-                        print(' Mail sending ' + Fore.GREEN + 'enabled' + Style.RESET_ALL, end='\n\n')
+                        print('Mail sending ' + Fore.GREEN + 'enabled' + Style.RESET_ALL, end='\n\n')
                     else:
                         myAppConfig.set_mail_enable(False)
-                        print(' Mail sending ' + Fore.YELLOW  + 'disabled' + Style.RESET_ALL, end='\n\n')
+                        print('Mail sending ' + Fore.YELLOW  + 'disabled' + Style.RESET_ALL, end='\n\n')
 
                     myExit.clean_exit(0, False)
                 except Exception as e:
@@ -270,16 +270,16 @@ class Args:
             #
             if args.get_mail_recipient != "null":
                 try:
-                    print(' Current mail recipient(s): ' + Fore.GREEN)
+                    print('Current mail recipient(s): ' + Fore.GREEN)
 
                     recipients = myAppConfig.get_mail_recipient()
 
                     # If no recipient is set
                     if not recipients:
-                        print('  ▪ None')
+                        print(' ▪ None')
                     else:
                         for recipient in recipients:
-                            print('  ▪ ' + recipient)
+                            print(' ▪ ' + recipient)
 
                     print(Style.RESET_ALL, end='\n')
 
@@ -294,14 +294,14 @@ class Args:
                 try:
                     myAppConfig.set_mail_recipient(args.set_mail_recipient)
 
-                    print(' Mail recipient set to:' + Fore.GREEN)
+                    print('Mail recipient set to:' + Fore.GREEN)
 
                     # If no recipient is set
                     if not args.set_mail_recipient:
-                        print('  ▪ None')
+                        print(' ▪ None')
                     else:
                         for item in args.set_mail_recipient.split(","):
-                            print('  ▪ ' + item)
+                            print(' ▪ ' + item)
 
                     print(Style.RESET_ALL, end='\n')
 
@@ -314,7 +314,7 @@ class Args:
             #
             if args.get_mail_smtp_host != "null":
                 try:
-                    print(' Current mail SMTP host: ' + Fore.GREEN + myAppConfig.get_mail_smtp_host() + Style.RESET_ALL, end='\n\n')
+                    print('Current mail SMTP host: ' + Fore.GREEN + myAppConfig.get_mail_smtp_host() + Style.RESET_ALL, end='\n\n')
                     myExit.clean_exit(0, False)
                 except Exception as e:
                     raise ArgsException('Could not get mail SMTP host: ' + str(e))
@@ -325,7 +325,7 @@ class Args:
             if args.set_mail_smtp_host != "null":
                 try:
                     myAppConfig.set_mail_smtp_host(args.set_mail_smtp_host)
-                    print(' Mail SMTP host set to: ' + Fore.GREEN + args.set_mail_smtp_host + Style.RESET_ALL, end='\n\n')
+                    print('Mail SMTP host set to: ' + Fore.GREEN + args.set_mail_smtp_host + Style.RESET_ALL, end='\n\n')
                     myExit.clean_exit(0, False)
                 except Exception as e:
                     raise ArgsException('Could not set mail SMTP host: ' + str(e))
@@ -335,7 +335,7 @@ class Args:
             #
             if args.get_mail_smtp_port != "null":
                 try:
-                    print(' Current mail SMTP port: ' + Fore.GREEN + str(myAppConfig.get_mail_smtp_port()) + Style.RESET_ALL, end='\n\n')
+                    print('Current mail SMTP port: ' + Fore.GREEN + str(myAppConfig.get_mail_smtp_port()) + Style.RESET_ALL, end='\n\n')
                     myExit.clean_exit(0, False)
                 except Exception as e:
                     raise ArgsException('Could not get mail SMTP port: ' + str(e))
@@ -346,7 +346,7 @@ class Args:
             if args.set_mail_smtp_port != "null":
                 try:
                     myAppConfig.set_mail_smtp_port(args.set_mail_smtp_port)
-                    print(' Mail SMTP port set to: ' + Fore.GREEN + str(args.set_mail_smtp_port) + Style.RESET_ALL, end='\n\n')
+                    print('Mail SMTP port set to: ' + Fore.GREEN + str(args.set_mail_smtp_port) + Style.RESET_ALL, end='\n\n')
                     myExit.clean_exit(0, False)
                 except Exception as e:
                     raise ArgsException('Could not set mail SMTP port: ' + str(e))
@@ -407,10 +407,10 @@ class Args:
                 try:
                     if args.exit_on_package_update_error == 'true':
                         myAppConfig.set_exit_on_package_update_error(True)
-                        print(' Exit on package update error ' + Fore.GREEN + 'enabled' + Style.RESET_ALL, end='\n\n')
+                        print('Exit on package update error ' + Fore.GREEN + 'enabled' + Style.RESET_ALL, end='\n\n')
                     else:
                         myAppConfig.set_exit_on_package_update_error(False)
-                        print(' Exit on package update error ' + Fore.YELLOW  + 'disabled' + Style.RESET_ALL, end='\n\n')
+                        print('Exit on package update error ' + Fore.YELLOW  + 'disabled' + Style.RESET_ALL, end='\n\n')
 
                     myExit.clean_exit(0, False)
                 except Exception as e:
@@ -423,14 +423,14 @@ class Args:
                 try:
                     packages = myAppConfig.get_exclusion()
 
-                    print(' Currently excluded packages: ' + Fore.GREEN)
+                    print('Currently excluded packages: ' + Fore.GREEN)
 
                     # If no package is excluded
                     if not packages:
-                        print('  ▪ None')
+                        print(' ▪ None')
                     else:
                         for package in packages:
-                            print('  ▪ ' + package)
+                            print(' ▪ ' + package)
 
                     print(Style.RESET_ALL)
 
@@ -445,14 +445,14 @@ class Args:
                 try:
                     packages = myAppConfig.get_major_exclusion()
 
-                    print(' Currently excluded packages on major update: ' + Fore.GREEN)
+                    print('Currently excluded packages on major update: ' + Fore.GREEN)
 
                     # If no package is excluded
                     if not packages:
-                        print('  ▪ None')
+                        print(' ▪ None')
                     else:
                         for package in packages:
-                            print('  ▪ ' + package)
+                            print(' ▪ ' + package)
 
                     print(Style.RESET_ALL)
 
@@ -467,14 +467,14 @@ class Args:
                 try:
                     services = myAppConfig.get_service_to_reload()
 
-                    print(' Services to reload after package update: ' + Fore.GREEN)
+                    print('Services to reload after package update: ' + Fore.GREEN)
 
                     # If no service is set to reload
                     if not services:
-                        print('  ▪ None')
+                        print(' ▪ None')
                     else:
                         for service in services:
-                            print('  ▪ ' + service)
+                            print(' ▪ ' + service)
 
                     print(Style.RESET_ALL, end='\n')
 
@@ -489,14 +489,14 @@ class Args:
                 try:
                     services = myAppConfig.get_service_to_restart()
 
-                    print(' Services to restart after package update: ' + Fore.GREEN)
+                    print('Services to restart after package update: ' + Fore.GREEN)
 
                     # If no service is set to restart
                     if not services:
-                        print('  ▪ None')
+                        print(' ▪ None')
                     else:
                         for service in services:
-                            print('  ▪ ' + service)
+                            print(' ▪ ' + service)
 
                     print(Style.RESET_ALL, end='\n')
 
@@ -515,14 +515,14 @@ class Args:
                     # Print excluded packages
                     packages = myAppConfig.get_exclusion()
 
-                    print(' Excluding packages: ' + Fore.GREEN)
+                    print('Excluding packages: ' + Fore.GREEN)
 
                     # If no package is excluded
                     if not packages:
-                        print('  ▪ None')
+                        print(' ▪ None')
                     else:
                         for package in packages:
-                            print('  ▪ ' + package)
+                            print(' ▪ ' + package)
 
                     print(Style.RESET_ALL)
 
@@ -541,14 +541,14 @@ class Args:
                     # Print excluded packages
                     packages = myAppConfig.get_major_exclusion()
 
-                    print(' Excluding packages on major update: ' + Fore.GREEN)
+                    print('Excluding packages on major update: ' + Fore.GREEN)
 
                     # If no package is excluded
                     if not packages:
-                        print('  ▪ None')
+                        print(' ▪ None')
                     else:
                         for package in packages:
-                            print('  ▪ ' + package)
+                            print(' ▪ ' + package)
 
                     print(Style.RESET_ALL)
 
@@ -567,14 +567,14 @@ class Args:
                     # Print services to reload
                     services = myAppConfig.get_service_to_reload()
 
-                    print(' Setting services to reload after package update: ' + Fore.GREEN)
+                    print('Setting services to reload after package update: ' + Fore.GREEN)
 
                     # If no service is set to reload
                     if not services:
-                        print('  ▪ None')
+                        print(' ▪ None')
                     else:
                         for service in services:
-                            print('  ▪ ' + service)
+                            print(' ▪ ' + service)
 
                     print(Style.RESET_ALL)
 
@@ -593,14 +593,14 @@ class Args:
                     # Print services to restart
                     services = myAppConfig.get_service_to_restart()
 
-                    print(' Setting services to restart after package update: ' + Fore.GREEN)
+                    print('Setting services to restart after package update: ' + Fore.GREEN)
 
                     # If no service is set to restart
                     if not services:
-                        print('  ▪ None')
+                        print(' ▪ None')
                     else:
                         for service in services:
-                            print('  ▪ ' + service)
+                            print(' ▪ ' + service)
 
                     print(Style.RESET_ALL)
 
@@ -652,11 +652,11 @@ class Args:
                 try:
                     # If no CPU priority is set, get the current CPU priority
                     if not args.cpu_priority:
-                        print(' Current CPU priority is ' + Fore.GREEN + AppService().get_cpu_priority() + Style.RESET_ALL, end='\n\n')
+                        print('Current CPU priority is ' + Fore.GREEN + AppService().get_cpu_priority() + Style.RESET_ALL, end='\n\n')
                     else:
                         # Set CPU priority
                         AppService().set_cpu_priority(args.cpu_priority)
-                        print(' CPU priority set to ' + Fore.GREEN + str(args.cpu_priority) + Style.RESET_ALL, end='\n\n')
+                        print('CPU priority set to ' + Fore.GREEN + str(args.cpu_priority) + Style.RESET_ALL, end='\n\n')
 
                     myExit.clean_exit(0, False)
                 except Exception as e:
@@ -669,11 +669,11 @@ class Args:
                 try:
                     # If no memory limit is set, get the current memory limit
                     if not args.memory_limit:
-                        print(' Current memory limit is ' + Fore.GREEN + AppService().get_memory_limit() + Style.RESET_ALL, end='\n\n')
+                        print('Current memory limit is ' + Fore.GREEN + AppService().get_memory_limit() + Style.RESET_ALL, end='\n\n')
                     else:
                         # Set memory limit
                         AppService().set_memory_limit(args.memory_limit)
-                        print(' Memory limit set to ' + Fore.GREEN + str(args.memory_limit) + Style.RESET_ALL, end='\n\n')
+                        print('Memory limit set to ' + Fore.GREEN + str(args.memory_limit) + Style.RESET_ALL, end='\n\n')
 
                     myExit.clean_exit(0, False)
                 except Exception as e:
@@ -686,11 +686,11 @@ class Args:
                 try:
                     # If no OOM score is set, get the current OOM score
                     if not args.oom_score:
-                        print(' Current OOM score is ' + Fore.GREEN + AppService().get_oom_score() + Style.RESET_ALL, end='\n\n')
+                        print('Current OOM score is ' + Fore.GREEN + AppService().get_oom_score() + Style.RESET_ALL, end='\n\n')
                     else:
                         # Set OOM score
                         AppService().set_oom_score(args.oom_score)
-                        print(' OOM score set to ' + Fore.GREEN + str(args.oom_score) + Style.RESET_ALL, end='\n\n')
+                        print('OOM score set to ' + Fore.GREEN + str(args.oom_score) + Style.RESET_ALL, end='\n\n')
 
                     myExit.clean_exit(0, False)
                 except Exception as e:
@@ -984,12 +984,12 @@ class Args:
                 table.append(['', args_str, option['description']])
 
 
-            print(' Available options:', end='\n\n')
+            print('Available options:', end='\n\n')
 
             # Print table
             print(tabulate(table, headers=["", "Name", "Description"], tablefmt="simple"), end='\n\n')
 
-            print(' Usage: linupdate [OPTIONS]', end='\n\n')
+            print('Usage: linupdate [OPTIONS]', end='\n\n')
 
             del table, options, args_str
 
