@@ -199,19 +199,19 @@ jobs:
       # Upload package to repository
       - name: Upload packages to repositories
         run: | 
-          curl --fail-with-body -L --post301 -s -q -X POST -H "Authorization: Bearer ${{ secrets.REPOSITORY_TOKEN }}" -F "files=@$HOME/assets/linupdate_${{ env.VERSION }}_all.deb" ${{ secrets.REPOSITORY_URL }}/api/v2/snapshot/67/upload
-          curl --fail-with-body -L --post301 -s -q -X POST -H "Authorization: Bearer ${{ secrets.REPOSITORY_TOKEN }}" -F "files=@$HOME/assets/linupdate_${{ env.VERSION }}_all.deb" ${{ secrets.REPOSITORY_URL }}/api/v2/snapshot/66/upload
-          curl --fail-with-body -L --post301 -s -q -X POST -H "Authorization: Bearer ${{ secrets.REPOSITORY_TOKEN }}" -F "files=@$HOME/assets/linupdate_${{ env.VERSION }}_all.deb" ${{ secrets.REPOSITORY_URL }}/api/v2/snapshot/68/upload
-          curl --fail-with-body -L --post301 -s -q -X POST -H "Authorization: Bearer ${{ secrets.REPOSITORY_TOKEN }}" -F "files=@$HOME/assets/linupdate_${{ env.VERSION }}_all.deb" ${{ secrets.REPOSITORY_URL }}/api/v2/snapshot/73/upload
-          curl --fail-with-body -L --post301 -s -q -X POST -H "Authorization: Bearer ${{ secrets.REPOSITORY_TOKEN }}" -F "files=@$HOME/assets/linupdate-${{ env.VERSION }}.noarch.rpm" ${{ secrets.REPOSITORY_URL }}/api/v2/snapshot/476/upload
-          curl --fail-with-body -L --post301 -s -q -X POST -H "Authorization: Bearer ${{ secrets.REPOSITORY_TOKEN }}" -F "files=@$HOME/assets/linupdate-${{ env.VERSION }}.noarch.rpm" ${{ secrets.REPOSITORY_URL }}/api/v2/snapshot/541/upload
+          curl --fail-with-body -L --post301 -s -q -X POST -H "Authorization: Bearer ${{ secrets.REPOSITORY_UPLOAD_TOKEN }}" -F "files=@$HOME/assets/linupdate_${{ env.VERSION }}_all.deb" ${{ secrets.REPOSITORY_UPLOAD_URL }}/api/v2/snapshot/67/upload
+          curl --fail-with-body -L --post301 -s -q -X POST -H "Authorization: Bearer ${{ secrets.REPOSITORY_UPLOAD_TOKEN }}" -F "files=@$HOME/assets/linupdate_${{ env.VERSION }}_all.deb" ${{ secrets.REPOSITORY_UPLOAD_URL }}/api/v2/snapshot/66/upload
+          curl --fail-with-body -L --post301 -s -q -X POST -H "Authorization: Bearer ${{ secrets.REPOSITORY_UPLOAD_TOKEN }}" -F "files=@$HOME/assets/linupdate_${{ env.VERSION }}_all.deb" ${{ secrets.REPOSITORY_UPLOAD_URL }}/api/v2/snapshot/68/upload
+          curl --fail-with-body -L --post301 -s -q -X POST -H "Authorization: Bearer ${{ secrets.REPOSITORY_UPLOAD_TOKEN }}" -F "files=@$HOME/assets/linupdate_${{ env.VERSION }}_all.deb" ${{ secrets.REPOSITORY_UPLOAD_URL }}/api/v2/snapshot/73/upload
+          curl --fail-with-body -L --post301 -s -q -X POST -H "Authorization: Bearer ${{ secrets.REPOSITORY_UPLOAD_TOKEN }}" -F "files=@$HOME/assets/linupdate-${{ env.VERSION }}.noarch.rpm" ${{ secrets.REPOSITORY_UPLOAD_URL }}/api/v2/snapshot/476/upload
+          curl --fail-with-body -L --post301 -s -q -X POST -H "Authorization: Bearer ${{ secrets.REPOSITORY_UPLOAD_TOKEN }}" -F "files=@$HOME/assets/linupdate-${{ env.VERSION }}.noarch.rpm" ${{ secrets.REPOSITORY_UPLOAD_URL }}/api/v2/snapshot/541/upload
 
       # Rebuild repositories metadata
       - name: Rebuild repositories
         run: |
-          curl --fail-with-body -X PUT -H "Authorization: Bearer ${{ secrets.REPOSITORY_TOKEN }}" -d '{"gpgSign":"true"}' ${{ secrets.REPOSITORY_URL }}/api/v2/snapshot/67/rebuild
-          curl --fail-with-body -X PUT -H "Authorization: Bearer ${{ secrets.REPOSITORY_TOKEN }}" -d '{"gpgSign":"true"}' ${{ secrets.REPOSITORY_URL }}/api/v2/snapshot/66/rebuild
-          curl --fail-with-body -X PUT -H "Authorization: Bearer ${{ secrets.REPOSITORY_TOKEN }}" -d '{"gpgSign":"true"}' ${{ secrets.REPOSITORY_URL }}/api/v2/snapshot/68/rebuild
-          curl --fail-with-body -X PUT -H "Authorization: Bearer ${{ secrets.REPOSITORY_TOKEN }}" -d '{"gpgSign":"true"}' ${{ secrets.REPOSITORY_URL }}/api/v2/snapshot/73/rebuild
-          curl --fail-with-body -X PUT -H "Authorization: Bearer ${{ secrets.REPOSITORY_TOKEN }}" -d '{"gpgSign":"true"}' ${{ secrets.REPOSITORY_URL }}/api/v2/snapshot/476/rebuild
-          curl --fail-with-body -X PUT -H "Authorization: Bearer ${{ secrets.REPOSITORY_TOKEN }}" -d '{"gpgSign":"true"}' ${{ secrets.REPOSITORY_URL }}/api/v2/snapshot/541/rebuild
+          curl --fail-with-body -X PUT -H "Authorization: Bearer ${{ secrets.REPOSITORY_UPLOAD_TOKEN }}" -d '{"gpgSign":"true"}' ${{ secrets.REPOSITORY_UPLOAD_URL }}/api/v2/snapshot/67/rebuild
+          curl --fail-with-body -X PUT -H "Authorization: Bearer ${{ secrets.REPOSITORY_UPLOAD_TOKEN }}" -d '{"gpgSign":"true"}' ${{ secrets.REPOSITORY_UPLOAD_URL }}/api/v2/snapshot/66/rebuild
+          curl --fail-with-body -X PUT -H "Authorization: Bearer ${{ secrets.REPOSITORY_UPLOAD_TOKEN }}" -d '{"gpgSign":"true"}' ${{ secrets.REPOSITORY_UPLOAD_URL }}/api/v2/snapshot/68/rebuild
+          curl --fail-with-body -X PUT -H "Authorization: Bearer ${{ secrets.REPOSITORY_UPLOAD_TOKEN }}" -d '{"gpgSign":"true"}' ${{ secrets.REPOSITORY_UPLOAD_URL }}/api/v2/snapshot/73/rebuild
+          curl --fail-with-body -X PUT -H "Authorization: Bearer ${{ secrets.REPOSITORY_UPLOAD_TOKEN }}" -d '{"gpgSign":"true"}' ${{ secrets.REPOSITORY_UPLOAD_URL }}/api/v2/snapshot/476/rebuild
+          curl --fail-with-body -X PUT -H "Authorization: Bearer ${{ secrets.REPOSITORY_UPLOAD_TOKEN }}" -d '{"gpgSign":"true"}' ${{ secrets.REPOSITORY_UPLOAD_URL }}/api/v2/snapshot/541/rebuild
