@@ -102,10 +102,10 @@ jobs:
         run: python3 /opt/linupdate/linupdate.py --mod-enable reposerver
 
       - name: "Run test: configure reposerver module"
-        run: python3 /opt/linupdate/linupdate.py --mod-configure reposerver --url ${{ secrets.REPOSITORY_URL }}
+        run: python3 /opt/linupdate/linupdate.py --mod-configure reposerver --url ${{ secrets.REPOSITORY_TEST_URL }}
 
       - name: "Run test: register to reposerver"
-        run: python3 /opt/linupdate/linupdate.py --mod-configure reposerver --api-key ${{ secrets.REPOSITORY_TOKEN }} --register
+        run: python3 /opt/linupdate/linupdate.py --mod-configure reposerver --api-key ${{ secrets.REPOSITORY_TEST_TOKEN }} --register
 
       - name: "Run test: send all informations to reposerver"
         run: python3 /opt/linupdate/linupdate.py --mod-configure reposerver --send-all-info
