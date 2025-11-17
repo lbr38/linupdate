@@ -89,12 +89,12 @@ class Status:
     #
     #-----------------------------------------------------------------------------------------------
     def sendAvailablePackagesStatus(self):
+        list = []
+
         # Retrieve URL, ID and token
         url = self.reposerverConfigController.getUrl()
         id = self.reposerverConfigController.getId()
         token = self.reposerverConfigController.getToken()
-
-        available_packages = 'none'
 
         print('\n▪ Building available packages list...')
 
@@ -104,11 +104,10 @@ class Status:
             packages = self.packageController.get_available_packages(True)
 
             if len(packages) > 0:
-                available_packages = ''
-
                 for package in packages:
                     name = package['name']
-                    available_version = package['target_version']
+                    version = package['target_version']
+                    repository = package['repository']
 
                     # Ignore package if name is empty
                     if name == '':
@@ -117,18 +116,21 @@ class Status:
                     # Redhat only
                     if self.systemController.get_os_family() == 'Redhat':
                         # Remove epoch if it is equal to 0
-                        if available_version.startswith('0:'):
-                            available_version = available_version[2:]
+                        if version.startswith('0:'):
+                            version = version[2:]
 
-                    # Add package name, its available version to the available_packages string
-                    available_packages += name + '|' + available_version + ','
+                    # Add package name, version and repository to the available_packages list
+                    list.append({
+                        'name': name,
+                        'version': version,
+                        'repository': repository
+                    })
 
-                # Remove last comma
-                available_packages = available_packages[:-1]
+                    del name, version, repository
 
             # Convert to JSON
             data = {
-                'available_packages': available_packages
+                'available_packages': list
             }
 
         except Exception as e:
@@ -141,7 +143,7 @@ class Status:
         self.httpRequestController.quiet = False
         self.httpRequestController.put(url + '/api/v2/host/packages/available', id, token, data, 5, 10)
 
-        del url, id, token, available_packages, packages, data
+        del url, id, token, packages, data, list
 
 
     #-----------------------------------------------------------------------------------------------
@@ -150,12 +152,12 @@ class Status:
     #
     #-----------------------------------------------------------------------------------------------
     def sendInstalledPackagesStatus(self):
+        list = []
+
         # Retrieve URL, ID and token
         url = self.reposerverConfigController.getUrl()
         id = self.reposerverConfigController.getId()
         token = self.reposerverConfigController.getToken()
-
-        installed_packages = ''
 
         print('\n▪ Building installed packages list...')
 
@@ -165,22 +167,18 @@ class Status:
 
             if len(packages) > 0:
                 for package in packages:
-                    name = package['name']
-                    version = package['version']
-
                     # Ignore package if name or version is empty
-                    if name == '' or version == '':
+                    if package['name'] == '' or package['version'] == '':
                         continue
 
-                    # Add package name, its available version to the installed_packages string
-                    installed_packages += name + '|' + version + ','
-
-                # Remove last comma
-                installed_packages = installed_packages[:-1]
+                    list.append({
+                        'name': package['name'],
+                        'version': package['version']
+                    })
 
             # Convert to JSON
             data = {
-                'installed_packages': installed_packages
+                'installed_packages': list
             }
 
         except Exception as e:
@@ -193,7 +191,7 @@ class Status:
         self.httpRequestController.quiet = False
         self.httpRequestController.put(url + '/api/v2/host/packages/installed', id, token, data, 5, 10)
 
-        del url, id, token, installed_packages, packages, data
+        del url, id, token, packages, data
 
 
     #-----------------------------------------------------------------------------------------------

@@ -80,31 +80,31 @@ jobs:
         run: python3 /opt/linupdate/linupdate.py --mail-enable false
 
       - name: "Run test: set mail recipient"
-        run: python3 /opt/linupdate/linupdate.py --set-mail-recipient test@mail.com,test2@mail.com
+        run: python3 /opt/linupdate/linupdate.py --mail-recipient test@mail.com,test2@mail.com
 
       - name: "Run test: set mail smtp host"
-        run: python3 /opt/linupdate/linupdate.py --set-mail-smtp-host localhost
+        run: python3 /opt/linupdate/linupdate.py --mail-smtp-host localhost
 
       - name: "Run test: get mail smtp host"
-        run: python3 /opt/linupdate/linupdate.py --get-mail-smtp-host
+        run: python3 /opt/linupdate/linupdate.py --mail-smtp-host
 
       - name: "Run test: set mail smtp port"
-        run: python3 /opt/linupdate/linupdate.py --set-mail-smtp-port 25
+        run: python3 /opt/linupdate/linupdate.py --mail-smtp-port 25
 
       - name: "Run test: get mail smtp port"
-        run: python3 /opt/linupdate/linupdate.py --get-mail-smtp-port
+        run: python3 /opt/linupdate/linupdate.py --mail-smtp-port
 
       - name: "Run test: set package exclusions"
         run: python3 /opt/linupdate/linupdate.py --exclude "kernel.*"
 
       - name: "Run test: get package exclusions"
-        run: python3 /opt/linupdate/linupdate.py --get-exclude
+        run: python3 /opt/linupdate/linupdate.py --exclude
 
       - name: "Run test: set package exclusions on major update"
         run: python3 /opt/linupdate/linupdate.py --exclude-major "httpd,mysql.*"
 
       - name: "Run test: get package exclusions on major update"
-        run: python3 /opt/linupdate/linupdate.py --get-exclude-major
+        run: python3 /opt/linupdate/linupdate.py --exclude-major
 
       - name: "Run test: set services to reload after update"
         run: python3 /opt/linupdate/linupdate.py --service-reload "nginx"
@@ -113,7 +113,7 @@ jobs:
         run: python3 /opt/linupdate/linupdate.py --service-restart "httpd,mysql"
 
       - name: "Run test: get services to restart after update"
-        run: python3 /opt/linupdate/linupdate.py --get-service-restart
+        run: python3 /opt/linupdate/linupdate.py --service-restart
 
       - name: "Run test: check updates"
         run: python3 /opt/linupdate/linupdate.py --check-updates

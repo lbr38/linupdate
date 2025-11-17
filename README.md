@@ -12,19 +12,16 @@ Using ``apt`` and ``dnf``, it provides basic and avanced update features especia
 
 linupdate is a modular tool. New modules could be added in the future to improve the update experience.
 
-![alt text](https://github.com/user-attachments/assets/a028db13-d7ef-4b1c-9d01-3fd40b0e538e)
+![alt text](https://github.com/user-attachments/assets/f1eed81d-af86-4738-98b5-3e41c5cfe069)
 
 <h2>Requirements</h2>
 
-**linupdate** ``3`` is regulary tested and should run fine on following systems with python3 installed:
+**linupdate** is regulary tested and should run fine on following systems (python3 required):
 
-- Debian 11, 12 and derivatives (Ubuntu, Mint, ...)
-- CentOS 8, 9 and derivatives (Rocky, Alma, ...)
+- **Debian 11, 12** and derivatives (Ubuntu, Mint, ...)
+- **RHEL 9, 10** and derivatives (CentOS, Rocky, Alma, ...)
 
-Older OS can still run **linupdate** ``2.x.x`` (bash version) but will not be supported anymore:
-
-- Debian 10
-- CentOS 7
+RHEL 8 and derivatives are not supported anymore.
 
 <h2>Installation and documentation</h2>
 
@@ -36,25 +33,24 @@ It should help you **installing** and starting using linupdate.
 <h2>Parameters</h2>
 
 <pre>
- Available options:
+Available options:
 
     Name                                         Description
---  -------------------------------------------  --------------------------------------------------------------------------------------------------
+--  -------------------------------------------  ----------------------------------------------------------------------------------------------------------------------------------------------------------------------
     --help, -h                                   Show help
     --show-config, -sc                           Show raw configuration
     --version, -v                                Show version
+    --debug                                      Enable debug mode
     
     Global configuration options
     
-    --profile, -p [PROFILE]                      Print current profile or set profile
-    --env, -e [ENVIRONMENT]                      Print current environment or set environment
+    --profile, -p [PROFILE]                      Print or set profile
+    --env, -e [ENVIRONMENT]                      Print or set environment
     --mail-enable [true|false]                   Enable or disable mail reports
-    --get-mail-recipient                         Get current mail recipient(s)
-    --set-mail-recipient [EMAIL]                 Set mail recipient(s) (separated by commas)
-    --get-mail-smtp-host                         Get current mail SMTP host
-    --set-mail-smtp-host [HOST]                  Set mail SMTP host
-    --get-mail-smtp-port                         Get current mail SMTP port
-    --set-mail-smtp-port [PORT]                  Set mail SMTP port
+    --mail-recipient [EMAIL]                     Print or set mail recipient(s) (separated by commas)
+                                                 Specify "None" to clear the recipient list
+    --mail-smtp-host [HOST]                      Print or set mail SMTP host
+    --mail-smtp-port [PORT]                      Print or set mail SMTP port
     
     Update options
     
@@ -69,20 +65,30 @@ It should help you **installing** and starting using linupdate.
     
     Packages exclusion and services restart
     
-    --get-exclude                                Get the current list of packages to exclude from update
-    --get-exclude-major                          Get the current list of packages to exclude from update (if package has a major version update)
-    --get-service-restart                        Get the current list of services to restart after package update
-    --exclude [PACKAGE]                          Set packages to exclude from update (separated by commas)
-    --exclude-major [PACKAGE]                    Set packages to exclude from update (if package has a major version update) (separated by commas)
-    --service-restart [SERVICE]                  Set services to restart after package update (separated by commas)
+    --exclude [PACKAGE]                          Print or set packages to exclude from update (separated by commas)
+                                                 Regex pattern ".*" can be used to match multiple packages. Example: --exclude php.*
+                                                 Specify "None" to clear the exclusion list
+    --exclude-major [PACKAGE]                    Print or set packages to exclude from update (if package has a major version update) (separated by commas)
+                                                 Regex pattern ".*" can be used to match multiple packages. Example: --exclude-major php.*
+                                                 Specify "None" to clear the major update exclusion list
+    --service-reload [SERVICE]                   Print or set services to reload after package update (separated by commas)
+                                                 Specify "None" to clear the service reload list
+    --service-restart [SERVICE]                  Print or set services to restart after package update (separated by commas)
+                                                 Specify "None" to clear the service restart list
     
     Modules
     
     --mod-list                                   List available modules
     --mod-enable [MODULE]                        Enable a module
     --mod-disable [MODULE]                       Disable a module
+    
+    Service tuning
+    
+    --cpu-priority [high, medium, low]           Print or set CPU priority for the linupdate service. Lower priority means less CPU usage but also more time to complete service operations - default is high
+    --memory-limit [bytes]                       Print or set memory limit for the linupdate service in bytes - default is 1G
+    --oom-score [-1000 to 1000]                  Print or set OOM (Out Of Memory) score for the linupdate service - the higher the value, the more likely the service will be killed by the OOM killer - default is 500
 
- Usage: linupdate [OPTIONS]
+Usage: linupdate [OPTIONS]
 </pre>
 
 <h2>Contact</h2>
