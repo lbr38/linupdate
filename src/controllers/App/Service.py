@@ -5,7 +5,6 @@ import subprocess
 import signal
 import sys
 import importlib
-import subprocess
 import time
 import configparser
 from pathlib import Path

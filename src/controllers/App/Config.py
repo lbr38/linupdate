@@ -19,7 +19,7 @@ class Config:
     #   Return linupdate configuration from config file
     #
     #-----------------------------------------------------------------------------------------------
-    def get_conf(self):
+    def get_conf(self) -> dict:
         # Open main YAML config file:
         with open(self.config_file) as stream:
             try:
@@ -49,7 +49,7 @@ class Config:
     #   Check if the config file exists and if it contains the required parameters
     #
     #-----------------------------------------------------------------------------------------------
-    def check_conf(self):
+    def check_conf(self) -> None:
         try:
             # Check if main config file exists
             if not Path(self.config_file).is_file():
@@ -160,7 +160,7 @@ class Config:
     #   Generate config files if not exist
     #
     #-----------------------------------------------------------------------------------------------
-    def generate_conf(self):
+    def generate_conf(self) -> None:
         # If main config file does not exist, generate it
         if not Path(self.config_file).is_file():
             # Copy default configuration file
@@ -183,7 +183,7 @@ class Config:
     #   Write linupdate configuration to config file
     #
     #-----------------------------------------------------------------------------------------------
-    def write_conf(self, configuration):
+    def write_conf(self, configuration) -> None:
         # Use custom Yaml class to keep the order of the keys
         yaml = Yaml()
 
@@ -226,7 +226,7 @@ class Config:
     #   Print linupdate configuration to console (yaml format)
     #
     #-----------------------------------------------------------------------------------------------
-    def show_config(self):
+    def show_config(self) -> None:
         try:
             # Open main YAML config file:
             with open(self.config_file) as stream:
@@ -291,7 +291,7 @@ class Config:
     #   Return linupdate profile from config file
     #
     #-----------------------------------------------------------------------------------------------
-    def get_profile(self):
+    def get_profile(self) -> str:
         # Get current configuration
         configuration = self.get_conf()
 
@@ -303,7 +303,7 @@ class Config:
     #   Set linupdate profile in config file
     #
     #-----------------------------------------------------------------------------------------------
-    def set_profile(self, profile):
+    def set_profile(self, profile) -> None:
         # Get current configuration
         configuration = self.get_conf()
 
@@ -319,7 +319,7 @@ class Config:
     #   Return linupdate environment from config file
     #
     #-----------------------------------------------------------------------------------------------
-    def get_environment(self):
+    def get_environment(self) -> str:
         # Get current configuration
         configuration = self.get_conf()
 
@@ -331,7 +331,7 @@ class Config:
     #   Set linupdate environment in config file
     #
     #-----------------------------------------------------------------------------------------------
-    def set_environment(self, environment):
+    def set_environment(self, environment) -> None:
         # Get current configuration
         configuration = self.get_conf()
 
@@ -347,7 +347,7 @@ class Config:
     #   Enable or disable mail alert
     #
     #-----------------------------------------------------------------------------------------------
-    def set_mail_enable(self, enabled: bool):
+    def set_mail_enable(self, enabled: bool) -> None:
         # Get current configuration
         configuration = self.get_conf()
 
@@ -363,7 +363,7 @@ class Config:
     #   Get mail alert status
     #
     #-----------------------------------------------------------------------------------------------
-    def get_mail_enabled(self):
+    def get_mail_enabled(self) -> bool:
         # Get current configuration
         configuration = self.get_conf()
 
@@ -375,12 +375,12 @@ class Config:
     #   Get mail recipient(s)
     #
     #-----------------------------------------------------------------------------------------------
-    def set_mail_recipient(self, recipient: str = None):
+    def set_mail_recipient(self, recipient: str = 'None') -> None:
         # Get current configuration
         configuration = self.get_conf()
 
-        # If no recipient to set, set empty list
-        if not recipient:
+        # If recipient is set to 'None', set empty list
+        if recipient == 'None':
             configuration['main']['mail']['recipient'] = []
 
         else:
@@ -399,7 +399,7 @@ class Config:
     #   Get mail recipient(s)
     #
     #-----------------------------------------------------------------------------------------------
-    def get_mail_recipient(self):
+    def get_mail_recipient(self) -> list:
         # Get current configuration
         configuration = self.get_conf()
 
@@ -411,7 +411,7 @@ class Config:
     #   Set mail smtp host
     #
     #-----------------------------------------------------------------------------------------------
-    def set_mail_smtp_host(self, smtp_host: str):
+    def set_mail_smtp_host(self, smtp_host: str) -> None:
         # Get current configuration
         configuration = self.get_conf()
 
@@ -427,7 +427,7 @@ class Config:
     #   Get mail smtp host
     #
     #-----------------------------------------------------------------------------------------------
-    def get_mail_smtp_host(self):
+    def get_mail_smtp_host(self) -> str:
         smtp_host = 'localhost'
 
         # Get current configuration
@@ -445,7 +445,7 @@ class Config:
     #   Set mail smtp host port
     #
     #-----------------------------------------------------------------------------------------------
-    def set_mail_smtp_port(self, smtp_port: int):
+    def set_mail_smtp_port(self, smtp_port: int) -> None:
         # Get current configuration
         configuration = self.get_conf()
 
@@ -461,7 +461,7 @@ class Config:
     #   Get mail smtp host port
     #
     #-----------------------------------------------------------------------------------------------
-    def get_mail_smtp_port(self):
+    def get_mail_smtp_port(self) -> int:
         smtp_port = 25
 
         # Get current configuration
@@ -479,7 +479,7 @@ class Config:
     #   Set exit on package update error
     #
     #-----------------------------------------------------------------------------------------------
-    def set_exit_on_package_update_error(self, exit_on_package_update_error: bool):
+    def set_exit_on_package_update_error(self, exit_on_package_update_error: bool) -> None:
         # Get current configuration
         configuration = self.get_conf()
 
@@ -495,7 +495,7 @@ class Config:
     #   Return linupdate packages exclude list from config file
     #
     #-----------------------------------------------------------------------------------------------
-    def get_exclusion(self):
+    def get_exclusion(self) -> list:
         # Get current configuration
         configuration = self.get_conf()
 
@@ -507,12 +507,12 @@ class Config:
     #   Set linupdate packages exclude list in config file
     #
     #-----------------------------------------------------------------------------------------------
-    def set_exclusion(self, exclude: str = None):
+    def set_exclusion(self, exclude: str = 'None') -> None:
         # Get current configuration
         configuration = self.get_conf()
 
-        # If no package to exclude, set empty list
-        if not exclude:
+        # If exclude is set to 'None', set empty list
+        if exclude == 'None':
             configuration['update']['packages']['exclude']['always'] = []
 
         else:
@@ -531,7 +531,7 @@ class Config:
     #   Return linupdate packages exclude list on major update from config file
     #
     #-----------------------------------------------------------------------------------------------
-    def get_major_exclusion(self):
+    def get_major_exclusion(self) -> list:
         # Get current configuration
         configuration = self.get_conf()
 
@@ -543,12 +543,12 @@ class Config:
     #   Set linupdate packages exclude list on major update in config file
     #
     #-----------------------------------------------------------------------------------------------
-    def set_major_exclusion(self, exclude: str = None):
+    def set_major_exclusion(self, exclude: str ='None') -> None:
         # Get current configuration
         configuration = self.get_conf()
 
-        # If no package to exclude, set empty list
-        if not exclude:
+        # If exclude is set to 'None', set empty list
+        if exclude == 'None':
             configuration['update']['packages']['exclude']['on_major_update'] = []
 
         else:
@@ -567,7 +567,7 @@ class Config:
     #   Get services to reload
     #
     #-----------------------------------------------------------------------------------------------
-    def get_service_to_reload(self):
+    def get_service_to_reload(self) -> list:
         # Get current configuration
         configuration = self.get_conf()
 
@@ -579,12 +579,12 @@ class Config:
     #   Set services to reload
     #
     #-----------------------------------------------------------------------------------------------
-    def set_service_to_reload(self, services: str = None):
+    def set_service_to_reload(self, services: str = 'None') -> None:
         # Get current configuration
         configuration = self.get_conf()
 
-        # If no service to reload, set empty list
-        if not services:
+        # If services is set to 'None', set empty list
+        if services == 'None':
             configuration['post_update']['services']['reload'] = []
 
         else:
@@ -603,7 +603,7 @@ class Config:
     #   Get services to restart
     #
     #-----------------------------------------------------------------------------------------------
-    def get_service_to_restart(self):
+    def get_service_to_restart(self) -> list:
         # Get current configuration
         configuration = self.get_conf()
 
@@ -615,12 +615,12 @@ class Config:
     #   Set services to restart
     #
     #-----------------------------------------------------------------------------------------------
-    def set_service_to_restart(self, services: str = None):
+    def set_service_to_restart(self, services: str = 'None') -> None:
         # Get current configuration
         configuration = self.get_conf()
 
-        # If no service to restart, set empty list
-        if not services:
+        # If services is set to 'None', set empty list
+        if services == 'None':
             configuration['post_update']['services']['restart'] = []
 
         else:
@@ -639,7 +639,7 @@ class Config:
     #   Append a module to the enabled list
     #
     #-----------------------------------------------------------------------------------------------
-    def append_module(self, module):
+    def append_module(self, module) -> None:
         # Get current configuration
         configuration = self.get_conf()
 
@@ -655,7 +655,7 @@ class Config:
     #   Remove a module from the enabled list
     #
     #-----------------------------------------------------------------------------------------------
-    def remove_module(self, module):
+    def remove_module(self, module) -> None:
         # Get current configuration
         configuration = self.get_conf()
 

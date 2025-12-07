@@ -56,18 +56,12 @@ class Args:
             parser.add_argument("--env", "-e", action="store", nargs='?', default="null")
             # Mail alert enable
             parser.add_argument("--mail-enable", action="store", nargs='?', default="null")
-            # Get mail recipient
-            parser.add_argument("--get-mail-recipient", action="store_true", default="null")
             # Set mail recipient
-            parser.add_argument("--set-mail-recipient", action="store", nargs='?', default="null")
-            # Get mail smtp host
-            parser.add_argument("--get-mail-smtp-host", action="store_true", default="null")
+            parser.add_argument("--mail-recipient", action="store", nargs='?', default="null")
             # Set mail smtp host
-            parser.add_argument("--set-mail-smtp-host", action="store", nargs='?', default="null")
-            # Get mail smtp port
-            parser.add_argument("--get-mail-smtp-port", action="store_true", default="null")
+            parser.add_argument("--mail-smtp-host", action="store", nargs='?', default="null")
             # Set mail smtp port
-            parser.add_argument("--set-mail-smtp-port", action="store", nargs='?', default="null")
+            parser.add_argument("--mail-smtp-port", action="store", nargs='?', default="null")
 
             # Packages to update list
             parser.add_argument("--update", "-u", action="store", nargs='?', default="null")
@@ -86,14 +80,6 @@ class Args:
             # Exit on package update error
             parser.add_argument("--exit-on-package-update-error", action="store", nargs='?', default="null")
 
-            # Get excluded packages
-            parser.add_argument("--get-exclude", action="store", nargs='?', default="null")
-            # Get excluded packages on major update
-            parser.add_argument("--get-exclude-major", action="store", nargs='?', default="null")
-            # Get services to reload after package update
-            parser.add_argument("--get-service-reload", action="store", nargs='?', default="null")
-            # Get services to restart after package update
-            parser.add_argument("--get-service-restart", action="store", nargs='?', default="null")
             # Exclude
             parser.add_argument("--exclude", action="store", nargs='?', default="null")
             # Exclude on major update
@@ -254,99 +240,86 @@ class Args:
             #
             if args.mail_enable != "null":
                 try:
-                    if args.mail_enable == 'true':
-                        myAppConfig.set_mail_enable(True)
-                        print('Mail sending ' + Fore.GREEN + 'enabled' + Style.RESET_ALL, end='\n\n')
+                    if not args.mail_enable:
+                        status = Fore.GREEN + 'enabled' if myAppConfig.get_mail_enabled() else Fore.YELLOW + 'disabled'
+
+                        print('Mail sending is currently ' + status + Style.RESET_ALL, end='\n\n')
                     else:
-                        myAppConfig.set_mail_enable(False)
-                        print('Mail sending ' + Fore.YELLOW  + 'disabled' + Style.RESET_ALL, end='\n\n')
+                        if args.mail_enable == 'true':
+                            myAppConfig.set_mail_enable(True)
+                            print('Mail sending is now ' + Fore.GREEN + 'enabled' + Style.RESET_ALL, end='\n\n')
+                        else:
+                            myAppConfig.set_mail_enable(False)
+                            print('Mail sending is now ' + Fore.YELLOW  + 'disabled' + Style.RESET_ALL, end='\n\n')
 
                     myExit.clean_exit(0, False)
                 except Exception as e:
                     raise ArgsException('Could not configure mail: ' + str(e))
 
             #
-            # If --get-mail-recipient param has been set
+            # If --mail-recipient param has been set
             #
-            if args.get_mail_recipient != "null":
+            if args.mail_recipient != "null":
                 try:
-                    print('Current mail recipient(s): ' + Fore.GREEN)
+                    if not args.mail_recipient:
+                        print('Current mail recipient(s): ' + Fore.GREEN)
 
-                    recipients = myAppConfig.get_mail_recipient()
+                        recipients = myAppConfig.get_mail_recipient()
 
-                    # If no recipient is set
-                    if not recipients:
-                        print(' ▪ None')
+                        # If no recipient is set
+                        if not recipients:
+                            print(' ▪ None')
+                        else:
+                            for recipient in recipients:
+                                print(' ▪ ' + recipient)
+
+                        print(Style.RESET_ALL, end='\n')
                     else:
-                        for recipient in recipients:
-                            print(' ▪ ' + recipient)
+                        myAppConfig.set_mail_recipient(args.mail_recipient)
 
-                    print(Style.RESET_ALL, end='\n')
+                        print('Mail recipient set to:' + Fore.GREEN)
 
-                    myExit.clean_exit(0, False)
-                except Exception as e:
-                    raise ArgsException('Could not get mail recipient(s): ' + str(e))
+                        recipients = myAppConfig.get_mail_recipient()
 
-            #
-            # If --set-mail-recipient param has been set
-            #
-            if args.set_mail_recipient != "null":
-                try:
-                    myAppConfig.set_mail_recipient(args.set_mail_recipient)
+                        # If no recipient is set
+                        if not recipients:
+                            print(' ▪ None')
+                        else:
+                            for recipient in recipients:
+                                print(' ▪ ' + recipient)
 
-                    print('Mail recipient set to:' + Fore.GREEN)
-
-                    # If no recipient is set
-                    if not args.set_mail_recipient:
-                        print(' ▪ None')
-                    else:
-                        for item in args.set_mail_recipient.split(","):
-                            print(' ▪ ' + item)
-
-                    print(Style.RESET_ALL, end='\n')
+                        print(Style.RESET_ALL, end='\n')
 
                     myExit.clean_exit(0, False)
                 except Exception as e:
                     raise ArgsException('Could not set mail recipient(s): ' + str(e))
 
             #
-            # If --get-mail-smtp-host param has been set
+            # If --mail-smtp-host param has been set
             #
-            if args.get_mail_smtp_host != "null":
+            if args.mail_smtp_host != "null":
                 try:
-                    print('Current mail SMTP host: ' + Fore.GREEN + myAppConfig.get_mail_smtp_host() + Style.RESET_ALL, end='\n\n')
-                    myExit.clean_exit(0, False)
-                except Exception as e:
-                    raise ArgsException('Could not get mail SMTP host: ' + str(e))
+                    if not args.mail_smtp_host:
+                        print('Current mail SMTP host: ' + Fore.GREEN + myAppConfig.get_mail_smtp_host() + Style.RESET_ALL, end='\n\n')
+                    else:
+                        myAppConfig.set_mail_smtp_host(args.mail_smtp_host)
+                        print('Mail SMTP host set to ' + Fore.GREEN + myAppConfig.get_mail_smtp_host() + Style.RESET_ALL, end='\n\n')
 
-            #
-            # If --set-mail-smtp-host param has been set
-            #
-            if args.set_mail_smtp_host != "null":
-                try:
-                    myAppConfig.set_mail_smtp_host(args.set_mail_smtp_host)
-                    print('Mail SMTP host set to: ' + Fore.GREEN + args.set_mail_smtp_host + Style.RESET_ALL, end='\n\n')
                     myExit.clean_exit(0, False)
                 except Exception as e:
                     raise ArgsException('Could not set mail SMTP host: ' + str(e))
 
             #
-            # If --get-mail-smtp-port param has been set
+            # If --mail-smtp-port param has been set
             #
-            if args.get_mail_smtp_port != "null":
+            if args.mail_smtp_port != "null":
                 try:
-                    print('Current mail SMTP port: ' + Fore.GREEN + str(myAppConfig.get_mail_smtp_port()) + Style.RESET_ALL, end='\n\n')
-                    myExit.clean_exit(0, False)
-                except Exception as e:
-                    raise ArgsException('Could not get mail SMTP port: ' + str(e))
-
-            #
-            # If --set-mail-smtp-port param has been set
-            #
-            if args.set_mail_smtp_port != "null":
-                try:
-                    myAppConfig.set_mail_smtp_port(args.set_mail_smtp_port)
-                    print('Mail SMTP port set to: ' + Fore.GREEN + str(args.set_mail_smtp_port) + Style.RESET_ALL, end='\n\n')
+                    if not args.mail_smtp_port:
+                        print('Current mail SMTP port: ' + Fore.GREEN + str(myAppConfig.get_mail_smtp_port()) + Style.RESET_ALL, end='\n\n')
+                    else:
+                        myAppConfig.set_mail_smtp_port(args.mail_smtp_port)
+                        print('Mail SMTP port set to ' + Fore.GREEN + str(myAppConfig.get_mail_smtp_port()) + Style.RESET_ALL, end='\n\n')
+                
                     myExit.clean_exit(0, False)
                 except Exception as e:
                     raise ArgsException('Could not set mail SMTP port: ' + str(e))
@@ -417,114 +390,40 @@ class Args:
                     raise ArgsException('Could not configure exit on package update error: ' + str(e))
 
             #
-            # If --get-exclude param has been set
-            #
-            if args.get_exclude != "null":
-                try:
-                    packages = myAppConfig.get_exclusion()
-
-                    print('Currently excluded packages: ' + Fore.GREEN)
-
-                    # If no package is excluded
-                    if not packages:
-                        print(' ▪ None')
-                    else:
-                        for package in packages:
-                            print(' ▪ ' + package)
-
-                    print(Style.RESET_ALL)
-
-                    myExit.clean_exit(0, False)
-                except Exception as e:
-                    raise ArgsException('Could not get excluded packages: ' + str(e))
-
-            #
-            # If --get-exclude-major param has been set
-            #
-            if args.get_exclude_major != "null":
-                try:
-                    packages = myAppConfig.get_major_exclusion()
-
-                    print('Currently excluded packages on major update: ' + Fore.GREEN)
-
-                    # If no package is excluded
-                    if not packages:
-                        print(' ▪ None')
-                    else:
-                        for package in packages:
-                            print(' ▪ ' + package)
-
-                    print(Style.RESET_ALL)
-
-                    myExit.clean_exit(0, False)
-                except Exception as e:
-                    raise ArgsException('Could not get excluded packages on major update: ' + str(e))
-
-            #
-            # If --get-service-reload param has been set
-            #
-            if args.get_service_reload != "null":
-                try:
-                    services = myAppConfig.get_service_to_reload()
-
-                    print('Services to reload after package update: ' + Fore.GREEN)
-
-                    # If no service is set to reload
-                    if not services:
-                        print(' ▪ None')
-                    else:
-                        for service in services:
-                            print(' ▪ ' + service)
-
-                    print(Style.RESET_ALL, end='\n')
-
-                    myExit.clean_exit(0, False)
-                except Exception as e:
-                    raise ArgsException('Could not get services to reload: ' + str(e))
-
-            #
-            # If --get-service-restart param has been set
-            #
-            if args.get_service_restart != "null":
-                try:
-                    services = myAppConfig.get_service_to_restart()
-
-                    print('Services to restart after package update: ' + Fore.GREEN)
-
-                    # If no service is set to restart
-                    if not services:
-                        print(' ▪ None')
-                    else:
-                        for service in services:
-                            print(' ▪ ' + service)
-
-                    print(Style.RESET_ALL, end='\n')
-
-                    myExit.clean_exit(0, False)
-                except Exception as e:
-                    raise ArgsException('Could not get services to restart: ' + str(e))
-
-            #
             # If --exclude param has been set
             #
             if args.exclude != "null":
                 try:
-                    # Exclude packages
-                    myAppConfig.set_exclusion(args.exclude)
+                    if not args.exclude:
+                        print('Currently excluded packages: ' + Fore.GREEN)
 
-                    # Print excluded packages
-                    packages = myAppConfig.get_exclusion()
+                        packages = myAppConfig.get_exclusion()
 
-                    print('Excluding packages: ' + Fore.GREEN)
+                        # If no package is excluded
+                        if not packages:
+                            print(' ▪ None')
+                        else:
+                            for package in packages:
+                                print(' ▪ ' + package)
 
-                    # If no package is excluded
-                    if not packages:
-                        print(' ▪ None')
+                        print(Style.RESET_ALL, end='\n')
                     else:
-                        for package in packages:
-                            print(' ▪ ' + package)
+                        # Exclude packages
+                        myAppConfig.set_exclusion(args.exclude)
 
-                    print(Style.RESET_ALL)
+                        # Print excluded packages
+                        packages = myAppConfig.get_exclusion()
+
+                        print('Excluding packages: ' + Fore.GREEN)
+
+                        # If no package is excluded
+                        if not packages:
+                            print(' ▪ None')
+                        else:
+                            for package in packages:
+                                print(' ▪ ' + package)
+
+                        print(Style.RESET_ALL)
 
                     myExit.clean_exit(0, False)
                 except Exception as e:
@@ -535,22 +434,37 @@ class Args:
             #
             if args.exclude_major != "null":
                 try:
-                    # Exclude packages on major update
-                    myAppConfig.set_major_exclusion(args.exclude_major)
+                    if not args.exclude_major:
+                        print('Currently excluded packages on major update: ' + Fore.GREEN)
 
-                    # Print excluded packages
-                    packages = myAppConfig.get_major_exclusion()
+                        packages = myAppConfig.get_major_exclusion()
 
-                    print('Excluding packages on major update: ' + Fore.GREEN)
+                        # If no package is excluded
+                        if not packages:
+                            print(' ▪ None')
+                        else:
+                            for package in packages:
+                                print(' ▪ ' + package)
 
-                    # If no package is excluded
-                    if not packages:
-                        print(' ▪ None')
+                        print(Style.RESET_ALL)
+
                     else:
-                        for package in packages:
-                            print(' ▪ ' + package)
+                        # Exclude packages on major update
+                        myAppConfig.set_major_exclusion(args.exclude_major)
 
-                    print(Style.RESET_ALL)
+                        # Print excluded packages
+                        packages = myAppConfig.get_major_exclusion()
+
+                        print('Excluding packages on major update: ' + Fore.GREEN)
+
+                        # If no package is excluded
+                        if not packages:
+                            print(' ▪ None')
+                        else:
+                            for package in packages:
+                                print(' ▪ ' + package)
+
+                        print(Style.RESET_ALL)
 
                     myExit.clean_exit(0, False)
                 except Exception as e:
@@ -561,22 +475,36 @@ class Args:
             #
             if args.service_reload != "null":
                 try:
-                    # Set services to reload after package update
-                    myAppConfig.set_service_to_reload(args.service_reload)
+                    if not args.service_reload:
+                        print('Services to reload after package update: ' + Fore.GREEN)
 
-                    # Print services to reload
-                    services = myAppConfig.get_service_to_reload()
+                        services = myAppConfig.get_service_to_reload()
 
-                    print('Setting services to reload after package update: ' + Fore.GREEN)
+                        # If no service is set to reload
+                        if not services:
+                            print(' ▪ None')
+                        else:
+                            for service in services:
+                                print(' ▪ ' + service)
 
-                    # If no service is set to reload
-                    if not services:
-                        print(' ▪ None')
+                        print(Style.RESET_ALL, end='\n')
                     else:
-                        for service in services:
-                            print(' ▪ ' + service)
+                        # Set services to reload after package update
+                        myAppConfig.set_service_to_reload(args.service_reload)
 
-                    print(Style.RESET_ALL)
+                        # Print services to reload
+                        services = myAppConfig.get_service_to_reload()
+
+                        print('Setting services to reload after package update: ' + Fore.GREEN)
+
+                        # If no service is set to reload
+                        if not services:
+                            print(' ▪ None')
+                        else:
+                            for service in services:
+                                print(' ▪ ' + service)
+
+                        print(Style.RESET_ALL)
 
                     myExit.clean_exit(0, False)
                 except Exception as e:
@@ -587,22 +515,36 @@ class Args:
             #
             if args.service_restart != "null":
                 try:
-                    # Set services to restart after package update
-                    myAppConfig.set_service_to_restart(args.service_restart)
+                    if not args.service_restart:
+                        print('Services to restart after package update: ' + Fore.GREEN)
+                        
+                        services = myAppConfig.get_service_to_restart()
 
-                    # Print services to restart
-                    services = myAppConfig.get_service_to_restart()
+                        # If no service is set to restart
+                        if not services:
+                            print(' ▪ None')
+                        else:
+                            for service in services:
+                                print(' ▪ ' + service)
 
-                    print('Setting services to restart after package update: ' + Fore.GREEN)
-
-                    # If no service is set to restart
-                    if not services:
-                        print(' ▪ None')
+                        print(Style.RESET_ALL, end='\n')
                     else:
-                        for service in services:
-                            print(' ▪ ' + service)
+                        # Set services to restart after package update
+                        myAppConfig.set_service_to_restart(args.service_restart)
 
-                    print(Style.RESET_ALL)
+                        # Print services to restart
+                        services = myAppConfig.get_service_to_restart()
+
+                        print('Setting services to restart after package update: ' + Fore.GREEN)
+
+                        # If no service is set to restart
+                        if not services:
+                            print(' ▪ None')
+                        else:
+                            for service in services:
+                                print(' ▪ ' + service)
+
+                        print(Style.RESET_ALL)
 
                     myExit.clean_exit(0, False)
                 except Exception as e:
@@ -747,7 +689,7 @@ class Args:
                         '-p'
                     ],
                     'option': 'PROFILE',
-                    'description': 'Print current profile or set profile'
+                    'description': 'Print or set profile'
                 },
                 {
                     'args': [
@@ -755,7 +697,7 @@ class Args:
                         '-e'
                     ],
                     'option': 'ENVIRONMENT',
-                    'description': 'Print current environment or set environment'
+                    'description': 'Print or set environment'
                 },
                 {
                     'args': [
@@ -766,42 +708,24 @@ class Args:
                 },
                 {
                     'args': [
-                        '--get-mail-recipient'
-                    ],
-                    'description': 'Get current mail recipient(s)'
-                },
-                {
-                    'args': [
-                        '--set-mail-recipient'
+                        '--mail-recipient'
                     ],
                     'option': 'EMAIL',
-                    'description': 'Set mail recipient(s) (separated by commas)'
+                    'description': 'Print or set mail recipient(s) (separated by commas)\nSpecify "None" to clear the recipient list'
                 },
                 {
                     'args': [
-                        '--get-mail-smtp-host'
-                    ],
-                    'description': 'Get current mail SMTP host'
-                },
-                {
-                    'args': [
-                        '--set-mail-smtp-host'
+                        '--mail-smtp-host'
                     ],
                     'option': 'HOST',
-                    'description': 'Set mail SMTP host'
+                    'description': 'Print or set mail SMTP host'
                 },
                 {
                     'args': [
-                        '--get-mail-smtp-port'
-                    ],
-                    'description': 'Get current mail SMTP port'
-                },
-                {
-                    'args': [
-                        '--set-mail-smtp-port'
+                        '--mail-smtp-port'
                     ],
                     'option': 'PORT',
-                    'description': 'Set mail SMTP port'
+                    'description': 'Print or set mail SMTP port'
                 },
                 {
                     'title': 'Update options'
@@ -866,55 +790,31 @@ class Args:
                 },
                 {
                     'args': [
-                        '--get-exclude'
-                    ],
-                    'description': 'Get the current list of packages to exclude from update'
-                },
-                {
-                    'args': [
-                        '--get-exclude-major'
-                    ],
-                    'description': 'Get the current list of packages to exclude from update (if package has a major version update)'
-                },
-                {
-                    'args': [
-                        '--get-service-reload'
-                    ],
-                    'description': 'Get the current list of services to reload after package update'
-                },
-                {
-                    'args': [
-                        '--get-service-restart'
-                    ],
-                    'description': 'Get the current list of services to restart after package update'
-                },
-                {
-                    'args': [
                         '--exclude'
                     ],
                     'option': 'PACKAGE',
-                    'description': 'Set packages to exclude from update (separated by commas). Regex pattern ".*" can be used to match multiple packages. Example: --exclude php.*'
+                    'description': 'Print or set packages to exclude from update (separated by commas)\nRegex pattern ".*" can be used to match multiple packages. Example: --exclude php.*\nSpecify "None" to clear the exclusion list'
                 },
                 {
                     'args': [
                         '--exclude-major'
                     ],
                     'option': 'PACKAGE',
-                    'description': 'Set packages to exclude from update (if package has a major version update) (separated by commas). Regex pattern ".*" can be used to match multiple packages. Example: --exclude-major php.*'
+                    'description': 'Print or set packages to exclude from update (if package has a major version update) (separated by commas)\nRegex pattern ".*" can be used to match multiple packages. Example: --exclude-major php.*\nSpecify "None" to clear the major update exclusion list'
                 },
                 {
                     'args': [
                         '--service-reload'
                     ],
                     'option': 'SERVICE',
-                    'description': 'Set services to reload after package update (separated by commas)'
+                    'description': 'Print or set services to reload after package update (separated by commas)\nSpecify "None" to clear the service reload list'
                 },
                 {
                     'args': [
                         '--service-restart'
                     ],
                     'option': 'SERVICE',
-                    'description': 'Set services to restart after package update (separated by commas)'
+                    'description': 'Print or set services to restart after package update (separated by commas)\nSpecify "None" to clear the service restart list'
                 },
                 {
                     'title': 'Modules'
@@ -947,21 +847,21 @@ class Args:
                         '--cpu-priority'
                     ],
                     'option': 'high, medium, low',
-                    'description': 'Set CPU priority profile for the linupdate service. Lower priority means less CPU usage but also more time to complete service operations - default is high'
+                    'description': 'Print or set CPU priority for the linupdate service. Lower priority means less CPU usage but also more time to complete service operations - default is high'
                 },
                 {
                     'args': [
                         '--memory-limit'
                     ],
                     'option': 'bytes',
-                    'description': 'Set memory limit for the linupdate service in bytes - default is 1G'
+                    'description': 'Print or set memory limit for the linupdate service in bytes - default is 1G'
                 },
                 {
                     'args': [
                         '--oom-score'
                     ],
                     'option': '-1000 to 1000',
-                    'description': 'Set OOM (Out Of Memory) score for the linupdate service - the higher the value, the more likely the service will be killed by the OOM killer - default is 500'
+                    'description': 'Print or set OOM (Out Of Memory) score for the linupdate service - the higher the value, the more likely the service will be killed by the OOM killer - default is 500'
                 },
             ]
 
