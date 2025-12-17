@@ -182,8 +182,7 @@ jobs:
           release_name: ${{ env.VERSION }}
           body: |
             **Changes**
-              - Simplified the argument list (removed redundant "set" arguments)
-              - Reposerver module: added compatibility with Repomanager 5.4.0
+              - Reposerver module: fixed retrieval of package configuration
           draft: false
           prerelease: false
 
