@@ -460,7 +460,7 @@ class Config:
     #   Get profile packages configuration (exclusions) from reposerver
     #
     #-----------------------------------------------------------------------------------------------
-    def get_profile_packages_conf(self):
+    def get_profile_packages_conf(self) -> None:
         # Get current configuration
         configuration = self.get_conf()
 
@@ -488,41 +488,45 @@ class Config:
             raise Exception('no auth Id or token found in configuration')
 
         # Retrieve configuration from reposerver
-        results = self.httpRequestController.get(url + '/api/v2/profile/' + profile + '/excludes', id, token, 2)
+        results = self.httpRequestController.get(url + '/api/v2/profile/' + profile + '/', id, token, 2)
 
         # Parse results
 
         # Packages to exclude no matter the version
-        if results[0]['Package_exclude'] != "null":
+        if 'Package_exclude' in results[0]:
             # First, clear the exclude list
-            self.appConfigController.set_exclusion()
+            self.appConfigController.set_exclusion('None')
 
             # Then, set the new exclude list
-            self.appConfigController.set_exclusion(results[0]['Package_exclude'])
+            if results[0]['Package_exclude'] != '':
+                self.appConfigController.set_exclusion(results[0]['Package_exclude'])
 
         # Packages to exclude on major version
-        if results[0]['Package_exclude_major'] != "null":
+        if 'Package_exclude_major' in results[0]:
             # First, clear the exclude major list
-            self.appConfigController.set_major_exclusion()
+            self.appConfigController.set_major_exclusion('None')
 
             # Then, set the new exclude major list
-            self.appConfigController.set_major_exclusion(results[0]['Package_exclude_major'])
+            if results[0]['Package_exclude_major'] != '':
+                self.appConfigController.set_major_exclusion(results[0]['Package_exclude_major'])
 
         # Service to reload after an update
-        if results[0]['Service_reload'] != "null":
+        if 'Service_reload' in results[0]:
             # First clear the services to reload
-            self.appConfigController.set_service_to_reload()
+            self.appConfigController.set_service_to_reload('None')
 
             # Then set the new services to reload
-            self.appConfigController.set_service_to_reload(results[0]['Service_reload'])
+            if results[0]['Service_reload'] != '':
+                self.appConfigController.set_service_to_reload(results[0]['Service_reload'])
 
         # Service to restart after an update
-        if results[0]['Service_restart'] != "null":
+        if 'Service_restart' in results[0]:
             # First clear the services to restart
-            self.appConfigController.set_service_to_restart()
+            self.appConfigController.set_service_to_restart('None')
 
             # Then set the new services to restart
-            self.appConfigController.set_service_to_restart(results[0]['Service_restart'])
+            if results[0]['Service_restart'] != '':
+                self.appConfigController.set_service_to_restart(results[0]['Service_restart'])
 
         print('[' + Fore.GREEN + ' OK ' + Style.RESET_ALL + ']')
 
