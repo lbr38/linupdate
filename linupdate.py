@@ -33,10 +33,16 @@ from src.controllers.Status import status_manager
 def main():
     exit_code = 0
     send_mail = True
+    reboot = False
 
     try:
         # Handle Ctrl+C (KeyboardInterrupt)
         signal.signal(signal.SIGINT, signal.default_int_handler)
+
+        # Exit if the user is not root
+        if not System().is_root():
+            print(Fore.YELLOW + 'Must be executed as root' + Style.RESET_ALL)
+            sys.exit(1)
 
         # Get current date and time
         todaydatetime = datetime.now()
@@ -67,11 +73,6 @@ def main():
         with StreamToLogger(logsdir + '/' + logfile):
             # Print Logo
             my_app.print_logo()
-
-            # Exit if the user is not root
-            if not my_system.is_root():
-                print(Fore.YELLOW + 'Must be executed with sudo' + Style.RESET_ALL)
-                my_exit.clean_exit(1)
 
             # Check if the system is supported
             my_system.check()
@@ -107,6 +108,7 @@ def main():
                               my_args.check_updates,
                               my_args.dist_upgrade,
                               my_args.keep_oldconf,
+                              my_args.clear_cache,
                               my_args.dry_run)
 
             # Execute post-update modules functions
@@ -119,8 +121,20 @@ def main():
             my_service.restart(my_package.summary, my_args.dry_run)
 
             # Check if reboot is required
-            if my_system.reboot_required() is True:
+            if System().reboot_required():
                 print(' ' + Fore.YELLOW + 'Reboot is required' + Style.RESET_ALL)
+            
+                # If auto reboot is enabled
+                if my_args.reboot:
+                    reboot = True
+
+                    # Do not reboot on dry run
+                    if my_args.dry_run:
+                        reboot = False
+
+                # Print a message if the system will reboot automatically
+                if reboot:
+                    print(' ' + Fore.YELLOW + 'System will reboot automatically' + Style.RESET_ALL)
 
     # If an ArgsException is raised, print the error message and do not send an email
     except ArgsException as e:
@@ -129,7 +143,7 @@ def main():
 
         print('\n' + Fore.RED + ' ✕ ' + Style.RESET_ALL + str(e) + '\n')
         # If debug mode is enabled, print the stack trace
-        if Args.debug:
+        if getattr(Args, 'debug', False):
             print('Stack trace:' + '\n' + traceback.format_exc())
 
     # If an exception is raised, print the error message and send an email
@@ -138,7 +152,7 @@ def main():
 
         print('\n' + Fore.RED + ' ✕ ' + Style.RESET_ALL + str(e) + '\n')
         # If debug mode is enabled, print the stack trace
-        if Args.debug:
+        if getattr(Args, 'debug', False):
             print('Stack trace:' + '\n' + traceback.format_exc())
 
     # If the user presses Ctrl+C or the script is killed, do not send an email and exit with code 2
@@ -147,7 +161,7 @@ def main():
         exit_code = 2
 
     # Exit with exit code and logfile for email report
-    my_exit.clean_exit(exit_code, send_mail, logsdir + '/' + logfile)
+    my_exit.clean_exit(exit_code, send_mail, reboot, logsdir + '/' + logfile)
 
 # Run main function
 console = Console(file=sys.__stdout__)

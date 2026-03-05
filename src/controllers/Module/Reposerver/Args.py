@@ -70,7 +70,7 @@ class Args:
             # If no arguments are passed, print help
             if not module_args:
                 self.help()
-                self.exitController.clean_exit(0, False)
+                self.exitController.clean_exit()
 
             # Else, parse arguments
             args, remaining_args = parser.parse_known_args(module_args)
@@ -102,7 +102,7 @@ class Args:
                 # Else print the current URL
                 else:
                     print(' Current reposerver URL: ' + Fore.GREEN + self.configController.getUrl() + Style.RESET_ALL, end='\n\n')
-                self.exitController.clean_exit(0, False)
+                self.exitController.clean_exit()
 
             #
             # If --api-key param has been set
@@ -125,7 +125,7 @@ class Args:
                 else:
                     self.configController.set_agent_enable(False)
 
-                self.exitController.clean_exit(0, False)
+                self.exitController.clean_exit()
 
             #
             # If --agent-listen-enable param has been set
@@ -136,7 +136,7 @@ class Args:
                 else:
                     self.configController.set_agent_listen(False)
 
-                self.exitController.clean_exit(0, False)
+                self.exitController.clean_exit()
 
             #
             # If --get-packages-conf-from-reposerver param has been set
@@ -146,7 +146,7 @@ class Args:
                     self.configController.set_get_packages_conf_from_reposerver(True)
                 else:
                     self.configController.set_get_packages_conf_from_reposerver(False)
-                self.exitController.clean_exit(0, False)
+                self.exitController.clean_exit()
 
             #
             # If --get-repos-from-reposerver param has been set
@@ -156,7 +156,7 @@ class Args:
                     self.configController.set_get_repos_from_reposerver(True)
                 else:
                     self.configController.set_get_repos_from_reposerver(False)
-                self.exitController.clean_exit(0, False)
+                self.exitController.clean_exit()
 
             #
             # If --remove-existing-repos param has been set
@@ -166,7 +166,7 @@ class Args:
                     self.configController.set_remove_existing_repos(True)
                 else:
                     self.configController.set_remove_existing_repos(False)
-                self.exitController.clean_exit(0, False)
+                self.exitController.clean_exit()
 
             #
             # If --source-repo-format param has been set
@@ -179,7 +179,7 @@ class Args:
                     self.configController.set_source_repo_format(args.source_repo_format)
                     print(' Source repository format set to ' + Fore.GREEN + args.source_repo_format + Style.RESET_ALL, end='\n\n')
 
-                self.exitController.clean_exit(0, False)
+                self.exitController.clean_exit()
 
             #
             # If --register param has been set
@@ -187,7 +187,7 @@ class Args:
             if args.register != "null" and args.register:
                 # Register to the URL with the API key and IP (could be "null" if not set)
                 self.configController.register(args.api_key, args.ip)
-                self.exitController.clean_exit(0, False)
+                self.exitController.clean_exit()
 
             #
             # If --unregister param has been set
@@ -195,7 +195,7 @@ class Args:
             if args.unregister != "null" and args.unregister:
                 # Unregister from the reposerver
                 self.configController.unregister()
-                self.exitController.clean_exit(0, False)
+                self.exitController.clean_exit()
 
             #
             # If --get-profile-packages-conf param has been set
@@ -203,7 +203,7 @@ class Args:
             if args.get_profile_packages_conf != "null" and args.get_profile_packages_conf:
                 # Get profile packages configuration
                 self.configController.get_profile_packages_conf()
-                self.exitController.clean_exit(0, False)
+                self.exitController.clean_exit()
 
             #
             # If --get-profile-repos param has been set
@@ -211,7 +211,7 @@ class Args:
             if args.get_profile_repos != "null" and args.get_profile_repos:
                 # Get profile repositories
                 self.configController.get_profile_repos()
-                self.exitController.clean_exit(0, False)
+                self.exitController.clean_exit()
 
             #
             # If --send-general-info param has been set
@@ -220,7 +220,7 @@ class Args:
                 # Send general info
                 status = Status()
                 status.send_general_info()
-                self.exitController.clean_exit(0, False)
+                self.exitController.clean_exit()
 
             #
             # If --send-packages-info param has been set
@@ -229,7 +229,7 @@ class Args:
                 # Send packages info
                 status = Status()
                 status.send_packages_info()
-                self.exitController.clean_exit(0, False)
+                self.exitController.clean_exit()
 
             #
             # If --send-all-info param has been set
@@ -239,7 +239,7 @@ class Args:
                 status = Status()
                 status.send_general_info()
                 status.send_packages_info()
-                self.exitController.clean_exit(0, False)
+                self.exitController.clean_exit()
 
         # Catch exceptions
         # Either ArgsException or Exception, it will always raise an ArgsException to the main script, this to avoid sending an email when an argument error occurs

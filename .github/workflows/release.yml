@@ -181,8 +181,10 @@ jobs:
           tag_name: ${{ env.VERSION }}
           release_name: ${{ env.VERSION }}
           body: |
-            **Changes**
-              - Reposerver module: fixed retrieval of package configuration
+            **Changes**:
+              - Added a --reboot parameter to auto-reboot the system after a successful update https://github.com/lbr38/linupdate/issues/104
+              - Added a --clear-cache parameter to force clear the package manager cache before an update
+              - Added more locks to prevent multiple operations running at the same time
           draft: false
           prerelease: false
 

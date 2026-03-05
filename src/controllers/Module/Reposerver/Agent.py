@@ -89,7 +89,7 @@ class Agent:
     #-----------------------------------------------------------------------------------------------
     def on_inotify_change(self, ev):
         # If an update is running by linupdate, then do nothing for now
-        if Path('/tmp/linupdate.update-running').is_file():
+        if Path('/tmp/linupdate.update-running.lock').is_file():
             return
 
         # Message for debugging
@@ -353,7 +353,7 @@ class Agent:
 
                         # Log everything to the log file
                         with LogToFile(log):
-                            self.packageController.update([], True, ignore_exclusions, False, full_upgrade, keep_oldconf, dry_run)
+                            self.packageController.update([], True, ignore_exclusions, False, full_upgrade, keep_oldconf, False, dry_run)
 
                             # TODO
                             # Restart/reload services if the user said so
@@ -388,7 +388,7 @@ class Agent:
 
                                 # Log everything to the log file
                                 with LogToFile(log):
-                                    self.packageController.update(message['data']['packages'], True, ignore_exclusions, False, full_upgrade, keep_oldconf, dry_run)
+                                    self.packageController.update(message['data']['packages'], True, ignore_exclusions, False, full_upgrade, keep_oldconf, False, dry_run)
 
                                 # Send a summary to the reposerver, with the summary of the installation (number of packages installed or failed)
                                 summary = self.packageController.summary

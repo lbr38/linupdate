@@ -46,6 +46,7 @@ class Status:
                 'arch': self.systemController.get_arch(),
                 'cpu': self.systemController.get_cpu_info(),
                 'ram': self.systemController.get_memory_info(),
+                'network': self.systemController.get_network_info(),
                 'profile': self.configController.get_profile(),
                 'env': self.configController.get_environment(),
                 'agent_status': self.appController.get_agent_status(),
@@ -75,10 +76,15 @@ class Status:
     #-----------------------------------------------------------------------------------------------
     def send_packages_info(self):
         try:
+            print('\n▪ Clearing and updating cache to get the most up-to-date packages information...')
+            # Force clear/update cache to get the most up-to-date information
+            self.packageController.clear_cache()
+            self.packageController.update_cache()
+
             # Send all status
             self.send_packages_history()
-            self.sendAvailablePackagesStatus()
-            self.sendInstalledPackagesStatus()
+            self.send_available_packages_status()
+            self.send_installed_packages_status()
         except Exception as e:
             raise Exception('error while sending packages status to reposerver: ' + str(e))
 
@@ -88,7 +94,7 @@ class Status:
     #   Send list of available packages
     #
     #-----------------------------------------------------------------------------------------------
-    def sendAvailablePackagesStatus(self):
+    def send_available_packages_status(self):
         list = []
 
         # Retrieve URL, ID and token
@@ -151,7 +157,7 @@ class Status:
     #   Send list of installed packages
     #
     #-----------------------------------------------------------------------------------------------
-    def sendInstalledPackagesStatus(self):
+    def send_installed_packages_status(self):
         list = []
 
         # Retrieve URL, ID and token
