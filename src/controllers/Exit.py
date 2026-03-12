@@ -4,6 +4,7 @@
 import sys
 from src.controllers.App.App import App
 from src.controllers.Mail import Mail
+from src.controllers.System import System
 
 class Exit:
     #-----------------------------------------------------------------------------------------------
@@ -11,7 +12,7 @@ class Exit:
     #   Clean and exit
     #
     #-----------------------------------------------------------------------------------------------
-    def clean_exit(self, exit_code = 0, send_mail: bool = True, logfile: str = None):
+    def clean_exit(self, exit_code = 0, send_mail: bool = False, reboot: bool = False, logfile: str = ''):
         my_app = App()
         my_mail = Mail()
 
@@ -37,6 +38,15 @@ class Exit:
             except Exception:
                 # If mail fails, exit with error code
                 exit_code = 4
+
+        # If reboot is True, reboot the system
+        try:
+            if reboot is True:
+                print(' Rebooting...')
+                System().reboot()
+        except Exception as e:
+            print(str(e))
+            exit_code = 5
 
         # Final exit
         sys.exit(exit_code)

@@ -125,8 +125,9 @@ class Apt:
     def get_installed_packages(self):
         list = []
 
-        # Get updated cache
-        aptcache = self.update_cache()
+        # Open cache
+        aptcache = apt.Cache()
+        aptcache.open(None)
 
         try:
             # Loop through all installed packages
@@ -157,8 +158,9 @@ class Apt:
     def get_available_packages(self, dist_upgrade: bool = False):
         list = []
 
-        # Get updated cache
-        aptcache = self.update_cache()
+        # Open cache
+        aptcache = apt.Cache()
+        aptcache.open(None)
 
         # Simulate an upgrade to get the list of available packages
         aptcache.upgrade(dist_upgrade)
@@ -263,9 +265,43 @@ class Apt:
             # Wait for the lock to be released
             self.wait_for_dpkg_lock()
 
-            aptcache = apt.Cache()
-            aptcache.clear()
-            aptcache.close()
+            # Delete everything under /var/cache/apt/
+            try:
+                subprocess.run(
+                    ['rm -rf /var/cache/apt/*'],
+                    stdout = subprocess.PIPE,
+                    stderr = subprocess.PIPE,
+                    universal_newlines = True,
+                    shell = True,
+                    check = True
+                )
+            except subprocess.CalledProcessError as e:
+                raise Exception('could not clear /var/cache/apt/: ' + e.stderr)
+
+            # Delete everything under /var/lib/apt/lists/
+            try:
+                subprocess.run(
+                    ['rm -rf /var/lib/apt/lists/*'],
+                    stdout = subprocess.PIPE,
+                    stderr = subprocess.PIPE,
+                    universal_newlines = True,
+                    shell = True,
+                    check = True
+                )
+            except subprocess.CalledProcessError as e:
+                raise Exception('could not clear /var/lib/apt/lists/: ' + e.stderr)
+
+            try:
+                # Wait for the lock to be released
+                self.wait_for_dpkg_lock()
+
+                aptcache = apt.Cache()
+                aptcache.clear()
+                aptcache.close()
+                
+                del aptcache
+            except Exception as e:
+                raise Exception('could not clear apt cache: ' + str(e))
         except Exception as e:
             raise Exception('could not clear apt cache: ' + str(e))
 
@@ -276,32 +312,38 @@ class Apt:
     #
     #-----------------------------------------------------------------------------------------------
     def update_cache(self):
+        # Force complete cleanup and refresh using command line apt update
+        try:
+            # Wait for dpkg lock first
+            self.wait_for_dpkg_lock()
+            
+            # Use apt update command directly for more reliable cache refresh
+            subprocess.run(
+                ["apt-get", "update"],
+                stdout = subprocess.PIPE,
+                stderr = subprocess.PIPE,
+                universal_newlines = True,
+                check = True  # Raise exception if command fails
+            )
+            
+        except subprocess.CalledProcessError as e:
+            raise Exception('could not update apt cache via command line: ' + e.stderr)
+        except Exception as e:
+            raise Exception('could not update apt cache: ' + str(e))
+
+        # Now open a fresh apt cache
         try:
             self.wait_for_dpkg_lock()
             aptcache = apt.Cache()
-        except Exception as e:
-            raise Exception('could not open apt cache')
-
-        try:
-            # Clear cache
-            self.wait_for_dpkg_lock()
-            aptcache.clear()
-        except Exception as e:
-            raise Exception('could not clear apt cache')
-
-        try:
-            # Update cache
-            self.wait_for_dpkg_lock()
-            aptcache.update()
-        except Exception as e:
-            raise Exception('could not update apt cache')
-
-        try:
-            # Re-open cache
-            self.wait_for_dpkg_lock()
             aptcache.open(None)
+            
+            # Force a complete refresh of the cache object
+            # aptcache.close()
+            # aptcache.clear()
+            # aptcache.open(None)
+            
         except Exception as e:
-            raise Exception('could not re-open apt cache')
+            raise Exception('could not open fresh apt cache: ' + str(e))
 
         return aptcache
 
@@ -375,6 +417,11 @@ class Apt:
     #-----------------------------------------------------------------------------------------------
     def update(self, packagesList, exit_on_package_update_error: bool = True, dry_run: bool = False):
         counter = 0
+        update_status_msg = 'Updating packages'
+
+        # If dry-run, add it to the status message
+        if dry_run:
+            update_status_msg += ' (dry run)'
 
         # Log file to store each package update output
         log = '/tmp/linupdate-update-package.log'
@@ -406,7 +453,7 @@ class Apt:
                 continue
 
             counter += 1
-            update_status("Updating packages (" + str(counter) + '/' + str(packages_to_update_count ) + ')')
+            update_status(update_status_msg + ' (' + str(counter) + '/' + str(packages_to_update_count ) + ')')
 
             # If log file exists, remove it
             if Path(log).is_file():

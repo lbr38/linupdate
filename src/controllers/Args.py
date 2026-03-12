@@ -28,7 +28,9 @@ class Args:
         Args.packages_to_update = []
         Args.dist_upgrade = False
         Args.keep_oldconf = True
+        Args.clear_cache = False
         Args.dry_run = False
+        Args.reboot = False
         Args.debug = False
 
         myApp       = App()
@@ -71,6 +73,8 @@ class Args:
             parser.add_argument("--dry-run", action="store_true", default="null")
             # Keep oldconf
             parser.add_argument("--keep-oldconf", action="store_true", default="null")
+            # Clear cache
+            parser.add_argument("--clear-cache", "-cc", action="store_true", default="null")
             # Force / assume-yes
             parser.add_argument("--assume-yes", "-y", action="store_true", default="null")
             # Check updates
@@ -79,6 +83,8 @@ class Args:
             parser.add_argument("--ignore-exclusions", "-ie", action="store_true", default="null")
             # Exit on package update error
             parser.add_argument("--exit-on-package-update-error", action="store", nargs='?', default="null")
+            # Reboot
+            parser.add_argument("--reboot", action="store_true", default="null")
 
             # Exclude
             parser.add_argument("--exclude", action="store", nargs='?', default="null")
@@ -140,7 +146,7 @@ class Args:
                         # Configure module
                         try:
                             myModule.configure(mod_name, mod_args)
-                            myExit.clean_exit(0, False)
+                            myExit.clean_exit()
                         except Exception as e:
                             raise ArgsException('Could not configure ' + mod_name + ' module: ' + str(e))
 
@@ -161,7 +167,7 @@ class Args:
             if args.help != "null":
                 if args.help:
                     self.help()
-                    myExit.clean_exit(0, False)
+                    myExit.clean_exit()
 
             #
             # If --version param has been set
@@ -169,7 +175,7 @@ class Args:
             if args.version != "null":
                 if args.version:
                     print('Current version: ' + Fore.GREEN + myApp.get_version() + Style.RESET_ALL, end='\n\n')
-                    myExit.clean_exit(0, False)
+                    myExit.clean_exit()
 
             #
             # If --debug param has been set
@@ -184,7 +190,7 @@ class Args:
             if args.show_config != "null":
                 if args.show_config:
                     myAppConfig.show_config()
-                    myExit.clean_exit(0, False)
+                    myExit.clean_exit()
 
             #
             # If --profile param has been set
@@ -206,7 +212,7 @@ class Args:
                     else:
                         print('Current profile: ' + Fore.GREEN + myAppConfig.get_profile() + Style.RESET_ALL, end='\n\n')
 
-                    myExit.clean_exit(0, False)
+                    myExit.clean_exit()
 
                 except Exception as e:
                     raise ArgsException('could not switch profile: ' + str(e))
@@ -230,7 +236,7 @@ class Args:
                     else:
                         print('Current environment: ' + Fore.GREEN + myAppConfig.get_environment() + Style.RESET_ALL, end='\n\n')
 
-                    myExit.clean_exit(0, False)
+                    myExit.clean_exit()
 
                 except Exception as e:
                     raise ArgsException('could not switch environment: ' + str(e))
@@ -252,7 +258,7 @@ class Args:
                             myAppConfig.set_mail_enable(False)
                             print('Mail sending is now ' + Fore.YELLOW  + 'disabled' + Style.RESET_ALL, end='\n\n')
 
-                    myExit.clean_exit(0, False)
+                    myExit.clean_exit()
                 except Exception as e:
                     raise ArgsException('Could not configure mail: ' + str(e))
 
@@ -290,7 +296,7 @@ class Args:
 
                         print(Style.RESET_ALL, end='\n')
 
-                    myExit.clean_exit(0, False)
+                    myExit.clean_exit()
                 except Exception as e:
                     raise ArgsException('Could not set mail recipient(s): ' + str(e))
 
@@ -305,7 +311,7 @@ class Args:
                         myAppConfig.set_mail_smtp_host(args.mail_smtp_host)
                         print('Mail SMTP host set to ' + Fore.GREEN + myAppConfig.get_mail_smtp_host() + Style.RESET_ALL, end='\n\n')
 
-                    myExit.clean_exit(0, False)
+                    myExit.clean_exit()
                 except Exception as e:
                     raise ArgsException('Could not set mail SMTP host: ' + str(e))
 
@@ -320,7 +326,7 @@ class Args:
                         myAppConfig.set_mail_smtp_port(args.mail_smtp_port)
                         print('Mail SMTP port set to ' + Fore.GREEN + str(myAppConfig.get_mail_smtp_port()) + Style.RESET_ALL, end='\n\n')
                 
-                    myExit.clean_exit(0, False)
+                    myExit.clean_exit()
                 except Exception as e:
                     raise ArgsException('Could not set mail SMTP port: ' + str(e))
 
@@ -368,6 +374,12 @@ class Args:
                 Args.keep_oldconf = True
 
             #
+            # If --clear-cache param has been set
+            #
+            if args.clear_cache != "null":
+                Args.clear_cache = True
+
+            #
             # If --assume-yes param has been set
             #
             if args.assume_yes != "null":
@@ -385,9 +397,15 @@ class Args:
                         myAppConfig.set_exit_on_package_update_error(False)
                         print('Exit on package update error ' + Fore.YELLOW  + 'disabled' + Style.RESET_ALL, end='\n\n')
 
-                    myExit.clean_exit(0, False)
+                    myExit.clean_exit()
                 except Exception as e:
                     raise ArgsException('Could not configure exit on package update error: ' + str(e))
+                
+            #
+            # If --reboot param has been set, set reboot to True
+            #
+            if args.reboot != "null":
+                Args.reboot = True
 
             #
             # If --exclude param has been set
@@ -425,7 +443,7 @@ class Args:
 
                         print(Style.RESET_ALL)
 
-                    myExit.clean_exit(0, False)
+                    myExit.clean_exit()
                 except Exception as e:
                     raise ArgsException('Could not exclude packages: ' + str(e))
 
@@ -466,7 +484,7 @@ class Args:
 
                         print(Style.RESET_ALL)
 
-                    myExit.clean_exit(0, False)
+                    myExit.clean_exit()
                 except Exception as e:
                     raise ArgsException('Could not exclude packages on major update: ' + str(e))
 
@@ -506,7 +524,7 @@ class Args:
 
                         print(Style.RESET_ALL)
 
-                    myExit.clean_exit(0, False)
+                    myExit.clean_exit()
                 except Exception as e:
                     raise ArgsException('Could not set services to reload after package update: ' + str(e))
 
@@ -546,7 +564,7 @@ class Args:
 
                         print(Style.RESET_ALL)
 
-                    myExit.clean_exit(0, False)
+                    myExit.clean_exit()
                 except Exception as e:
                     raise ArgsException('Could not set services to restart after package update: ' + str(e))
 
@@ -555,7 +573,7 @@ class Args:
             #
             if args.mod_list != "null":
                 myModule.list()
-                myExit.clean_exit(0, False)
+                myExit.clean_exit()
 
             #
             # If --mod-enable param has been set
@@ -566,7 +584,7 @@ class Args:
                     # Enable module
                     try:
                         myModule.enable(args.mod_enable)
-                        myExit.clean_exit(0, False)
+                        myExit.clean_exit()
                     except Exception as e:
                         raise ArgsException('Could not enable module: ' + str(e))
                 else:
@@ -581,7 +599,7 @@ class Args:
                     # Disable module
                     try:
                         myModule.disable(args.mod_disable)
-                        myExit.clean_exit(0, False)
+                        myExit.clean_exit()
                     except Exception as e:
                         raise ArgsException('Could not disable module: ' + str(e))
                 else:
@@ -600,7 +618,7 @@ class Args:
                         AppService().set_cpu_priority(args.cpu_priority)
                         print('CPU priority set to ' + Fore.GREEN + str(args.cpu_priority) + Style.RESET_ALL, end='\n\n')
 
-                    myExit.clean_exit(0, False)
+                    myExit.clean_exit()
                 except Exception as e:
                     raise ArgsException(str(e))
 
@@ -617,7 +635,7 @@ class Args:
                         AppService().set_memory_limit(args.memory_limit)
                         print('Memory limit set to ' + Fore.GREEN + str(args.memory_limit) + Style.RESET_ALL, end='\n\n')
 
-                    myExit.clean_exit(0, False)
+                    myExit.clean_exit()
                 except Exception as e:
                     raise ArgsException(str(e))
 
@@ -634,7 +652,7 @@ class Args:
                         AppService().set_oom_score(args.oom_score)
                         print('OOM score set to ' + Fore.GREEN + str(args.oom_score) + Style.RESET_ALL, end='\n\n')
 
-                    myExit.clean_exit(0, False)
+                    myExit.clean_exit()
                 except Exception as e:
                     raise ArgsException(str(e))
 
@@ -747,22 +765,29 @@ class Args:
                 },
                 {
                     'args': [
-                        '--dry-run'
-                    ],
-                    'description': 'Simulate the update process (do not update packages)'
-                },
-                {
-                    'args': [
                         '--keep-oldconf'
                     ],
                     'description': 'Keep old configuration files when updating packages (Debian based OS only)'
                 },
                 {
                     'args': [
+                        '--clear-cache',
+                        '-cc'
+                    ],
+                    'description': 'Force clearing of package cache before updating, this can help to solve some update issues'
+                },
+                {
+                    'args': [
+                        '--dry-run'
+                    ],
+                    'description': 'Simulate the update process (do not update packages)'
+                },
+                {
+                    'args': [
                         '--assume-yes',
                         '-y'
                     ],
-                    'description': 'Answer yes to all questions'
+                    'description': 'Answer yes to all questions, useful for non-interactive updates (cron jobs, etc.)'
                 },
                 {
                     'args': [
@@ -784,6 +809,12 @@ class Args:
                     ],
                     'option': 'true|false',
                     'description': 'Immediately exit if an error occurs during package update and do not update the remaining packages'
+                },
+                {
+                    'args': [
+                        '--reboot',
+                    ],
+                    'description': 'Automatically reboot the system if a reboot is required after the update'
                 },
                 {
                     'title': 'Packages exclusion and services restart'

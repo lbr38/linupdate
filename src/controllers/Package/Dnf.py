@@ -348,6 +348,11 @@ class Dnf:
     #-----------------------------------------------------------------------------------------------
     def update(self, packagesList, exit_on_package_update_error: bool = True, dry_run: bool = False):
         counter = 0
+        update_status_msg = 'Updating packages'
+
+        # If dry-run, add it to the status message
+        if dry_run:
+            update_status_msg += ' (dry run)'
 
         # Log file to store each package update output
         log = '/tmp/linupdate-update-package.log'
@@ -379,7 +384,7 @@ class Dnf:
                 continue
 
             counter += 1
-            update_status("Updating packages (" + str(counter) + '/' + str(packages_to_update_count ) + ')')
+            update_status(update_status_msg + ' (' + str(counter) + '/' + str(packages_to_update_count ) + ')')
 
             # If log file exists, remove it
             if Path(log).is_file():

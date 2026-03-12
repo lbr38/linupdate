@@ -71,7 +71,7 @@ class App:
         # All lock files
         locks = [
             '/tmp/linupdate.lock',
-            '/tmp/linupdate.update-running'
+            '/tmp/linupdate.update-running.lock'
         ]
 
         # Failed locks

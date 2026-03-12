@@ -157,6 +157,34 @@ class System:
 
     #-----------------------------------------------------------------------------------------------
     #
+    #   Return the network interfaces, their IP addresses and MAC addresses
+    #
+    #-----------------------------------------------------------------------------------------------
+    def get_network_info(self):
+        """Returns a dictionary with network interfaces as keys and their IP and MAC addresses as values."""
+        network = {}
+
+        try:
+            import socket
+            addrs = psutil.net_if_addrs()
+
+            for iface, addr_list in addrs.items():
+                network[iface] = {'ipv4': None, 'ipv6': None, 'mac': None}
+                for addr in addr_list:
+                    if addr.family == socket.AF_INET:
+                        network[iface]['ipv4'] = addr.address
+                    elif addr.family == socket.AF_INET6:
+                        network[iface]['ipv6'] = addr.address
+                    elif addr.family == psutil.AF_LINK:
+                        network[iface]['mac'] = addr.address
+        except Exception as e:
+            raise Exception('could not get network info: ' + str(e))
+
+        return network
+
+
+    #-----------------------------------------------------------------------------------------------
+    #
     #   Return True if a reboot is required
     #
     #-----------------------------------------------------------------------------------------------
@@ -176,4 +204,21 @@ class System:
                 return True
 
         return False
-            
+    
+
+    #-----------------------------------------------------------------------------------------------
+    #
+    #   Reboot the system
+    #
+    #-----------------------------------------------------------------------------------------------
+    def reboot(self):
+        try:
+            subprocess.run(
+                ['reboot'],
+                stdout = subprocess.PIPE,
+                stderr = subprocess.PIPE,
+                universal_newlines = True,
+                check = True
+            )
+        except Exception as e:
+            raise Exception('Could not reboot the system: ' + str(e))

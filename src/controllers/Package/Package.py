@@ -4,6 +4,7 @@
 
 # Import libraries
 import re
+import time
 from pathlib import Path
 from tabulate import tabulate
 from colorama import Fore, Style
@@ -13,13 +14,19 @@ from src.controllers.System import System
 from src.controllers.App.Config import Config
 from src.controllers.Exit import Exit
 from src.controllers.App.Utils import Utils
-from src.controllers.Status import update_status
+from src.controllers.Status import update_status, save_status, restore_status
 
 class Package:
     def __init__(self):
         self.systemController    = System()
         self.appConfigController = Config()
         self.exitController      = Exit()
+
+        # Locks
+        self.cache_clear_lock = '/tmp/linupdate.clear-cache.lock'
+        self.available_packages_lock = '/tmp/linupdate.available-packages.lock'
+        self.installed_packages_lock = '/tmp/linupdate.installed-packages.lock'
+        self.update_running_lock = '/tmp/linupdate.update-running.lock'
 
         # Import libraries depending on the OS family
 
@@ -114,11 +121,28 @@ class Package:
         try:
             update_status("Getting installed packages")
 
+            # Create a lock file to indicate that the installed packages are being retrieved, to prevent other processes to access the cache while it is being updated
+            try:
+                if not Path(self.installed_packages_lock).is_file():
+                    Path(self.installed_packages_lock).touch()
+            except Exception as e:
+                raise Exception('could not create installed packages lock file: ' + str(e))
+
+            # Wait for the cache to be cleared if it is being cleared
+            self.wait_for_cache_clear_lock()
+
+            # Wait for update to finish if it is running
+            self.wait_for_update_running_lock()
+
             # Get a list of installed packages
             return self.myPackageManagerController.get_installed_packages()
 
         except Exception as e:
             raise Exception('error while getting installed packages: ' + str(e))
+        finally:
+            # Remove the lock file
+            if Path(self.installed_packages_lock).is_file():
+                Path(self.installed_packages_lock).unlink()
 
 
     #-----------------------------------------------------------------------------------------------
@@ -128,13 +152,30 @@ class Package:
     #-----------------------------------------------------------------------------------------------
     def get_available_packages(self, dist_upgrade: bool = False):
         try:
-            update_status("Getting available packages")
+            update_status('Getting available packages')
+
+            # Create a lock file to indicate that the available packages are being retrieved, to prevent other processes to access the cache while it is being updated
+            try:
+                if not Path(self.available_packages_lock).is_file():
+                    Path(self.available_packages_lock).touch()
+            except Exception as e:
+                raise Exception('could not create available packages lock file: ' + str(e))
+
+            # Wait for the cache to be cleared if it is being cleared
+            self.wait_for_cache_clear_lock()
+
+            # Wait for update to finish if it is running
+            self.wait_for_update_running_lock()
 
             # Get a list of available packages
             return self.myPackageManagerController.get_available_packages(dist_upgrade)
 
         except Exception as e:
             raise Exception('error while retrieving available packages: ' + str(e))
+        finally:
+            # Remove the lock file
+            if Path(self.available_packages_lock).is_file():
+                Path(self.available_packages_lock).unlink()
 
 
     #-----------------------------------------------------------------------------------------------
@@ -144,6 +185,21 @@ class Package:
     #-----------------------------------------------------------------------------------------------
     def update_cache(self):
         try:
+            update_status('Updating cache')
+
+            # Do not clear while update is running
+            self.wait_for_update_running_lock()
+
+            # Do not clear while another process is getting available packages
+            self.wait_for_available_packages_lock()
+
+            # Do not clear while another process is getting installed packages
+            self.wait_for_installed_packages_lock()
+
+            # Do not clear while another process is clearing the cache
+            self.wait_for_cache_clear_lock()
+
+            # Update cache
             self.myPackageManagerController.update_cache()
 
         except Exception as e:
@@ -152,13 +208,58 @@ class Package:
 
     #-----------------------------------------------------------------------------------------------
     #
+    #   Clear package cache
+    #
+    #-----------------------------------------------------------------------------------------------
+    def clear_cache(self):
+        try:
+            update_status('Clearing cache')
+
+            # Do not clear while update is running
+            self.wait_for_update_running_lock()
+
+            # Do not clear while another process is getting available packages
+            self.wait_for_available_packages_lock()
+
+            # Do not clear while another process is getting installed packages
+            self.wait_for_installed_packages_lock()
+
+            # Do not clear while another process is clearing the cache
+            self.wait_for_cache_clear_lock()
+
+            # Create a lock file to indicate that the cache is being cleared, to prevent other processes to access the cache while it is being cleared
+            try:
+                if not Path(self.cache_clear_lock).is_file():
+                    Path(self.cache_clear_lock).touch()
+            except Exception as e:
+                raise Exception('could not create cache clear lock file: ' + str(e))
+
+            self.myPackageManagerController.clear_cache()
+        except Exception as e:
+            raise Exception('error while clearing package cache: ' + str(e))
+        finally:
+            # Remove the lock file
+            if Path(self.cache_clear_lock).is_file():
+                Path(self.cache_clear_lock).unlink()
+
+
+    #-----------------------------------------------------------------------------------------------
+    #
     #   Update packages
     #   This can be a list of specific packages or all packages
     #
     #-----------------------------------------------------------------------------------------------
-    def update(self, packages_list: list = [], assume_yes: bool = False, ignore_exclusions: bool = False, check_updates: bool = False, dist_upgrade: bool = False, keep_oldconf: bool = True, dry_run: bool = False):
+    def update(self,
+        packages_list: list = [],
+        assume_yes: bool = False,
+        ignore_exclusions: bool = False,
+        check_updates: bool = False,
+        dist_upgrade: bool = False,
+        keep_oldconf: bool = True,
+        clear_cache: bool = False,
+        dry_run: bool = False):
+        
         restart_file = '/tmp/linupdate.restart-needed'
-        update_running_file = '/tmp/linupdate.update-running'
 
         # Package update summary
         self.summary = {
@@ -180,10 +281,6 @@ class Package:
 
         try:
             update_status("Initialising updates...")
-            
-            # Create a temporary file in /tmp to indicate that the update process is running
-            if not Path(update_running_file).is_file():
-                Path(update_running_file).touch()
 
             # Retrieve configuration
             configuration = self.appConfigController.get_conf()
@@ -193,6 +290,13 @@ class Package:
 
             # Remove all exclusions before starting (could be some left from a previous run that failed)
             self.remove_all_exclusions()
+
+            # Clear cache
+            if clear_cache:
+                self.clear_cache()
+
+            # Update cache
+            self.update_cache()
 
             # If a list of packages to update has been provided, use it
             if len(packages_list) > 0:
@@ -310,7 +414,7 @@ class Package:
             if check_updates == True:
                 # Remove all exclusions before exiting
                 self.remove_all_exclusions()
-                self.exitController.clean_exit(0, False)
+                self.exitController.clean_exit()
 
             # Quit here if there was no packages to update
             if self.packagesToUpdateCount == 0:
@@ -328,7 +432,7 @@ class Package:
                 confirmMsg = 'Update now'
 
                 if dry_run:
-                    confirmMsg += ' (dry-run)'
+                    confirmMsg += ' (dry run)'
 
                 update_status('Waiting for user confirmation...')
 
@@ -337,7 +441,7 @@ class Package:
                     print(Fore.YELLOW + 'Cancelled' + Style.RESET_ALL)
                     # Remove all exclusions before exiting
                     self.remove_all_exclusions()
-                    self.exitController.clean_exit(0, False)
+                    self.exitController.clean_exit()
                 
             # If assume_yes, just print the message
             update_status(' ')
@@ -350,6 +454,10 @@ class Package:
                     if not Path(restart_file).is_file():
                         Path(restart_file).touch()
 
+            # Create a temporary file in /tmp to indicate that the update process is running
+            if not Path(self.update_running_lock).is_file():
+                Path(self.update_running_lock).touch()
+
             # Execute the packages update
             self.myPackageManagerController.dist_upgrade = dist_upgrade
             self.myPackageManagerController.keep_oldconf = keep_oldconf
@@ -358,7 +466,7 @@ class Package:
             # Update the summary status
             self.summary['update']['status'] = 'done'
 
-            del restart_file, update_running_file, configuration, packages_list, ignore_exclusions
+            del restart_file, configuration, packages_list, ignore_exclusions
 
         except Exception as e:
             print('\n' + Fore.RED + ' Packages update failed: ' + str(e) + Style.RESET_ALL)
@@ -367,6 +475,10 @@ class Package:
         finally:
             # Remove all exclusions
             self.remove_all_exclusions()
+
+            # Remove the update running lock file
+            if Path(self.update_running_lock).is_file():
+                Path(self.update_running_lock).unlink()
 
         # Update the summary with the number of packages updated and failed
         if hasattr(self.myPackageManagerController, 'summary'):
@@ -405,3 +517,93 @@ class Package:
     #-----------------------------------------------------------------------------------------------
     def parse_history(self, entries, entries_limit):
         return self.myPackageManagerController.parse_history(entries, entries_limit)
+
+
+    #-----------------------------------------------------------------------------------------------
+    #
+    #   Wait for a lock file to be released
+    #
+    #-----------------------------------------------------------------------------------------------
+    def wait_for_lock(self, lock_file, timeout: int) -> None:
+        start_time = time.time()
+
+        while time.time() - start_time < timeout:
+            locks_held = False
+
+            if Path(lock_file).is_file():
+                locks_held = True
+
+            if not locks_held:
+                return
+
+            time.sleep(2)
+
+        raise Exception('could not acquire lock ' + lock_file + ' within ' + str(timeout) + ' seconds')
+
+
+    #-----------------------------------------------------------------------------------------------
+    #
+    #   Wait for update running lock to be released
+    #   Default timeout is 60 seconds
+    #
+    #-----------------------------------------------------------------------------------------------
+    def wait_for_update_running_lock(self, timeout: int = 60) -> None:
+        # Save status message
+        save_status()
+
+        update_status('Another process is running an update, waiting for it to finish...')
+        self.wait_for_lock(self.update_running_lock, timeout)
+
+        # Restore status message
+        restore_status()
+
+
+    #-----------------------------------------------------------------------------------------------
+    #
+    #   Wait for available packages lock to be released
+    #   Default timeout is 60 seconds
+    #
+    #-----------------------------------------------------------------------------------------------
+    def wait_for_available_packages_lock(self, timeout: int = 60) -> None:
+        # Save status message
+        save_status()
+
+        update_status('Waiting for available packages lock to be released...')
+        self.wait_for_lock(self.available_packages_lock, timeout)
+
+        # Restore status message
+        restore_status()
+
+
+    #-----------------------------------------------------------------------------------------------
+    #
+    #   Wait for installed packages lock to be released
+    #   Default timeout is 60 seconds
+    #
+    #-----------------------------------------------------------------------------------------------
+    def wait_for_installed_packages_lock(self, timeout: int = 60) -> None:
+        # Save status message
+        save_status()
+
+        update_status('Waiting for installed packages lock to be released...')
+        self.wait_for_lock(self.installed_packages_lock, timeout)
+
+        # Restore status message
+        restore_status()
+
+
+    #-----------------------------------------------------------------------------------------------
+    #
+    #   Wait for cache clear lock to be released
+    #   Default timeout is 60 seconds
+    #
+    #-----------------------------------------------------------------------------------------------
+    def wait_for_cache_clear_lock(self, timeout: int = 60) -> None:
+        # Save status message
+        save_status()
+
+        update_status('Waiting for cache clear lock to be released...')
+        self.wait_for_lock(self.cache_clear_lock, timeout)
+
+        # Restore status message
+        restore_status()
