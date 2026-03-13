@@ -13,7 +13,7 @@ jobs:
       options: --user root
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Get linupdate version
         run: echo "VERSION=$(cat ${GITHUB_WORKSPACE}/version)" >> $GITHUB_ENV
@@ -55,7 +55,7 @@ jobs:
           mv /tmp/linupdate-build.deb /tmp/linupdate_${{ env.VERSION }}_all.deb
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: linupdate_${{ env.VERSION }}_all.deb
           path: /tmp/linupdate_${{ env.VERSION }}_all.deb
@@ -69,7 +69,7 @@ jobs:
       options: --user root
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Get linupdate version
         run: echo "VERSION=$(cat ${GITHUB_WORKSPACE}/version)" >> $GITHUB_ENV
@@ -138,7 +138,7 @@ jobs:
           mv $HOME/rpmbuild/RPMS/noarch/linupdate-${{ env.VERSION }}-stable.noarch.rpm /tmp/linupdate-${{ env.VERSION }}.noarch.rpm
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: linupdate-${{ env.VERSION }}.noarch.rpm
           path: /tmp/linupdate-${{ env.VERSION }}.noarch.rpm
@@ -152,21 +152,21 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Get linupdate version
         run: echo "VERSION=$(cat ${GITHUB_WORKSPACE}/version)" >> $GITHUB_ENV
 
       # Download builded deb package artifact
       - name: Download deb artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: linupdate_${{ env.VERSION }}_all.deb
           path: ~/assets
       
       # Download builded rpm package artifact
       - name: Download rpm artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: linupdate-${{ env.VERSION }}.noarch.rpm
           path: ~/assets
@@ -182,9 +182,8 @@ jobs:
           release_name: ${{ env.VERSION }}
           body: |
             **Changes**:
-              - Added a --reboot parameter to auto-reboot the system after a successful update https://github.com/lbr38/linupdate/issues/104
-              - Added a --clear-cache parameter to force clear the package manager cache before an update
-              - Added more locks to prevent multiple operations running at the same time
+              - Reposerver module: added a check to prevent the agent from updating the cache if linupdate is running
+              - Removed ANSI codes from log files to improve readability
           draft: false
           prerelease: false
 

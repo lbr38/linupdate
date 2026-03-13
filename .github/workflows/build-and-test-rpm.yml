@@ -16,7 +16,7 @@ jobs:
       options: --user root
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Get linupdate version
         run: echo "VERSION=$(cat ${GITHUB_WORKSPACE}/version)" >> $GITHUB_ENV
@@ -85,7 +85,7 @@ jobs:
           mv $HOME/rpmbuild/RPMS/noarch/linupdate-${{ env.VERSION }}-stable.noarch.rpm /tmp/linupdate-test-build-${{ env.VERSION }}.noarch.rpm
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: linupdate-test-build-${{ env.VERSION }}.noarch.rpm
           path: /tmp/linupdate-test-build-${{ env.VERSION }}.noarch.rpm

@@ -10,7 +10,7 @@ jobs:
       options: --user root
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Get linupdate version
         run: echo "VERSION=$(cat ${GITHUB_WORKSPACE}/version)" >> $GITHUB_ENV
@@ -53,7 +53,7 @@ jobs:
 
       # Download builded rpm package artifact
       - name: Download artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: linupdate-test-build-${{ env.VERSION }}.noarch.rpm
 

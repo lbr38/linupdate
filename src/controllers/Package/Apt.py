@@ -338,10 +338,10 @@ class Apt:
             aptcache.open(None)
             
             # Force a complete refresh of the cache object
-            # aptcache.close()
-            # aptcache.clear()
-            # aptcache.open(None)
-            
+            aptcache.close()
+            aptcache.clear()
+            aptcache.open(None)
+
         except Exception as e:
             raise Exception('could not open fresh apt cache: ' + str(e))
 
