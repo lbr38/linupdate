@@ -47,10 +47,7 @@ class Utils:
         text = self.remove_ansi(text)
 
         # Replace double line breaks with single line breaks before '|' character (occurs mainly with apt logs)
-        text = re.sub(r'\n\n \|', '\n |', text)
-
-        # Remove leading and trailing whitespaces
-        text = text.strip()
+        text = re.sub(r'\n\n\|', '\n|', text)
 
         return text
 

@@ -160,3 +160,23 @@ class App:
         print('Execution date:      ' + Fore.YELLOW + datetime.now().strftime('%d-%m-%Y %H:%M:%S') + Style.RESET_ALL)
         print('Executed by user:    ' + Fore.YELLOW + getpass.getuser() + Style.RESET_ALL)
         print('Execution method:    ' + Fore.YELLOW + exec_method + Style.RESET_ALL + '\n')
+
+
+    #-----------------------------------------------------------------------------------------------
+    #
+    #   Return true if the application is currently running
+    #
+    #-----------------------------------------------------------------------------------------------
+    def is_running(self)-> bool:
+        result = subprocess.run(
+            ['/usr/bin/ps aux | grep "/usr/bin/linupdate" | grep -v "grep"'],
+            stdout = subprocess.PIPE,
+            stderr = subprocess.PIPE,
+            universal_newlines = True,
+            shell = True
+        )
+        
+        if result.returncode == 0:
+            return True
+
+        return False
