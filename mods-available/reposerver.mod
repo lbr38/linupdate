@@ -791,6 +791,8 @@ function getProfilePackagesConf
     CURL=$(curl -L --post301 -s -q -H "Authorization: Host $HOST_ID:$TOKEN" -X GET "${REPOSERVER_URL}/api/v2/profile/${PROFILE}/excludes" 2> /dev/null)
     curl_result_parse
 
+    # toto
+
     # Si il y a eu une erreur lors de la requête on quitte la fonction
     if [ "$CURL_ERROR" != "0" ];then
         return 2
@@ -802,17 +804,9 @@ function getProfilePackagesConf
     fi
 
     # Puis on récupère la configuration transmise par le serveur au format JSON
-    # On parcourt chaque configuration et on récupère le nom du fichier à créer, la description et le contenu à insérer
-    # On remplace à la volée l'environnement dans le contenu récupéré
-    for ROW in $(echo "${CURL}" | jq -r '.results[] | @base64'); do
-        _jq() {
-            echo ${ROW} | base64 --decode | jq -r ${1}
-        }
-
-        EXCLUDE_MAJOR=$(_jq '.Package_exclude_major')
-        EXCLUDE=$(_jq '.Package_exclude')
-        SERVICE_RESTART=$(_jq '.Service_restart')
-    done
+    EXCLUDE_MAJOR=$(echo "$CURL" | jq -r '.results.Package_exclude_major')
+    EXCLUDE=$(echo "$CURL" | jq -r '.results.Package_exclude')
+    SERVICE_RESTART=$(echo "$CURL" | jq -r '.results.Service_restart')
 
     # Si la valeur des paramètres == null alors cela signifie qu'il n'y a aucune exclusion de paquet
     if [ "$EXCLUDE_MAJOR" == "null" ];then

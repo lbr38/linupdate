@@ -13,7 +13,7 @@ jobs:
       options: --user root
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v6
         with:
           ref: 'linupdate-2.x.x'
 
@@ -62,7 +62,7 @@ jobs:
           mv /tmp/linupdate-build.deb /tmp/linupdate-test-build_${{ env.VERSION }}_all.deb
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v6
         with:
           name: linupdate-test-build_${{ env.VERSION }}_all.deb
           path: /tmp/linupdate-test-build_${{ env.VERSION }}_all.deb
@@ -79,7 +79,7 @@ jobs:
       options: --user root
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v6
         with:
           ref: 'linupdate-2.x.x'
 
@@ -88,7 +88,7 @@ jobs:
 
       # Download builded deb package artifact
       - name: Download artifact
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v8
         with:
           name: linupdate-test-build_${{ env.VERSION }}_all.deb
 
@@ -121,7 +121,7 @@ jobs:
       options: --user root
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v6
         with:
           ref: 'linupdate-2.x.x'
 
@@ -130,7 +130,7 @@ jobs:
 
       # Download builded deb package artifact
       - name: Download artifact
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v8
         with:
           name: linupdate-test-build_${{ env.VERSION }}_all.deb
 
@@ -163,7 +163,7 @@ jobs:
       options: --user root
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v6
         with:
           ref: 'linupdate-2.x.x'
 
@@ -172,7 +172,7 @@ jobs:
 
       # Download builded deb package artifact
       - name: Download artifact
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v8
         with:
           name: linupdate-test-build_${{ env.VERSION }}_all.deb
 
@@ -202,7 +202,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v6
         with:
           ref: 'linupdate-2.x.x'
 
@@ -211,7 +211,7 @@ jobs:
 
       # Download builded deb package artifact
       - name: Download artifact
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v8
         with:
           name: linupdate-test-build_${{ env.VERSION }}_all.deb
 

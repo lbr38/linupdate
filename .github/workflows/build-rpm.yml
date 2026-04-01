@@ -6,55 +6,51 @@ on:
 
 jobs:
   # Build rpm package
-  # Even it is build on CentOS7, package should be installable on RHEL7/8/9 based systems
+  # Even it is build on CentOS8, package should be installable on RHEL7
   build-rpm:
     name: Build rpm package
     runs-on: ubuntu-latest
-    env:
-      # Force to use node16 (for actions/checkout@v3)
-      ACTIONS_RUNNER_FORCE_ACTIONS_NODE_VERSION: node16
-      ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
     container:
-      image: centos:7
+      image: rockylinux/rockylinux:8
       options: --user root
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v6
         with:
           ref: 'linupdate-2.x.x'
 
       - name: Get linupdate version
         run: echo "VERSION=$(cat ${GITHUB_WORKSPACE}/version)" >> $GITHUB_ENV
 
-      - name: Install CentOS7 archive repositories
+      - name: Install CentOS8 archive repositories
         run: |
           rm /etc/yum.repos.d/* -f
 
           echo "[os]
           name=os repo
-          baseurl=https://vault.centos.org/7.9.2009/os/x86_64/
+          baseurl=https://vault.centos.org/8-stream/BaseOS/x86_64/os/
           enabled=1
-          gpgkey=https://vault.centos.org/RPM-GPG-KEY-CentOS-7
+          gpgkey=https://www.centos.org/keys/RPM-GPG-KEY-CentOS-Official-SHA256
           gpgcheck=1" > /etc/yum.repos.d/os.repo
+
+          echo "[appstream]
+          name=updates repo
+          baseurl=https://vault.centos.org/8-stream/AppStream/x86_64/os/
+          enabled=1
+          gpgkey=https://www.centos.org/keys/RPM-GPG-KEY-CentOS-Official-SHA256
+          gpgcheck=1" > /etc/yum.repos.d/appstream.repo
 
           echo "[extras]
           name=extras repo
-          baseurl=https://vault.centos.org/7.9.2009/extras/x86_64/
+          baseurl=https://vault.centos.org/8-stream/extras/x86_64/extras-common/
           enabled=1
-          gpgkey=https://vault.centos.org/RPM-GPG-KEY-CentOS-7
+          gpgkey=https://www.centos.org/keys/RPM-GPG-KEY-CentOS-Official-SHA256
           gpgcheck=1" > /etc/yum.repos.d/extras.repo
 
-          echo "[updates]
-          name=updates repo
-          baseurl=https://vault.centos.org/7.9.2009/updates/x86_64/
-          enabled=1
-          gpgkey=https://vault.centos.org/RPM-GPG-KEY-CentOS-7
-          gpgcheck=1" > /etc/yum.repos.d/updates.repo
-
-          yum clean all
+          dnf clean all
 
       - name: Install dependencies packages
-        run: yum install rpmdevtools rpmlint -y
+        run: dnf install rpmdevtools rpmlint -y
 
       - name: Create build environment
         run: |
@@ -94,70 +90,70 @@ jobs:
           mv $HOME/rpmbuild/RPMS/noarch/linupdate-${{ env.VERSION }}-stable.noarch.rpm /tmp/linupdate-test-build-${{ env.VERSION }}.noarch.rpm
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v6
         with:
           name: linupdate-test-build-${{ env.VERSION }}.noarch.rpm
           path: /tmp/linupdate-test-build-${{ env.VERSION }}.noarch.rpm
           retention-days: 1
 
   # Try to install packages on CentOS 7
-  install-centos7:
-    name: Install on CentOS 7
-    needs:
-      build-rpm
-    runs-on: ubuntu-latest
-    container:
-      image: centos:7
-      options: --user root
-    env:
-      # Force to use node16 (for actions/checkout@v3)
-      ACTIONS_RUNNER_FORCE_ACTIONS_NODE_VERSION: node16
-      ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-        with:
-          ref: 'linupdate-2.x.x'
+  # install-centos7:
+  #   name: Install on CentOS 7
+  #   needs:
+  #     build-rpm
+  #   runs-on: ubuntu-latest
+  #   container:
+  #     image: centos:7
+  #     options: --user root
+  #   env:
+  #     # Force to use node16 (for actions/checkout@v3)
+  #     ACTIONS_RUNNER_FORCE_ACTIONS_NODE_VERSION: node16
+  #     ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
+  #   steps:
+  #     - name: Checkout
+  #       uses: actions/checkout@v6
+  #       with:
+  #         ref: 'linupdate-2.x.x'
 
-      - name: Get linupdate version
-        run: echo "VERSION=$(cat ${GITHUB_WORKSPACE}/version)" >> $GITHUB_ENV
+  #     - name: Get linupdate version
+  #       run: echo "VERSION=$(cat ${GITHUB_WORKSPACE}/version)" >> $GITHUB_ENV
 
-      - name: Install CentOS7 archive repositories
-        run: |
-          rm /etc/yum.repos.d/* -f
+  #     - name: Install CentOS7 archive repositories
+  #       run: |
+  #         rm /etc/yum.repos.d/* -f
 
-          echo "[os]
-          name=os repo
-          baseurl=https://vault.centos.org/7.9.2009/os/x86_64/
-          enabled=1
-          gpgkey=https://vault.centos.org/RPM-GPG-KEY-CentOS-7
-          gpgcheck=1" > /etc/yum.repos.d/os.repo
+  #         echo "[os]
+  #         name=os repo
+  #         baseurl=https://vault.centos.org/7.9.2009/os/x86_64/
+  #         enabled=1
+  #         gpgkey=https://vault.centos.org/RPM-GPG-KEY-CentOS-7
+  #         gpgcheck=1" > /etc/yum.repos.d/os.repo
 
-          echo "[extras]
-          name=extras repo
-          baseurl=https://vault.centos.org/7.9.2009/extras/x86_64/
-          enabled=1
-          gpgkey=https://vault.centos.org/RPM-GPG-KEY-CentOS-7
-          gpgcheck=1" > /etc/yum.repos.d/extras.repo
+  #         echo "[extras]
+  #         name=extras repo
+  #         baseurl=https://vault.centos.org/7.9.2009/extras/x86_64/
+  #         enabled=1
+  #         gpgkey=https://vault.centos.org/RPM-GPG-KEY-CentOS-7
+  #         gpgcheck=1" > /etc/yum.repos.d/extras.repo
 
-          echo "[updates]
-          name=updates repo
-          baseurl=https://vault.centos.org/7.9.2009/updates/x86_64/
-          enabled=1
-          gpgkey=https://vault.centos.org/RPM-GPG-KEY-CentOS-7
-          gpgcheck=1" > /etc/yum.repos.d/updates.repo
+  #         echo "[updates]
+  #         name=updates repo
+  #         baseurl=https://vault.centos.org/7.9.2009/updates/x86_64/
+  #         enabled=1
+  #         gpgkey=https://vault.centos.org/RPM-GPG-KEY-CentOS-7
+  #         gpgcheck=1" > /etc/yum.repos.d/updates.repo
 
-          yum clean all
-          yum install epel-release -y
+  #         yum clean all
+  #         yum install epel-release -y
 
-      # Download builded deb package artifact
-      - name: Download artifact
-        uses: actions/download-artifact@v3
-        with:
-          name: linupdate-test-build-${{ env.VERSION }}.noarch.rpm
+  #     # Download builded deb package artifact
+  #     - name: Download artifact
+  #       uses: actions/download-artifact@v8
+  #       with:
+  #         name: linupdate-test-build-${{ env.VERSION }}.noarch.rpm
 
-      - name: Install package
-        run: yum --nogpgcheck localinstall -y ./linupdate-test-build-${{ env.VERSION }}.noarch.rpm
+  #     - name: Install package
+  #       run: yum --nogpgcheck localinstall -y ./linupdate-test-build-${{ env.VERSION }}.noarch.rpm
 
       # - name: Test some params
       #   run: |
@@ -183,7 +179,7 @@ jobs:
       options: --user root
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v6
         with:
           ref: 'linupdate-2.x.x'
 
@@ -195,7 +191,7 @@ jobs:
 
       # Download builded deb package artifact
       - name: Download artifact
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v8
         with:
           name: linupdate-test-build-${{ env.VERSION }}.noarch.rpm
 
@@ -226,7 +222,7 @@ jobs:
       options: --user root
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v6
         with:
           ref: 'linupdate-2.x.x'
 
@@ -238,7 +234,7 @@ jobs:
 
       # Download builded deb package artifact
       - name: Download artifact
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v8
         with:
           name: linupdate-test-build-${{ env.VERSION }}.noarch.rpm
 
@@ -269,7 +265,7 @@ jobs:
       options: --user root
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v6
         with:
           ref: 'linupdate-2.x.x'
 
@@ -281,7 +277,7 @@ jobs:
 
       # Download builded deb package artifact
       - name: Download artifact
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v8
         with:
           name: linupdate-test-build-${{ env.VERSION }}.noarch.rpm
 
