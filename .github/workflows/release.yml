@@ -182,8 +182,9 @@ jobs:
           release_name: ${{ env.VERSION }}
           body: |
             **Changes**:
-              - Reposerver module: added a check to prevent the agent from updating the cache if linupdate is running
-              - Removed ANSI codes from log files to improve readability
+              - Added automatic logs cleanup and --log-retention-days parameter to specify the number of days to keep logs
+              - Reposerver module: added a --verify-ssl parameter to allow users to disable SSL verification when sending http requests https://github.com/lbr38/linupdate/issues/107
+              - Reposerver module: added more logs to the --register command to help users understand why the registration failed (for example when the firewall is not open)
           draft: false
           prerelease: false
 

@@ -36,6 +36,9 @@ class Args:
             # IP
             parser.add_argument("--ip", action="store", nargs='?', default="null")
 
+            # Verify SSL certificates for HTTP requests
+            parser.add_argument("--verify-ssl", action="store", nargs='?', default="null")
+
             # Enable or disable packages configuration update
             parser.add_argument("--get-packages-conf-from-reposerver", action="store", nargs='?', default="null")
             # Enable or disable repos update
@@ -135,6 +138,24 @@ class Args:
                     self.configController.set_agent_listen(True)
                 else:
                     self.configController.set_agent_listen(False)
+
+                self.exitController.clean_exit()
+
+            #
+            # If --verify-ssl param has been set
+            #
+            if args.verify_ssl != "null":
+                if not args.verify_ssl:
+                    status = Fore.GREEN + 'enabled' if self.configController.get_verify_ssl() else Fore.YELLOW + 'disabled'
+
+                    print('SSL certificate verification is currently ' + status + Style.RESET_ALL, end='\n\n')
+                else:
+                    if args.verify_ssl == 'true':
+                        self.configController.set_verify_ssl(True)
+                        print('SSL certificate verification is now ' + Fore.GREEN + 'enabled' + Style.RESET_ALL, end='\n\n')
+                    else:
+                        self.configController.set_verify_ssl(False)
+                        print('SSL certificate verification is now ' + Fore.YELLOW  + 'disabled' + Style.RESET_ALL, end='\n\n')
 
                 self.exitController.clean_exit()
 
@@ -299,6 +320,13 @@ class Args:
                         '--unregister',
                     ],
                     'description': 'Unregister this host from the reposerver'
+                },
+                {
+                    'args': [
+                        '--verify-ssl'
+                    ],
+                    'option': 'true|false',
+                    'description': 'Enable or disable SSL certificate verification for requests to the reposerver (default: true)',
                 },
                 {
                     'title': 'Configuring retrieval from reposerver (using configured profile)'

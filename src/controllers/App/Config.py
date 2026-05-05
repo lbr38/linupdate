@@ -98,6 +98,10 @@ class Config:
             if 'recipient' not in configuration['main']['mail']:
                 raise Exception('main.mail.recipient key is missing in ' + self.config_file)
 
+            # If main.log_retention_days is not set, default to 180 days (~6 months)
+            if 'log_retention_days' not in configuration['main']:
+                configuration['main']['log_retention_days'] = 180
+
             # Check if modules is set
             if 'modules' not in configuration:
                 raise Exception('modules key is missing in ' + self.config_file)
@@ -450,7 +454,7 @@ class Config:
         configuration = self.get_conf()
 
         # Set smtp port
-        configuration['main']['mail']['smtp_port'] = smtp_port
+        configuration['main']['mail']['smtp_port'] = int(smtp_port)
 
         # Write config file
         self.write_conf(configuration)
@@ -661,6 +665,41 @@ class Config:
 
         # Remove module from enabled list
         configuration['modules']['enabled'].remove(module)
+
+        # Write config file
+        self.write_conf(configuration)
+
+
+    #-----------------------------------------------------------------------------------------------
+    #
+    #   Get log retention days from config file
+    #
+    #-----------------------------------------------------------------------------------------------
+    def get_log_retention_days(self) -> int:
+        # Get current configuration
+        configuration = self.get_conf()
+
+        return int(configuration['main']['log_retention_days'])
+
+
+    #-----------------------------------------------------------------------------------------------
+    #
+    #   Set log retention days in config file
+    #
+    #-----------------------------------------------------------------------------------------------
+    def set_log_retention_days(self, days: int) -> None:
+        # Validate input
+        try:
+            days_int = int(days)
+        except Exception:
+            raise Exception('log_retention_days must be an integer')
+
+        if days_int < 0:
+            raise Exception('log_retention_days must be >= 0')
+
+        configuration = self.get_conf()
+
+        configuration['main']['log_retention_days'] = days_int
 
         # Write config file
         self.write_conf(configuration)

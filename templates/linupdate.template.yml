@@ -1,4 +1,5 @@
 main:
+  profile: host
   environment: prod
   mail:
     enabled: false
@@ -6,5 +7,6 @@ main:
     smtp_host: localhost
     smtp_port: 25
   profile: Host
+  log_retention_days: 180
 modules:
   enabled: []

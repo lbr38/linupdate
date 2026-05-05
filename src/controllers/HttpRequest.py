@@ -9,8 +9,9 @@ from colorama import Fore, Style
 from src.controllers.App.Utils import Utils
 
 class HttpRequest:
-    def __init__(self):
+    def __init__(self, verify_ssl: bool = True):
         self.quiet = False
+        self.verify_ssl = verify_ssl
 
     #-----------------------------------------------------------------------------------------------
     #
@@ -22,9 +23,10 @@ class HttpRequest:
         if id != "" and token != "":
             response = requests.get(url,
                                     headers = {'Authorization': 'Host ' + id + ':' + token},
-                                    timeout = (connectionTimeout, readTimeout))
+                                    timeout = (connectionTimeout, readTimeout),
+                                    verify = self.verify_ssl)
         else:
-            response = requests.get(url, timeout = (connectionTimeout, readTimeout))
+            response = requests.get(url, timeout = (connectionTimeout, readTimeout), verify = self.verify_ssl)
 
         # Parse response and return results if 200
         return self.request_parse_result(response)
@@ -40,7 +42,8 @@ class HttpRequest:
         response = requests.post(url,
                                  data = json.dumps(data),
                                  headers = {'Authorization': 'Bearer ' + apiKey, 'Content-Type': 'application/json'},
-                                 timeout = (connectionTimeout, readTimeout))
+                                 timeout = (connectionTimeout, readTimeout),
+                                 verify = self.verify_ssl)
 
         del data, apiKey, url
 
@@ -58,7 +61,8 @@ class HttpRequest:
         response = requests.put(url,
                                 data = json.dumps(data),
                                 headers = {'Authorization': 'Host ' + id + ':' + token},
-                                timeout = (connectionTimeout, readTimeout))
+                                timeout = (connectionTimeout, readTimeout),
+                                verify = self.verify_ssl)
 
         del data, id, token, url
 
@@ -75,7 +79,8 @@ class HttpRequest:
         # Send DELETE request to URL with Id and token
         response = requests.delete(url,
                                    headers = {'Authorization': 'Host ' + id + ':' + token},
-                                   timeout = (connectionTimeout, readTimeout))
+                                   timeout = (connectionTimeout, readTimeout),
+                                   verify = self.verify_ssl)
 
         del id, token, url
 
