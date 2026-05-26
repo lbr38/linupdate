@@ -1,4 +1,4 @@
-name: Build and test rpm package for linupdate
+name: Build and test rpm package
 
 on:
   push:

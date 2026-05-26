@@ -1,9 +1,18 @@
+<p align="center">
+    <img src="https://raw.githubusercontent.com/lbr38/linupdate/devel/assets/logo.png" alt="linupdate logo" width="140" />
+</p>
 
-<h1>LINUPDATE</h1>
+<h1 align="center">LINUPDATE</h1>
 
-**linupdate** is a package updater tool for Debian and Redhat based OS.
+<p align="center"><strong>linupdate</strong> is a package updater tool for Debian and Redhat based OS.</p>
+<br>
 
-Using ``apt`` and ``dnf``, it provides basic and avanced update features especially when being managed by a <a href="https://github.com/lbr38/repomanager">Repomanager</a> reposerver:
+[![Build and test deb package](https://github.com/lbr38/linupdate/actions/workflows/build-and-test-deb.yml/badge.svg?branch=devel&event=push)](https://github.com/lbr38/linupdate/actions/workflows/build-and-test-deb.yml)
+[![Build and test rpm package](https://github.com/lbr38/linupdate/actions/workflows/build-and-test-rpm.yml/badge.svg?branch=devel&event=push)](https://github.com/lbr38/linupdate/actions/workflows/build-and-test-rpm.yml)
+
+<br>
+
+Using ``apt`` and ``dnf``, linupdate provides basic and avanced update features especially when being managed by a <a href="https://github.com/lbr38/repomanager">Repomanager</a> reposerver:
 - update packages
 - exclude packages from update
 - execute pre or post update actions (e.g: restart services)
@@ -12,9 +21,9 @@ Using ``apt`` and ``dnf``, it provides basic and avanced update features especia
 
 linupdate is a modular tool. New modules could be added in the future to improve the update experience.
 
-![alt text](https://github.com/user-attachments/assets/f1eed81d-af86-4738-98b5-3e41c5cfe069)
+![alt text](https://raw.githubusercontent.com/lbr38/linupdate/devel/assets/demo.png)
 
-<h2>Requirements</h2>
+## Requirements
 
 **linupdate** is regulary tested and should run fine on following systems (python3 required):
 
@@ -23,14 +32,13 @@ linupdate is a modular tool. New modules could be added in the future to improve
 
 RHEL 8 and derivatives are not supported anymore.
 
-<h2>Installation and documentation</h2>
+## Installation and documentation
 
 Official documentation is available <a href="https://github.com/lbr38/linupdate/wiki">here</a>.
 
 It should help you **installing** and starting using linupdate.
 
-
-<h2>Parameters</h2>
+## Parameters
 
 <pre>
 Available options:
@@ -91,7 +99,7 @@ Available options:
 Usage: linupdate [OPTIONS]
 </pre>
 
-<h2>Contact</h2>
+## Contact
 
 - For bug reports, issues or features requests, please open a new issue in the Github ``Issues`` section
 - A Discord channel is available <a href="https://discord.gg/2vGyvzmYb">here</a> for any questions or quick help/debugging (English or French spoken)
