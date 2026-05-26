@@ -1,4 +1,4 @@
-name: Build and test deb package for linupdate
+name: Build and test deb package
 
 on:
   push:
