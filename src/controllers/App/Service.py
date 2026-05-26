@@ -9,8 +9,10 @@ import time
 import configparser
 from pathlib import Path
 from colorama import Fore, Style
+from datetime import datetime, timedelta
 
 # Import classes
+from src.controllers.App.Config import Config
 from src.controllers.Module.Module import Module
 
 class Service:
@@ -25,6 +27,9 @@ class Service:
 
         # Systemd unit file path
         self.systemd_unit_file = '/lib/systemd/system/linupdate.service'
+
+        # Track last date when logs were cleaned
+        self.last_log_cleanup_date = None
 
 
     #-----------------------------------------------------------------------------------------------
@@ -166,6 +171,20 @@ class Service:
                         'start_time': time.time()
                     })
 
+                # Daily log cleanup: run once when hour==0 (around midnight)
+                try:
+                    now = datetime.now()
+                    if now.hour == 0:
+                        if self.last_log_cleanup_date is None or self.last_log_cleanup_date.date() != now.date():
+                            try:
+                                self.cleanup_logs()
+                            except Exception as e:
+                                print('[linupdate] Log cleanup error: ' + str(e))
+                            self.last_log_cleanup_date = now
+                except Exception:
+                    # Be defensive: never let cleanup scheduling break the service loop
+                    pass
+
                 time.sleep(5)
 
         except Exception as e:
@@ -195,6 +214,50 @@ class Service:
         except Exception as e:
             print('[' + module_name + '-agent] Error: ' + str(e))
             exit(1)
+
+
+    #-----------------------------------------------------------------------------------------------
+    #
+    #   Cleanup logs older than configured retention
+    #
+    #-----------------------------------------------------------------------------------------------
+    def cleanup_logs(self):
+        log_dir = Path('/var/log/linupdate')
+
+        # If log directory doesn't exist, nothing to do
+        if not log_dir.is_dir():
+            print('[linupdate] Log directory not found: ' + str(log_dir))
+            return
+
+        # Get retention days from global config
+        try:
+            days = int(Config().get_log_retention_days())
+        except Exception as e:
+            raise Exception('Could not determine log retention days: ' + str(e))
+
+        cutoff = datetime.now() - timedelta(days=days)
+
+        deleted_any = False
+
+        for file in log_dir.glob('*log'):
+            try:
+                # Only consider files
+                if not file.is_file():
+                    continue
+
+                mtime = datetime.fromtimestamp(file.stat().st_mtime)
+                if mtime < cutoff:
+                    try:
+                        file.unlink()
+                        print('[linupdate] Deleted log file: ' + str(file))
+                        deleted_any = True
+                    except Exception as e:
+                        print('[linupdate] Failed to delete ' + str(file) + ': ' + str(e))
+            except Exception as e:
+                print('[linupdate] Error while processing ' + str(file) + ': ' + str(e))
+
+        if not deleted_any:
+            print('[linupdate] No log files to delete (retention ' + str(days) + ' days)')
 
 
     #-----------------------------------------------------------------------------------------------

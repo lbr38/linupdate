@@ -180,3 +180,11 @@ class App:
             return True
 
         return False
+
+    #-----------------------------------------------------------------------------------------------
+    #
+    #   Return true if the application is running in a terminal (tty)
+    #
+    #-----------------------------------------------------------------------------------------------
+    def tty(self) -> bool:
+        return sys.stdin.isatty()

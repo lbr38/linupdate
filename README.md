@@ -94,4 +94,4 @@ Usage: linupdate [OPTIONS]
 <h2>Contact</h2>
 
 - For bug reports, issues or features requests, please open a new issue in the Github ``Issues`` section
-- A Discord channel is available <a href="https://discord.gg/34yeNsMmkQ">here</a> for any questions or quick help/debugging (English or French spoken)
+- A Discord channel is available <a href="https://discord.gg/2vGyvzmYb">here</a> for any questions or quick help/debugging (English or French spoken)

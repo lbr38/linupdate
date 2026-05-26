@@ -21,7 +21,7 @@ class Config:
         self.systemController = System()
         self.appConfigController = appConfig()
         self.packageController = Package()
-        self.httpRequestController = HttpRequest()
+        self.httpRequestController = HttpRequest(self.get_verify_ssl())
 
     #-----------------------------------------------------------------------------------------------
     #
@@ -184,6 +184,10 @@ class Config:
         if configuration['client']['get_repos_from_reposerver']['remove_existing_repos'] not in [True, False]:
             raise Exception('client.get_repos_from_reposerver.remove_existing_repos key must be set to true or false')
 
+        # If client.verify_ssl is not set, default to True
+        if 'verify_ssl' not in configuration['client']:
+            configuration['client']['verify_ssl'] = True
+
         # If client.get_repos_from_reposerver.format is not set, then set it to standard
         if 'format' not in configuration['client']['get_repos_from_reposerver']:
             configuration['client']['get_repos_from_reposerver']['format'] = 'standard'
@@ -242,7 +246,10 @@ class Config:
         # If no IP has been specified (null), then retrieve the public IP of the host
         if ip == 'null':
             try:
-                ip = self.httpRequestController.get('https://api.ipify.org', '', '', 2).text
+                # Use another HttpRequest instance with SSL verification enabled to retrieve the public IP, even if the user has disabled SSL verification for the reposerver client
+                httpRequestController = HttpRequest(True)
+                ip = httpRequestController.get('https://api.ipify.org', '', '', 2).text
+                del httpRequestController
             except Exception as e:
                 raise Exception('failed to retrieve public IP from https://api.ipify.org (resource might be temporarily unavailable): ' + str(e))
 
@@ -260,7 +267,10 @@ class Config:
 
         try:
             results = self.httpRequestController.post_token(url + '/api/v2/host/registering', api_key, data)
-        except Exception:
+        except Exception as e:
+            if e is not None and str(e) != '':
+                raise Exception('Registering failed: ' + str(e))
+
             raise Exception('Registering failed')
 
         # If registration is successful, the server will return an Id and a token, set Id and token in configuration
@@ -715,3 +725,31 @@ class Config:
                 print(' Agent listening ' + Fore.YELLOW + 'disabled' + Style.RESET_ALL, end='\n\n')
         except Exception as e:
             raise Exception('could not set agent listening enable to ' + str(value) + ': ' + str(e))
+
+
+    #-----------------------------------------------------------------------------------------------
+    #
+    #   Get verify_ssl for reposerver client
+    #
+    #-----------------------------------------------------------------------------------------------
+    def get_verify_ssl(self) -> bool:
+        configuration = self.get_conf()
+
+        # Default to True if not present
+        if 'verify_ssl' not in configuration['client']:
+            return True
+
+        return configuration['client']['verify_ssl']
+
+
+    #-----------------------------------------------------------------------------------------------
+    #
+    #   Set verify_ssl for reposerver client
+    #
+    #-----------------------------------------------------------------------------------------------
+    def set_verify_ssl(self, verify_ssl: bool) -> None:
+        configuration = self.get_conf()
+
+        # Write in client section
+        configuration['client']['verify_ssl'] = verify_ssl
+        self.write_conf(configuration)

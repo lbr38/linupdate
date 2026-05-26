@@ -79,16 +79,16 @@ class Status:
         msg = False
 
         try:
-            # Avoid to do anything if linupdate is running, to prevent modifying the package cache while linupdate is using it
-            while App().is_running():
-                # Display a message if not already done
-                if not msg:
-                    msg = True
-                    print('▪ Waiting for linupdate process to finish before continuing...')
+            # Avoid to do anything if linupdate is running, to prevent modifying the package cache while linupdate is using it (only when no tty)
+            if not App().tty():
+                while App().is_running():
+                    # Display a message if not already done
+                    if not msg:
+                        msg = True
+                        print('▪ Waiting for linupdate process to finish before continuing...')
 
-                time.sleep(2)
+                    time.sleep(2)
 
-            print('\n▪ Updating cache to get the most up-to-date packages information...')
             self.packageController.update_cache()
 
             # Send all status

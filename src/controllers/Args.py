@@ -64,6 +64,8 @@ class Args:
             parser.add_argument("--mail-smtp-host", action="store", nargs='?', default="null")
             # Set mail smtp port
             parser.add_argument("--mail-smtp-port", action="store", nargs='?', default="null")
+            # Log retention period (days)
+            parser.add_argument("--log-retention-days", action="store", nargs='?', default="null")
 
             # Packages to update list
             parser.add_argument("--update", "-u", action="store", nargs='?', default="null")
@@ -329,6 +331,21 @@ class Args:
                     myExit.clean_exit()
                 except Exception as e:
                     raise ArgsException('Could not set mail SMTP port: ' + str(e))
+
+            #
+            # If --log-retention-days param has been set
+            #
+            if args.log_retention_days != "null":
+                try:
+                    if not args.log_retention_days:
+                        print('Current log retention period (days): ' + Fore.GREEN + str(myAppConfig.get_log_retention_days()) + Style.RESET_ALL, end='\n\n')
+                    else:
+                        myAppConfig.set_log_retention_days(args.log_retention_days)
+                        print('Log retention period set to ' + Fore.GREEN + str(myAppConfig.get_log_retention_days()) + ' days' + Style.RESET_ALL, end='\n\n')
+
+                    myExit.clean_exit()
+                except Exception as e:
+                    raise ArgsException('Could not set log retention days: ' + str(e))
 
             #
             # If --update param has been set
@@ -744,6 +761,13 @@ class Args:
                     ],
                     'option': 'PORT',
                     'description': 'Print or set mail SMTP port'
+                },
+                {
+                    'args': [
+                        '--log-retention-days'
+                    ],
+                    'option': 'DAYS',
+                    'description': 'Print or set linupdate log retention period in days (default: 180)'
                 },
                 {
                     'title': 'Update options'
