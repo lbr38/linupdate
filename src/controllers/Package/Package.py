@@ -302,6 +302,9 @@ class Package:
             if len(packages_list) > 0:
                 packages_list_temp = []
 
+                # Retrieve the set of packages that have a security update available (single call)
+                security_packages_set = self.myPackageManagerController.get_security_packages_set()
+
                 # For each package in the list, if no current version or target version is provided, retrieve it
                 # This is the case when the user uses the --update parameter
                 for package in packages_list:
@@ -309,6 +312,7 @@ class Package:
                     current_version = ''
                     target_version = ''
                     repository = ''
+                    security = False
                     install = True
                     install_decision_message = ''
 
@@ -342,12 +346,16 @@ class Package:
                         if 'repository' not in package:
                             repository = self.myPackageManagerController.get_source_repository(package['name'], target_version)
 
+                        # Detect if this is a security update
+                        security = package['name'] in security_packages_set
+
                     # Add the package to the list
                     packages_list_temp.append({
                         'name': package['name'],
                         'current_version': current_version,
                         'target_version': target_version,
                         'repository': repository,
+                        'security': security,
                         'install': install,
                         'install_decision_message': install_decision_message
                     })
@@ -384,23 +392,33 @@ class Package:
             # Convert the list of packages to a table
             table = []
             for package in self.packagesToUpdateList:
-                installDecisionMessage = Fore.GREEN + '✔' + Style.RESET_ALL
-
-                # If package is marked as not to install, then display a warning
+                # Build message and security indicator
                 if 'install' in package and package['install'] != True:
                     # If there is an install_decision_message, use it
                     if 'install_decision_message' in package:
-                        installDecisionMessage = Fore.YELLOW + package['install_decision_message'] + Style.RESET_ALL
+                        installDecisionMessage = package['install_decision_message']
                     else:
-                        installDecisionMessage = Fore.YELLOW + '✕ (ignored)' + Style.RESET_ALL
+                        installDecisionMessage = '✕ (ignored)'
+                else:
+                    installDecisionMessage = '✔'
 
-                table.append(['', package['name'], package['current_version'], package['target_version'], package['repository'], installDecisionMessage])
+                security_text = 'yes' if package['security'] else 'no'
 
-                del installDecisionMessage
+                # Build row
+                row = ['', package['name'], package['current_version'], package['target_version'], package['repository'], security_text, installDecisionMessage]
+
+                # If security update, color entire row in yellow
+                if package['security']:
+                    row = [Fore.YELLOW + str(cell) + Style.RESET_ALL for cell in row]
+                else:
+                    # For non-security updates, add color only to decision message
+                    row[6] = Fore.GREEN + '✔' + Style.RESET_ALL if installDecisionMessage == '✔' else Fore.YELLOW + installDecisionMessage + Style.RESET_ALL
+
+                table.append(row)
 
             # Print the table list of packages to update
             # Check prettytable for table with width control https://pypi.org/project/prettytable/
-            print(tabulate(table, headers=["", "Package", "Current version", "Target version", "Repository", "Install decision"], tablefmt="simple"), end='\n\n')
+            print(tabulate(table, headers=["", "Package", "Current version", "Target version", "Repository", "Security fix", "Install decision"], tablefmt="simple"), end='\n\n')
 
             # If there are no packages to update
             if self.packagesToUpdateCount == 0:

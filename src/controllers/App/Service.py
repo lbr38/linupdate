@@ -8,8 +8,8 @@ import importlib
 import time
 import configparser
 from pathlib import Path
-from colorama import Fore, Style
 from datetime import datetime, timedelta
+from colorama import Fore, Style
 
 # Import classes
 from src.controllers.App.Config import Config
@@ -17,19 +17,26 @@ from src.controllers.Module.Module import Module
 
 class Service:
     def __init__(self):
-        # Register signal handlers
-        signal.signal(signal.SIGTERM, self.signal_handler)
-        signal.signal(signal.SIGINT, self.signal_handler)
+        try:
+            # Register signal handlers
+            signal.signal(signal.SIGTERM, self.signal_handler)
+            signal.signal(signal.SIGINT, self.signal_handler)
 
-        self.child_processes = []
-        self.child_processes_started = []
-        self.moduleController = Module()
+            self.child_processes = []
+            self.child_processes_started = []
+            self.moduleController = Module()
 
-        # Systemd unit file path
-        self.systemd_unit_file = '/lib/systemd/system/linupdate.service'
+            # Initialize configuration (generate config files if not exist and check if they are valid)
+            self.config = Config()
 
-        # Track last date when logs were cleaned
-        self.last_log_cleanup_date = None
+            # Systemd unit file path
+            self.systemd_unit_file = '/lib/systemd/system/linupdate.service'
+
+            # Track last date when logs were cleaned
+            self.last_log_cleanup_date = None
+        except Exception as e:
+            print('Fatal error in service initialization: ' + str(e))
+            sys.exit(1)
 
 
     #-----------------------------------------------------------------------------------------------
@@ -231,7 +238,7 @@ class Service:
 
         # Get retention days from global config
         try:
-            days = int(Config().get_log_retention_days())
+            days = int(self.config.get_log_retention_days())
         except Exception as e:
             raise Exception('Could not determine log retention days: ' + str(e))
 

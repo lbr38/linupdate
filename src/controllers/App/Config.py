@@ -14,6 +14,12 @@ class Config:
         self.config_file = '/etc/linupdate/linupdate.yml'
         self.update_file = '/etc/linupdate/update.yml'
 
+        # Generate config files if not exist
+        self.generate_conf()
+
+        # Check if config files are valid and contain the required parameters
+        self.check_conf()
+
     #-----------------------------------------------------------------------------------------------
     #
     #   Return linupdate configuration from config file

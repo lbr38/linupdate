@@ -19,6 +19,48 @@ class Dnf:
     def __init__(self):
         self.dnf_command = '/usr/bin/dnf --disableplugin subscription-manager'
 
+
+    #-----------------------------------------------------------------------------------------------
+    #
+    #   Return a set of package names that have a security update available
+    #   Alias used by Package.py for a unified interface with Apt
+    #
+    #-----------------------------------------------------------------------------------------------
+    def get_security_packages_set(self):
+        return self.get_security_update_package_names()
+
+
+    #-----------------------------------------------------------------------------------------------
+    #
+    #   Return package names that currently have a security update available
+    #
+    #-----------------------------------------------------------------------------------------------
+    def get_security_update_package_names(self):
+        names = set()
+
+        try:
+            result = subprocess.run(
+                [self.dnf_command + ' repoquery --upgrades --latest-limit 1 --security -a -q --qf="%{name}"'],
+                stdout = subprocess.PIPE,
+                stderr = subprocess.PIPE,
+                universal_newlines = True,
+                shell = True
+            )
+
+            # If advisory metadata is unavailable, keep compatibility and return an empty set
+            if result.returncode != 0:
+                return names
+
+            for line in result.stdout.split('\n'):
+                line = line.strip()
+                if line != '':
+                    names.add(line)
+
+            del result
+            return names
+        except Exception:
+            return names
+
     #-----------------------------------------------------------------------------------------------
     #
     #   Return the current version of a package
@@ -160,6 +202,7 @@ class Dnf:
     #-----------------------------------------------------------------------------------------------
     def get_available_packages(self, useless_dist_upgrade: bool = False):
         list = []
+        security_package_names = self.get_security_update_package_names()
 
         # Get list of packages to update sorted by name
         # e.g. dnf repoquery --upgrades --latest-limit 1 -q -a --qf="%{name} %{version}-%{release}.%{arch} %{repoid}"
@@ -189,7 +232,8 @@ class Dnf:
                 'name': package[0],
                 'current_version': current_version,
                 'target_version': package[1],
-                'repository': package[2]
+                'repository': package[2],
+                'security': package[0] in security_package_names
             })
 
             del package, current_version

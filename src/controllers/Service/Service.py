@@ -10,6 +10,9 @@ from colorama import Fore, Style
 from src.controllers.App.Config import Config
 
 class Service:
+    def __init__(self):
+        self.config = Config()
+
     #-----------------------------------------------------------------------------------------------
     #
     #   Reload services
@@ -17,7 +20,7 @@ class Service:
     #-----------------------------------------------------------------------------------------------
     def reload(self, update_summary: list, dry_run: bool = False):
         # Retrieve services to reload
-        services = Config().get_service_to_reload()
+        services = self.config.get_service_to_reload()
 
         # Quit if no services to reload
         if not services:
@@ -99,7 +102,7 @@ class Service:
     #-----------------------------------------------------------------------------------------------
     def restart(self, update_summary: list, dry_run: bool = False):
         # Retrieve services to restart
-        services = Config().get_service_to_restart()
+        services = self.config.get_service_to_restart()
 
         # Quit if no services to restart
         if not services:

@@ -124,6 +124,7 @@ class Status:
                     name = package['name']
                     version = package['target_version']
                     repository = package['repository']
+                    security = bool(package.get('security', False))
 
                     # Ignore package if name is empty
                     if name == '':
@@ -139,10 +140,11 @@ class Status:
                     list.append({
                         'name': name,
                         'version': version,
-                        'repository': repository
+                        'repository': repository,
+                        'security': security
                     })
 
-                    del name, version, repository
+                    del name, version, repository, security
 
             # Convert to JSON
             data = {
