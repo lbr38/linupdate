@@ -2,10 +2,19 @@
 
 import logging
 import sys
+from pathlib import Path
 from src.controllers.App.Utils import Utils
 
 class StreamToLogger:
     def __init__(self, log_file_path, level=logging.INFO):
+        # Create logs directory if it doesn't exist
+        Path(log_file_path).parent.mkdir(parents=True, exist_ok=True)
+        Path(log_file_path).parent.chmod(0o750)
+
+        # Create log file with correct permissions
+        Path(log_file_path).touch()
+        Path(log_file_path).chmod(0o640)
+
         self.logger = logging.getLogger("StreamToLogger")
         self.level = level
         self.buffer = ''  # Used to accumulate partial messages

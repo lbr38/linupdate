@@ -5,11 +5,10 @@
 import socket
 import signal
 import traceback
-from pathlib import Path
-from datetime import datetime
-from colorama import Fore, Style
-from rich.console import Console
 import sys
+from datetime import datetime
+from rich.console import Console
+from colorama import Fore, Style
 
 # Import classes
 from src.controllers.Logging import StreamToLogger
@@ -44,25 +43,13 @@ def main():
             print(Fore.YELLOW + 'Must be executed as root' + Style.RESET_ALL)
             sys.exit(1)
 
-        # Get current date and time
-        todaydatetime = datetime.now()
-        date = todaydatetime.strftime('%Y-%m-%d')
-        time = todaydatetime.strftime('%Hh%Mm%Ss')
-        logsdir = '/var/log/linupdate'
-        logfile = date + '_' + time + '_linupdate_' + socket.getfqdn() + '.log'
-
-        # Create logs directory
-        Path(logsdir).mkdir(parents=True, exist_ok=True)
-        Path(logsdir).chmod(0o750)
-
-        # Create log file with correct permissions
-        Path(logsdir + '/' + logfile).touch()
-        Path(logsdir + '/' + logfile).chmod(0o640)
+        # Define logfile
+        logfile = '/var/log/linupdate/' + datetime.now().strftime('%Y-%m-%d') + '_' + datetime.now().strftime('%Hh%Mm%Ss') + '_linupdate_' + socket.getfqdn() + '.log'
 
         # Instanciate classes
         my_exit       = Exit()
         my_app        = App()
-        my_app_config = Config()
+        my_app_config = Config() # instanciate to generate and check config
         my_args       = Args()
         my_system     = System()
         my_module     = Module()
@@ -70,7 +57,7 @@ def main():
         my_service    = Service()
 
         # Use logging context manager to redirect stdout and stderr to log file
-        with StreamToLogger(logsdir + '/' + logfile):
+        with StreamToLogger(logfile):
             # Print Logo
             my_app.print_logo()
 
@@ -82,12 +69,6 @@ def main():
 
             # Create base directories
             my_app.initialize()
-
-            # Generate config file if not exist
-            my_app_config.generate_conf()
-
-            # Check if there are missing parameters
-            my_app_config.check_conf()
 
             # Parse arguments
             my_args.parse()
@@ -161,7 +142,7 @@ def main():
         exit_code = 2
 
     # Exit with exit code and logfile for email report
-    my_exit.clean_exit(exit_code, send_mail, reboot, logsdir + '/' + logfile)
+    my_exit.clean_exit(exit_code, send_mail, reboot, logfile)
 
 # Run main function
 console = Console(file=sys.__stdout__)

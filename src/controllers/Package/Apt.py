@@ -26,6 +26,65 @@ class Apt:
 
     #-----------------------------------------------------------------------------------------------
     #
+    #   Return a set of package names that have a security update available
+    #   Opens the cache once and simulates an upgrade to check all candidates
+    #
+    #-----------------------------------------------------------------------------------------------
+    def get_security_packages_set(self):
+        security_set = set()
+
+        try:
+            aptcache = apt.Cache()
+            aptcache.open(None)
+            aptcache.upgrade(True)
+
+            for pkg in aptcache.get_changes():
+                if not pkg.candidate:
+                    continue
+                if self.is_security_update(pkg):
+                    security_set.add(pkg.name)
+
+            aptcache.close()
+        except Exception:
+            pass
+
+        return security_set
+
+
+    #-----------------------------------------------------------------------------------------------
+    #
+    #   Return True if candidate package version comes from a security repository
+    #
+    #-----------------------------------------------------------------------------------------------
+    def is_security_update(self, pkg):
+        try:
+            if not pkg.candidate:
+                return False
+
+            for origin in pkg.candidate.origins:
+                archive = str(getattr(origin, 'archive', '') or '').lower()
+                label = str(getattr(origin, 'label', '') or '').lower()
+                site = str(getattr(origin, 'site', '') or '').lower()
+                origin_name = str(getattr(origin, 'origin', '') or '').lower()
+
+                if '-security' in archive:
+                    return True
+                if 'security' in label:
+                    return True
+                if 'security.debian.org' in site:
+                    return True
+                if 'debian-security' in origin_name:
+                    return True
+                if 'ubuntuesm' in origin_name:
+                    return True
+
+            return False
+        except Exception:
+            return False
+
+
+    #-----------------------------------------------------------------------------------------------
+    #
     #   Return the current version of a package
     #
     #-----------------------------------------------------------------------------------------------
@@ -167,10 +226,18 @@ class Apt:
 
         # Loop through all packages marked for upgrade
         for pkg in aptcache.get_changes():
+            # Skip malformed entries without installed/candidate versions
+            if not pkg.candidate or not pkg.installed:
+                continue
+
             repository = 'Unknown'
+            security = False
 
             # Get the repository URL
             repository = self.get_source_repository(pkg.name, pkg.candidate.version)
+
+            # Check if candidate comes from a security repository
+            security = self.is_security_update(pkg)
 
             # If the package is upgradable, add it to the list of available packages
             if pkg.is_upgradable:
@@ -178,7 +245,8 @@ class Apt:
                     'name': pkg.name,
                     'current_version': pkg.installed.version,
                     'target_version': pkg.candidate.version,
-                    'repository': repository
+                    'repository': repository,
+                    'security': security
                 }
 
                 list.append(myPackage)

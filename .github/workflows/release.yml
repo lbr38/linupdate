@@ -182,9 +182,8 @@ jobs:
           release_name: ${{ env.VERSION }}
           body: |
             **Changes**:
-              - Added automatic logs cleanup and --log-retention-days parameter to specify the number of days to keep logs
-              - Reposerver module: added a --verify-ssl parameter to allow users to disable SSL verification when sending http requests https://github.com/lbr38/linupdate/issues/107
-              - Reposerver module: added more logs to the --register command to help users understand why the registration failed (for example when the firewall is not open)
+              - Added a "security fix" column to the updates table, to be able to know if an update is a security fix or not.
+              - Various fixes and improvements
           draft: false
           prerelease: false
 
