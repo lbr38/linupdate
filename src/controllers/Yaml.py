@@ -1,6 +1,8 @@
 # coding: utf-8
 
 # Import libraries
+import os
+import tempfile
 import yaml
 
 # Custom class to handle yaml files and keep the order of the keys when writing the file
@@ -16,12 +18,32 @@ class Yaml():
     #
     #-----------------------------------------------------------------------------------------------
     def write(self, data, file: str):
+        temp_file_path = None
+
         try:
-            with open(file, 'w') as yaml_file:
+            target_dir = os.path.dirname(file) or '.'
+
+            with tempfile.NamedTemporaryFile('w', dir=target_dir, delete=False) as yaml_file:
+                temp_file_path = yaml_file.name
+
                 try:
                     yaml.dump(data, yaml_file, default_flow_style=False, sort_keys=False)
 
                 except TypeError:
                     yaml.dump(data, yaml_file, default_flow_style=False)
+
+                # Ensure content is persisted before replacing destination
+                yaml_file.flush()
+                os.fsync(yaml_file.fileno())
+
+            # Atomic replace on same filesystem
+            os.replace(temp_file_path, file)
+
         except Exception as e:
+            if temp_file_path and os.path.exists(temp_file_path):
+                try:
+                    os.unlink(temp_file_path)
+                except Exception:
+                    pass
+
             raise Exception(e)

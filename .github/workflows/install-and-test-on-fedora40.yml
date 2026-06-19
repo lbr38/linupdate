@@ -1,13 +1,13 @@
-# Try to install package on Rocky Linux 9 and run some basic commands to check if it's working
+# Try to install package on Fedora 40 and run some basic commands to check if it's working
 on:
   workflow_call:
 
 jobs:
-  # Try to install package on Rocky Linux 9
-  install-rockylinux9:
+  # Try to install package on Fedora 40
+  install-fedora40:
     runs-on: ubuntu-latest
     container:
-      image: rockylinux/rockylinux:9
+      image: fedora:40
       options: --user root
     steps:
       - name: Checkout
@@ -16,11 +16,8 @@ jobs:
       - name: Get linupdate version
         run: echo "VERSION=$(cat ${GITHUB_WORKSPACE}/version)" >> $GITHUB_ENV
 
-      - name: Install EPEL repositories
-        run: dnf install epel-release -y
-
-      - name: Enable CRB repository (required to install python3-pygments for python3-rich)
-        run: dnf config-manager --set-enabled crb
+      # - name: Enable CRB repository (required to install python3-pygments for python3-rich)
+      #   run: dnf config-manager --set-enabled crb
 
       - name: Update system
         run: dnf update -y
