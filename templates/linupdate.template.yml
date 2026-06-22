@@ -6,7 +6,6 @@ main:
     recipient: []
     smtp_host: localhost
     smtp_port: 25
-  profile: Host
   log_retention_days: 180
 modules:
   enabled: []

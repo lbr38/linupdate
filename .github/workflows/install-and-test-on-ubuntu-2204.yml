@@ -1,13 +1,12 @@
-# Try to install package on Rocky Linux 9 and run some basic commands to check if it's working
+# Try to install package on Ubuntu 22.04 and run some basic commands to check if it's working
 on:
   workflow_call:
 
 jobs:
-  # Try to install package on Rocky Linux 9
-  install-rockylinux9:
+  install-ubuntu-2204:
     runs-on: ubuntu-latest
     container:
-      image: rockylinux/rockylinux:9
+      image: ubuntu:22.04
       options: --user root
     steps:
       - name: Checkout
@@ -16,23 +15,16 @@ jobs:
       - name: Get linupdate version
         run: echo "VERSION=$(cat ${GITHUB_WORKSPACE}/version)" >> $GITHUB_ENV
 
-      - name: Install EPEL repositories
-        run: dnf install epel-release -y
-
-      - name: Enable CRB repository (required to install python3-pygments for python3-rich)
-        run: dnf config-manager --set-enabled crb
-
-      - name: Update system
-        run: dnf update -y
-
-      # Download builded rpm package artifact
+      # Download builded deb package artifact
       - name: Download artifact
         uses: actions/download-artifact@v8
         with:
-          name: linupdate-test-build-${{ env.VERSION }}.noarch.rpm
+          name: linupdate-test-build_${{ env.VERSION }}_all.deb
 
       - name: Install package
-        run: dnf --nogpgcheck install -y ./linupdate-test-build-${{ env.VERSION }}.noarch.rpm
+        run: |
+          apt-get update -y
+          apt-get install -y ./linupdate-test-build_${{ env.VERSION }}_all.deb
 
       # Run common test suite (shared across all distributions)
       - name: Run test suite

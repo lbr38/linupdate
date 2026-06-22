@@ -29,11 +29,13 @@ class Config:
     #
     #-----------------------------------------------------------------------------------------------
     def generate_conf(self):
-        # Generate configuration file if not exists
-        if not Path(self.config_file).is_file():
-            # Copy default configuration file
+        config_file = Path(self.config_file)
+
+        # Generate configuration file if missing or empty
+        if not config_file.is_file() or config_file.stat().st_size == 0:
+            # Copy default configuration file
             try:
-                shutil.copy2('/opt/linupdate/templates/modules/reposerver.template.yml', '/etc/linupdate/modules/reposerver.yml')
+                shutil.copy2('/opt/linupdate/templates/modules/reposerver.template.yml', self.config_file)
             except Exception as e:
                 raise Exception('error while generating reposerver configuration file ' + self.config_file + ': ' + str(e))
 
@@ -96,7 +98,12 @@ class Config:
         with open(self.config_file, 'r') as stream:
             try:
                 # Read YAML and return profile
-                return yaml.safe_load(stream)
+                configuration = yaml.safe_load(stream)
+
+                if configuration is None:
+                    raise Exception('reposerver configuration file ' + self.config_file + ' is empty')
+
+                return configuration
 
             except yaml.YAMLError as e:
                 raise Exception('error while reading reposerver configuration file ' + self.config_file + ': ' + str(e))
@@ -122,6 +129,8 @@ class Config:
     #
     #-----------------------------------------------------------------------------------------------
     def check_conf(self):
+        write_config = False
+
         if not Path(self.config_file).is_file():
             raise Exception('reposerver module configuration file not found ' + self.config_file)
 
@@ -187,10 +196,12 @@ class Config:
         # If client.verify_ssl is not set, default to True
         if 'verify_ssl' not in configuration['client']:
             configuration['client']['verify_ssl'] = True
+            write_config = True
 
         # If client.get_repos_from_reposerver.format is not set, then set it to standard
         if 'format' not in configuration['client']['get_repos_from_reposerver']:
             configuration['client']['get_repos_from_reposerver']['format'] = 'standard'
+            write_config = True
 
         # Check if client.get_repos_from_reposerver.format is set to standard or deb822
         if configuration['client']['get_repos_from_reposerver']['format'] not in ['standard', 'deb822']:
@@ -220,8 +231,9 @@ class Config:
         if configuration['agent']['listen']['enabled'] not in [True, False]:
             raise Exception('agent.listen.enabled key must be set to true or false')
 
-        # Write configuration file if everything is ok
-        self.write_conf(configuration)
+        # Write configuration file only when defaults were inserted
+        if write_config:
+            self.write_conf(configuration)
 
 
     #-----------------------------------------------------------------------------------------------

@@ -6,4 +6,5 @@ update:
       on_major_update: []
 post_update:
   services:
+    reload: []
     restart: []

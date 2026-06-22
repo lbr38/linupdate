@@ -26,26 +26,24 @@ class Config:
     #
     #-----------------------------------------------------------------------------------------------
     def get_conf(self) -> dict:
-        # Open main YAML config file:
-        with open(self.config_file) as stream:
-            try:
-                # Read YAML and return configuration
-                main = yaml.safe_load(stream)
+        configurations = {}
 
-            except yaml.YAMLError as e:
-                raise Exception(str(e))
+        # Open YAML config files and read their content
+        for section, file_path in [('main', self.config_file), ('update', self.update_file)]:
+            with open(file_path) as stream:
+                try:
+                    # Read YAML and store configuration
+                    configurations[section] = yaml.safe_load(stream)
 
-        # Open update YAML config file:
-        with open(self.update_file) as stream:
-            try:
-                # Read YAML and return configuration
-                update = yaml.safe_load(stream)
+                    # Check if the configuration is empty, if so, raise an exception
+                    if configurations[section] is None:
+                        raise Exception('configuration file ' + file_path + ' is empty')
 
-            except yaml.YAMLError as e:
-                raise Exception(str(e))
+                except yaml.YAMLError as e:
+                    raise Exception(str(e))
 
         # Merge and return both configurations
-        configuration = {**main, **update}
+        configuration = {**configurations['main'], **configurations['update']}
 
         return configuration
 
@@ -57,6 +55,8 @@ class Config:
     #-----------------------------------------------------------------------------------------------
     def check_conf(self) -> None:
         try:
+            write_config = False
+
             # Check if main config file exists
             if not Path(self.config_file).is_file():
                 raise Exception('configuration file ' + self.config_file + ' is missing')
@@ -107,6 +107,7 @@ class Config:
             # If main.log_retention_days is not set, default to 180 days (~6 months)
             if 'log_retention_days' not in configuration['main']:
                 configuration['main']['log_retention_days'] = 180
+                write_config = True
 
             # Check if modules is set
             if 'modules' not in configuration:
@@ -144,25 +145,30 @@ class Config:
             if 'on_major_update' not in configuration['update']['packages']['exclude']:
                 raise Exception('update.packages.exclude.on_major_update key is missing in ' + self.config_file)
 
+            # Check if post_update is set
+            if 'post_update' not in configuration:
+                raise Exception('post_update key is missing in ' + self.update_file)
+
             # Check if post_update.services section is set
             if 'services' not in configuration['post_update']:
-                raise Exception('post_update.services key is missing in ' + self.config_file)
+                raise Exception('post_update.services key is missing in ' + self.update_file)
 
             # If post_update.services.reload is not set, set it to empty list
             if 'reload' not in configuration['post_update']['services']:
                 configuration['post_update']['services']['reload'] = []
+                write_config = True
 
             # If post_update.services.restart is not set, set it to empty list
             if 'restart' not in configuration['post_update']['services']:
                 configuration['post_update']['services']['restart'] = []
+                write_config = True
 
         except Exception as e:
             raise Exception('Fatal configuration file error: ' + str(e))
 
-        #
-        # Re-write configuration to file to ensure all required parameters are present
-        #
-        self.write_conf(configuration)
+        # Re-write configuration only when defaults were inserted
+        if write_config:
+            self.write_conf(configuration)
 
 
     #-----------------------------------------------------------------------------------------------
@@ -171,21 +177,20 @@ class Config:
     #
     #-----------------------------------------------------------------------------------------------
     def generate_conf(self) -> None:
-        # If main config file does not exist, generate it
-        if not Path(self.config_file).is_file():
-            # Copy default configuration file
-            try:
-                shutil.copy2('/opt/linupdate/templates/linupdate.template.yml', self.config_file)
-            except Exception as e:
-                raise Exception('Could not generate configuration file ' + self.config_file + ': ' + str(e))
+        config_files = [
+            (self.config_file, '/opt/linupdate/templates/linupdate.template.yml'),
+            (self.update_file, '/opt/linupdate/templates/update.template.yml')
+        ]
 
-        # If update config file does not exist, generate it
-        if not Path(self.update_file).is_file():
-            # Copy default configuration file
-            try:
-                shutil.copy2('/opt/linupdate/templates/update.template.yml', self.update_file)
-            except Exception as e:
-                raise Exception('Could not generate configuration file ' + self.update_file + ': ' + str(e))
+        for file_path, template_path in config_files:
+            file = Path(file_path)
+
+            # Generate configuration if missing or empty
+            if not file.is_file() or file.stat().st_size == 0:
+                try:
+                    shutil.copy2(template_path, file_path)
+                except Exception as e:
+                    raise Exception('Could not generate configuration file ' + file_path + ': ' + str(e))
 
 
     #-----------------------------------------------------------------------------------------------

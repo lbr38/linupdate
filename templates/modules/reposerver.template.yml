@@ -11,5 +11,7 @@ client:
   get_repos_from_reposerver:
     enabled: true
     remove_existing_repos: false
+    format: standard
+  verify_ssl: true
 reposerver:
   url: ''

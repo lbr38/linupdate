@@ -98,9 +98,23 @@ jobs:
   #   uses: ./.github/workflows/install-and-test-on-centos8.yml
   #   secrets: inherit
 
+  # Fedora 40
+  test-fedora40:
+    name: Install and test on Fedora 40
+    needs: build-rpm
+    uses: ./.github/workflows/install-and-test-on-fedora40.yml
+    secrets: inherit
+
+  # Fedora 41
+  # test-fedora41:
+  #   name: Install and test on Fedora 41
+  #   needs: build-rpm
+  #   uses: ./.github/workflows/install-and-test-on-fedora41.yml
+  #   secrets: inherit
+
  # Rocky Linux
   test-rockylinux9:
-    name: Install and test Rocky Linux 9
+    name: Install and test on Rocky Linux 9
     needs: build-rpm
     uses: ./.github/workflows/install-and-test-on-rockylinux9.yml
     secrets: inherit
@@ -110,7 +124,7 @@ jobs:
 
   # Alma Linux
   test-almalinux9:
-    name: Install and test Alma Linux 9
+    name: Install and test on Alma Linux 9
     needs: build-rpm
     uses: ./.github/workflows/install-and-test-on-almalinux9.yml
     secrets: inherit
