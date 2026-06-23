@@ -51,7 +51,7 @@ class Status:
                 'profile': self.configController.get_profile(),
                 'env': self.configController.get_environment(),
                 'agent_status': self.appController.get_agent_status(),
-                'linupdate_version': self.appController.get_version(),
+                'agent_version': self.appController.get_version(),
                 'reboot_required': str(self.systemController.reboot_required()).lower(), # Convert True/False to 'true'/'false'
                 'uptime': self.systemController.get_uptime()
             }

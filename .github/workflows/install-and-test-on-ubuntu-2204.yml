@@ -31,4 +31,6 @@ jobs:
         env:
           REPOSITORY_TEST_URL: ${{ secrets.REPOSITORY_TEST_URL }}
           REPOSITORY_TEST_TOKEN: ${{ secrets.REPOSITORY_TEST_TOKEN }}
+          REPOS_CONFIG_DIR: /etc/apt/sources.list.d
+          LINUPDATE_PROFILE: linupdate-ci-debian-systems
         run: bash ${GITHUB_WORKSPACE}/.github/scripts/run-tests.sh

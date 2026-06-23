@@ -17,6 +17,7 @@
 set -e
 
 LINUPDATE_CMD="${LINUPDATE_CMD:-python3 /opt/linupdate/linupdate.py}"
+LINUPDATE_PROFILE="${LINUPDATE_PROFILE:ci-default}"
 
 # Wrapper that runs linupdate using the configured command (allowing a sudo
 # prefix). Word-splitting on LINUPDATE_CMD is intentional here.
@@ -44,10 +45,10 @@ run_test "print version" \
     linupdate --version
 
 run_test "switch profile" \
-    linupdate --profile container
+    linupdate --profile $LINUPDATE_PROFILE
 
 run_test "switch environment" \
-    linupdate --env test
+    linupdate --env prod
 
 run_test "disable mail" \
     linupdate --mail-enable false
@@ -111,6 +112,27 @@ run_test "register to reposerver" \
 
 run_test "send all informations to reposerver" \
     linupdate --mod-configure reposerver --send-all-info
+
+run_test "enable reposerver module to get packages configuration from reposerver" \
+    linupdate --mod-configure reposerver --get-packages-conf-from-reposerver true
+
+run_test "enable reposerver module to get repositories configuration from reposerver" \
+    linupdate --mod-configure reposerver --get-repos-from-reposerver true
+
+run_test "enable reposerver module to remove existing repositories before adding new ones" \
+    linupdate --mod-configure reposerver --remove-existing-repos true
+
+run_test "use deb822 format for deb repository configuration files" \
+    linupdate --mod-configure reposerver --source-repo-format deb822
+
+run_test "launch linupdate with reposerver module enabled" \
+    linupdate --assume-yes
+
+run_test "show repository config files" \
+    ls -l $REPOS_CONFIG_DIR/
+
+run_test "show repository config files content" \
+    cat $REPOS_CONFIG_DIR/*
 
 run_test "unregister from reposerver" \
     linupdate --mod-configure reposerver --unregister

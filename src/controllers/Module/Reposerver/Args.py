@@ -356,8 +356,8 @@ class Args:
                     'args': [
                         '--source-repo-format'
                     ],
-                    'option': 'standard, deb822',
-                    'description': 'Specify the source repository format to use under /etc/apt/sources.list.d/ (for Debian based OS only) (default: standard)',
+                    'option': 'legacy, deb822',
+                    'description': 'Specify the source repository format to use under /etc/apt/sources.list.d/ (for Debian based OS only) (default: legacy)',
                 },
                 {
                     'title': 'Retrieving data from reposerver'
