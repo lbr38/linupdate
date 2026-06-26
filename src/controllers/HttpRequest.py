@@ -90,6 +90,25 @@ class HttpRequest:
 
     #-----------------------------------------------------------------------------------------------
     #
+    #   Download file from URL
+    #
+    #-----------------------------------------------------------------------------------------------
+    def download(self, url: str, path: str, connectionTimeout: int = 5, readTimeout: int = 3):
+        # Send GET request to URL
+        response = requests.get(url, timeout = (connectionTimeout, readTimeout), verify = self.verify_ssl)
+
+        # Parse response and return results if 200
+        self.request_parse_result(response)
+
+        # Write content to file
+        with open(path, 'wb') as file:
+            file.write(response.content)
+
+        del path, url, response
+
+
+    #-----------------------------------------------------------------------------------------------
+    #
     #   Parse request result
     #
     #-----------------------------------------------------------------------------------------------

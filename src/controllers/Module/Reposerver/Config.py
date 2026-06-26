@@ -198,14 +198,19 @@ class Config:
             configuration['client']['verify_ssl'] = True
             write_config = True
 
-        # If client.get_repos_from_reposerver.format is not set, then set it to standard
+        # If client.get_repos_from_reposerver.format is not set, then set it to legacy
         if 'format' not in configuration['client']['get_repos_from_reposerver']:
-            configuration['client']['get_repos_from_reposerver']['format'] = 'standard'
+            configuration['client']['get_repos_from_reposerver']['format'] = 'legacy'
             write_config = True
 
-        # Check if client.get_repos_from_reposerver.format is set to standard or deb822
-        if configuration['client']['get_repos_from_reposerver']['format'] not in ['standard', 'deb822']:
-            raise Exception('client.get_repos_from_reposerver.format key must be set to standard or deb822')
+        # Check if client.get_repos_from_reposerver.format is set to legacy or deb822
+        if configuration['client']['get_repos_from_reposerver']['format'] not in ['standard', 'legacy', 'deb822']:
+            raise Exception('client.get_repos_from_reposerver.format key must be set to legacy or deb822')
+        
+        # If format is set to standard, overwrite it to legacy and write the config file
+        if configuration['client']['get_repos_from_reposerver']['format'] == 'standard':
+            configuration['client']['get_repos_from_reposerver']['format'] = 'legacy'
+            write_config = True            
 
         # Check if agent is set
         if 'agent' not in configuration:
@@ -409,8 +414,8 @@ class Config:
         configuration = self.get_conf()
 
         # Check if format is valid
-        if format not in ['standard', 'deb822']:
-            raise Exception('source repo format must be set to "standard" or "deb822"')
+        if format not in ['legacy', 'deb822']:
+            raise Exception('source repo format must be set to "legacy" or "deb822"')
 
         # Set format
         configuration['client']['get_repos_from_reposerver']['format'] = format
@@ -591,68 +596,103 @@ class Config:
             raise Exception('no auth Id or token found in configuration')
 
         # Retrieve configuration from reposerver
-        results = self.httpRequestController.get(url + '/api/v2/profile/' + profile + '/repos', id, token, 2)
+        results = self.httpRequestController.get(url + '/api/v2/profile/' + profile + '/repos?new-format', id, token, 2)
 
-        # Parse results
-
-        # Quit if no results
-        if not results:
-            print(Fore.YELLOW + 'No repositories configured ' + Style.RESET_ALL)
-            return
+        # Check if 'repos' key is present in results
+        if 'repos' not in results:
+            raise Exception('repos key not found in results from ' + url + '/api/v2/profile/' + profile + '/repos')
 
         # Remove current repositories files if enabled
         if configuration['client']['get_repos_from_reposerver']['remove_existing_repos']:
-            # Debian
-            if self.systemController.get_os_family() == 'Debian':
-                # Clear /etc/apt/sources.list
-                with open('/etc/apt/sources.list', 'w') as file:
-                    file.write('')
+            try:
+                # Debian
+                if self.systemController.get_os_family() == 'Debian':
+                    # Clear /etc/apt/sources.list
+                    with open('/etc/apt/sources.list', 'w') as file:
+                        file.write('')
 
-                # Delete all .list files in /etc/apt/sources.list.d/
-                for file in Path('/etc/apt/sources.list.d/').glob('*.list'):
-                    file.unlink()
+                    # Delete all .list files in /etc/apt/sources.list.d/
+                    for file in Path('/etc/apt/sources.list.d/').glob('*.list'):
+                        file.unlink()
 
-                # Delete all .sources files in /etc/apt/sources.list.d/
-                for file in Path('/etc/apt/sources.list.d/').glob('*.sources'):
-                    file.unlink()
+                    # Delete all .sources files in /etc/apt/sources.list.d/
+                    for file in Path('/etc/apt/sources.list.d/').glob('*.sources'):
+                        file.unlink()
 
-            # Redhat
-            if self.systemController.get_os_family() == 'Redhat':
-                # Delete all files in /etc/yum.repos.d
-                for file in Path('/etc/yum.repos.d/').glob('*.repo'):
-                    file.unlink()
+                # Redhat
+                if self.systemController.get_os_family() == 'Redhat':
+                    # Delete all files in /etc/yum.repos.d
+                    for file in Path('/etc/yum.repos.d/').glob('*.repo'):
+                        file.unlink()
+            except Exception as e:
+                raise Exception('failed to remove existing repositories: ' + str(e))
+            
+        # Quit if no results
+        if not results['repos']:
+            print(Fore.YELLOW + 'No repositories configured ' + Style.RESET_ALL)
+            return
 
-        # Create each repo file
-        for result in results:
+        # Download GPG key if the OS is Debian
+        if self.systemController.get_os_family() == 'Debian':
+            # Check if 'reposerver' key is present in results
+            if 'reposerver' not in results:
+                raise Exception('reposerver key not found in results from ' + url + '/api/v2/profile/' + profile + '/repos')
+
+            # Get GPG key URL from results
+            gpgkey_url = results['reposerver']['gpgkey_url']
+
+            # Check if /etc/apt/keyrings/ or /etc/apt/trusted.gpg.d/ exist, otherwise raise an exception
+            if Path('/etc/apt/keyrings').is_dir():
+                gpgkey_output_file = '/etc/apt/keyrings/' + results['reposerver']['hostname'] + '.asc'
+            elif Path('/etc/apt/trusted.gpg.d').is_dir():
+                gpgkey_output_file = '/etc/apt/trusted.gpg.d/' + results['reposerver']['hostname'] + '.asc'
+            else:
+                raise Exception('neither /etc/apt/keyrings/ nor /etc/apt/trusted.gpg.d/ directories exist, cannot download GPG signing key from ' + gpgkey_url)
+
+            # Try to download the GPG key
+            try:
+                self.httpRequestController.download(gpgkey_url, gpgkey_output_file, 5, 3)
+            except Exception:
+                raise Exception('failed to download GPG key from ' + gpgkey_url)
+            
+            # Set file permissions to 644
+            try:
+                Path(gpgkey_output_file).chmod(0o644)
+            except Exception:
+                raise Exception('failed to set permissions to 644 for GPG key file ' + gpgkey_output_file)
+
+        # Otherwise, loop through the results and create the repo files
+        for repo in results['repos']:
             # Depending on the OS family, the repo files are stored in different directories
 
             # Debian
             if self.systemController.get_os_family() == 'Debian':
                 # Build source repo file depending on the format
 
-                # Standard format
-                if configuration['client']['get_repos_from_reposerver']['format'] == 'standard':
-                    repo_file = '/etc/apt/sources.list.d/' + result['filename_prefix'] + result['repo_name'] + '.list'
-                    content = 'deb ' + result['repo_url'] + ' ' + result['repo_distribution'] + ' ' + result['repo_component']
+                # Legacy format
+                if configuration['client']['get_repos_from_reposerver']['format'] == 'legacy':
+                    repo_file = '/etc/apt/sources.list.d/' + repo['filename_prefix'] + repo['name'] + '.list'
+                    content = 'deb [signed-by=' + gpgkey_output_file + '] ' + repo['url'] + ' ' + repo['distribution'] + ' ' + repo['component']
 
                 # Deb822 format
                 if configuration['client']['get_repos_from_reposerver']['format'] == 'deb822':
-                    repo_file = '/etc/apt/sources.list.d/' + result['filename_prefix'] + result['repo_name'] + '.sources'
+                    repo_file = '/etc/apt/sources.list.d/' + repo['filename_prefix'] + repo['name'] + '.sources'
                     content = 'Types: deb\n'
-                    content += 'URIs: ' + result['repo_url'] + '\n'
-                    content += 'Suites: ' + result['repo_distribution'] + '\n'
-                    content += 'Components: ' + result['repo_component'] + '\n'
-                    content += 'Description: ' + result['description'] + '\n'
+                    content += 'URIs: ' + repo['url'] + '\n'
+                    content += 'Suites: ' + repo['distribution'] + '\n'
+                    content += 'Components: ' + repo['component'] + '\n'
+                    content += 'Description: ' + repo['description'] + '\n'
                     content += 'Enabled: yes\n'
+                    content += 'Signed-By: ' + gpgkey_output_file + '\n'
 
             # Redhat
             if self.systemController.get_os_family() == 'Redhat':
-                repo_file = '/etc/yum.repos.d/' + result['filename_prefix'] + result['repo_name'] + '.repo'
-                content =  '[' + result['filename_prefix'] + result['repo_name'] + '_' + env + ']\n'
-                content += 'name=' + result['repo_name'] + ' repo on ' + result['repo_server'] + '\n'
-                content += 'baseurl=' + result['repo_url'] + '\n'
+                repo_file = '/etc/yum.repos.d/' + repo['filename_prefix'] + repo['name'] + '.repo'
+                content =  '[' + repo['filename_prefix'] + repo['name'] + '_' + env + ']\n'
+                content += 'name=' + repo['name'] + ' repo on ' + results['reposerver']['hostname'] + '\n'
+                content += 'baseurl=' + repo['url'] + '\n'
                 content += 'enabled=1\n'
-                content += 'gpgkey=' + result['gpgkey_url'] + '\n'
+                content += 'gpgkey=' + results['reposerver']['gpgkey_url'] + '\n'
                 content += 'gpgcheck=1'
 
             # Replace __ENV__ in URL with current environment on the fly
