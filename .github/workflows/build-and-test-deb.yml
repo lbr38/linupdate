@@ -3,11 +3,9 @@ name: Build and test deb package
 on:
   push:
     branches: [ devel ]
-  pull_request:
-    push:
-      branches: [ main ]
 
 jobs:
+  # Build a deb package
   build-deb:
     name: Build deb package
     runs-on: ubuntu-latest
@@ -22,7 +20,7 @@ jobs:
         run: echo "VERSION=$(cat ${GITHUB_WORKSPACE}/version)" >> $GITHUB_ENV
 
       - name: Install dependencies packages
-        run: apt-get update && apt-get install build-essential binutils lintian debhelper dh-make devscripts -y
+        run: apt-get update && apt-get install build-essential binutils lintian debhelper dh-make devscripts curl -y
 
       - name: Create build environment
         run: |
@@ -64,49 +62,103 @@ jobs:
           path: /tmp/linupdate-test-build_${{ env.VERSION }}_all.deb
           retention-days: 1
 
-  #
+
+  # Upload deb package to test repositories
+  upload:
+    name: Upload deb package to test repositories
+    needs:
+      - build-deb
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Get linupdate version
+        run: echo "VERSION=$(cat ${GITHUB_WORKSPACE}/version)" >> $GITHUB_ENV
+
+      # Download builded deb package artifact
+      - name: Download deb artifact
+        uses: actions/download-artifact@v8
+        with:
+          name: linupdate-test-build_${{ env.VERSION }}_all.deb
+          path: ~/assets
+
+      # Upload package to test repositories
+      - name: Upload packages to test repositories
+        run: |
+          curl --fail-with-body -L --post301 -s -q -X POST -H "Authorization: Bearer ${{ secrets.REPOSITORY_UPLOAD_TOKEN }}" -F "files=@$HOME/assets/linupdate-test-build_${{ env.VERSION }}_all.deb" -F "overwrite=true" ${{ secrets.REPOSITORY_UPLOAD_URL }}/api/v2/snapshot/974/upload
+          curl --fail-with-body -L --post301 -s -q -X POST -H "Authorization: Bearer ${{ secrets.REPOSITORY_UPLOAD_TOKEN }}" -F "files=@$HOME/assets/linupdate-test-build_${{ env.VERSION }}_all.deb" -F "overwrite=true" ${{ secrets.REPOSITORY_UPLOAD_URL }}/api/v2/snapshot/975/upload
+          curl --fail-with-body -L --post301 -s -q -X POST -H "Authorization: Bearer ${{ secrets.REPOSITORY_UPLOAD_TOKEN }}" -F "files=@$HOME/assets/linupdate-test-build_${{ env.VERSION }}_all.deb" -F "overwrite=true" ${{ secrets.REPOSITORY_UPLOAD_URL }}/api/v2/snapshot/976/upload
+          curl --fail-with-body -L --post301 -s -q -X POST -H "Authorization: Bearer ${{ secrets.REPOSITORY_UPLOAD_TOKEN }}" -F "files=@$HOME/assets/linupdate-test-build_${{ env.VERSION }}_all.deb" -F "overwrite=true" ${{ secrets.REPOSITORY_UPLOAD_URL }}/api/v2/snapshot/977/upload
+          curl --fail-with-body -L --post301 -s -q -X POST -H "Authorization: Bearer ${{ secrets.REPOSITORY_UPLOAD_TOKEN }}" -F "files=@$HOME/assets/linupdate-test-build_${{ env.VERSION }}_all.deb" -F "overwrite=true" ${{ secrets.REPOSITORY_UPLOAD_URL }}/api/v2/snapshot/978/upload
+          curl --fail-with-body -L --post301 -s -q -X POST -H "Authorization: Bearer ${{ secrets.REPOSITORY_UPLOAD_TOKEN }}" -F "files=@$HOME/assets/linupdate-test-build_${{ env.VERSION }}_all.deb" -F "overwrite=true" ${{ secrets.REPOSITORY_UPLOAD_URL }}/api/v2/snapshot/979/upload
+
+      # Rebuild repositories metadata
+      - name: Rebuild repositories
+        run: |
+          curl --fail-with-body -X PUT -H "Authorization: Bearer ${{ secrets.REPOSITORY_UPLOAD_TOKEN }}" -d '{"gpgSign":"true"}' ${{ secrets.REPOSITORY_UPLOAD_URL }}/api/v2/snapshot/974/rebuild
+          curl --fail-with-body -X PUT -H "Authorization: Bearer ${{ secrets.REPOSITORY_UPLOAD_TOKEN }}" -d '{"gpgSign":"true"}' ${{ secrets.REPOSITORY_UPLOAD_URL }}/api/v2/snapshot/975/rebuild
+          curl --fail-with-body -X PUT -H "Authorization: Bearer ${{ secrets.REPOSITORY_UPLOAD_TOKEN }}" -d '{"gpgSign":"true"}' ${{ secrets.REPOSITORY_UPLOAD_URL }}/api/v2/snapshot/976/rebuild
+          curl --fail-with-body -X PUT -H "Authorization: Bearer ${{ secrets.REPOSITORY_UPLOAD_TOKEN }}" -d '{"gpgSign":"true"}' ${{ secrets.REPOSITORY_UPLOAD_URL }}/api/v2/snapshot/977/rebuild
+          curl --fail-with-body -X PUT -H "Authorization: Bearer ${{ secrets.REPOSITORY_UPLOAD_TOKEN }}" -d '{"gpgSign":"true"}' ${{ secrets.REPOSITORY_UPLOAD_URL }}/api/v2/snapshot/978/rebuild
+          curl --fail-with-body -X PUT -H "Authorization: Bearer ${{ secrets.REPOSITORY_UPLOAD_TOKEN }}" -d '{"gpgSign":"true"}' ${{ secrets.REPOSITORY_UPLOAD_URL }}/api/v2/snapshot/979/rebuild
+
+
+  # Run tests on different distributions
+
   # Linupdate 3 is not working on Debian 10
   # install-debian-10:
-  #
 
   # Try to install package on Debian 11
   install-debian-11:
     name: Install and test on Debian 11
-    needs: build-deb
+    needs:
+      - build-deb
+      - upload
     uses: ./.github/workflows/install-and-test-on-debian11.yml
     secrets: inherit
 
   # Try to install package on Debian 12
   install-debian-12:
     name: Install and test on Debian 12
-    needs: build-deb
+    needs:
+      - build-deb
+      - upload
     uses: ./.github/workflows/install-and-test-on-debian12.yml
     secrets: inherit
 
   # Try to install package on Debian 13
   install-debian-13:
     name: Install and test on Debian 13
-    needs: build-deb
+    needs:
+      - build-deb
+      - upload
     uses: ./.github/workflows/install-and-test-on-debian13.yml
     secrets: inherit
 
   # Try to install package on Ubuntu 22.04
   install-ubuntu-2204:
     name: Install and test on Ubuntu 22.04
-    needs: build-deb
+    needs:
+      - build-deb
+      - upload
     uses: ./.github/workflows/install-and-test-on-ubuntu-2204.yml
     secrets: inherit
 
   # Try to install package on Ubuntu 24.04
   install-ubuntu-2404:
     name: Install and test on Ubuntu 24.04
-    needs: build-deb
+    needs:
+      - build-deb
+      - upload
     uses: ./.github/workflows/install-and-test-on-ubuntu-2404.yml
     secrets: inherit
 
   # Try to install package on Ubuntu 26.04
   install-ubuntu-2604:
     name: Install and test on Ubuntu 26.04
-    needs: build-deb
+    needs:
+      - build-deb
+      - upload
     uses: ./.github/workflows/install-and-test-on-ubuntu-2604.yml
     secrets: inherit

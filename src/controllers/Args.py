@@ -150,7 +150,10 @@ class Args:
                             myModule.configure(mod_name, mod_args)
                             myExit.clean_exit()
                         except Exception as e:
-                            raise ArgsException('Could not configure ' + mod_name + ' module: ' + str(e))
+                            if str(e):
+                                raise ArgsException('Could not configure ' + mod_name + ' module: ' + str(e))
+
+                            raise ArgsException('Could not configure ' + mod_name + ' module')
 
                 # If there are remaining arguments, print help and raise an exception
                 else:

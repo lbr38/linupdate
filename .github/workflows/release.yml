@@ -182,7 +182,7 @@ jobs:
           release_name: ${{ env.VERSION }}
           body: |
             **Changes**:
-              - Reposerver module: added Signed-By support in deb822 format (Repomanager 5.13.1 required)
+              - Various UI improvements and syntax errors fixed
           draft: false
           prerelease: false
 

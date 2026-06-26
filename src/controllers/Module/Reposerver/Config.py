@@ -520,7 +520,7 @@ class Config:
         # Parse results
 
         # Packages to exclude no matter the version
-        if 'Package_exclude' in results[0]:
+        if 'Package_exclude' in results[0] and results[0]['Package_exclude'] is not None:
             # First, clear the exclude list
             self.appConfigController.set_exclusion('None')
 
@@ -529,7 +529,7 @@ class Config:
                 self.appConfigController.set_exclusion(results[0]['Package_exclude'])
 
         # Packages to exclude on major version
-        if 'Package_exclude_major' in results[0]:
+        if 'Package_exclude_major' in results[0] and results[0]['Package_exclude_major'] is not None:
             # First, clear the exclude major list
             self.appConfigController.set_major_exclusion('None')
 
@@ -538,7 +538,7 @@ class Config:
                 self.appConfigController.set_major_exclusion(results[0]['Package_exclude_major'])
 
         # Service to reload after an update
-        if 'Service_reload' in results[0]:
+        if 'Service_reload' in results[0] and results[0]['Service_reload'] is not None:
             # First clear the services to reload
             self.appConfigController.set_service_to_reload('None')
 
@@ -547,7 +547,7 @@ class Config:
                 self.appConfigController.set_service_to_reload(results[0]['Service_reload'])
 
         # Service to restart after an update
-        if 'Service_restart' in results[0]:
+        if 'Service_restart' in results[0] and results[0]['Service_restart'] is not None:
             # First clear the services to restart
             self.appConfigController.set_service_to_restart('None')
 
