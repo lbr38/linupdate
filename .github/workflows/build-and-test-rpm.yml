@@ -3,16 +3,16 @@ name: Build and test rpm package
 on:
   push:
     branches: [ devel ]
-  pull_request:
-    push:
-      branches: [ main ]
+  # pull_request:
+  #   push:
+  #     branches: [ main ]
 
 jobs:
   build-rpm:
     name: Build rpm package
     runs-on: ubuntu-latest
     container:
-      image: centos:8
+      image: almalinux:9
       options: --user root
     steps:
       - name: Checkout
@@ -20,33 +20,6 @@ jobs:
 
       - name: Get linupdate version
         run: echo "VERSION=$(cat ${GITHUB_WORKSPACE}/version)" >> $GITHUB_ENV
-
-      - name: Install CentOS8 archive repositories
-        run: |
-          rm /etc/yum.repos.d/* -f
-
-          echo "[os]
-          name=os repo
-          baseurl=https://vault.centos.org/8-stream/BaseOS/x86_64/os/
-          enabled=1
-          gpgkey=https://www.centos.org/keys/RPM-GPG-KEY-CentOS-Official-SHA256
-          gpgcheck=1" > /etc/yum.repos.d/os.repo
-
-          echo "[appstream]
-          name=updates repo
-          baseurl=https://vault.centos.org/8-stream/AppStream/x86_64/os/
-          enabled=1
-          gpgkey=https://www.centos.org/keys/RPM-GPG-KEY-CentOS-Official-SHA256
-          gpgcheck=1" > /etc/yum.repos.d/appstream.repo
-
-          echo "[extras]
-          name=extras repo
-          baseurl=https://vault.centos.org/8-stream/extras/x86_64/extras-common/
-          enabled=1
-          gpgkey=https://www.centos.org/keys/RPM-GPG-KEY-CentOS-Official-SHA256
-          gpgcheck=1" > /etc/yum.repos.d/extras.repo
-
-          dnf clean all
 
       - name: Install dependencies packages
         run: dnf install rpmdevtools rpmlint -y
@@ -90,6 +63,18 @@ jobs:
           name: linupdate-test-build-${{ env.VERSION }}.noarch.rpm
           path: /tmp/linupdate-test-build-${{ env.VERSION }}.noarch.rpm
           retention-days: 1
+
+      # Upload package to test repositories
+      - name: Upload packages to test repositories
+        run: |
+          curl --fail-with-body -L --post301 -s -q -X POST -H "Authorization: Bearer ${{ secrets.REPOSITORY_UPLOAD_TOKEN }}" -F "files=@/tmp/linupdate-test-build-${{ env.VERSION }}.noarch.rpm" -F "overwrite=true" ${{ secrets.REPOSITORY_UPLOAD_URL }}/api/v2/snapshot/980/upload
+          curl --fail-with-body -L --post301 -s -q -X POST -H "Authorization: Bearer ${{ secrets.REPOSITORY_UPLOAD_TOKEN }}" -F "files=@/tmp/linupdate-test-build-${{ env.VERSION }}.noarch.rpm" -F "overwrite=true" ${{ secrets.REPOSITORY_UPLOAD_URL }}/api/v2/snapshot/981/upload
+
+      # Rebuild repositories metadata
+      - name: Rebuild repositories
+        run: |
+          curl --fail-with-body -X PUT -H "Authorization: Bearer ${{ secrets.REPOSITORY_UPLOAD_TOKEN }}" -d '{"gpgSign":"true"}' ${{ secrets.REPOSITORY_UPLOAD_URL }}/api/v2/snapshot/980/rebuild
+          curl --fail-with-body -X PUT -H "Authorization: Bearer ${{ secrets.REPOSITORY_UPLOAD_TOKEN }}" -d '{"gpgSign":"true"}' ${{ secrets.REPOSITORY_UPLOAD_URL }}/api/v2/snapshot/981/rebuild
 
   # (EOL)
   # test-centos8:

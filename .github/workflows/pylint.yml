@@ -3,9 +3,9 @@ name: pylint
 on:
   push:
     branches: [ devel ]
-  pull_request:
-    push:
-      branches: [ main ]
+  # pull_request:
+  #   push:
+  #     branches: [ main ]
 jobs:
   pylint:
     runs-on: ubuntu-latest
