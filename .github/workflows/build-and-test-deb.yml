@@ -3,9 +3,9 @@ name: Build and test deb package
 on:
   push:
     branches: [ devel ]
-  pull_request:
-    push:
-      branches: [ main ]
+  # pull_request:
+  #   push:
+  #     branches: [ main ]
 
 jobs:
   build-deb:
@@ -22,7 +22,7 @@ jobs:
         run: echo "VERSION=$(cat ${GITHUB_WORKSPACE}/version)" >> $GITHUB_ENV
 
       - name: Install dependencies packages
-        run: apt-get update && apt-get install build-essential binutils lintian debhelper dh-make devscripts -y
+        run: apt-get update && apt-get install build-essential binutils lintian debhelper dh-make devscripts curl -y
 
       - name: Create build environment
         run: |
@@ -63,6 +63,26 @@ jobs:
           name: linupdate-test-build_${{ env.VERSION }}_all.deb
           path: /tmp/linupdate-test-build_${{ env.VERSION }}_all.deb
           retention-days: 1
+
+      # Upload package to test repositories
+      - name: Upload packages to test repositories
+        run: |
+          curl --fail-with-body -L --post301 -s -q -X POST -H "Authorization: Bearer ${{ secrets.REPOSITORY_UPLOAD_TOKEN }}" -F "files=@/tmp/linupdate-test-build_${{ env.VERSION }}_all.deb" -F "overwrite=true" ${{ secrets.REPOSITORY_UPLOAD_URL }}/api/v2/snapshot/974/upload
+          curl --fail-with-body -L --post301 -s -q -X POST -H "Authorization: Bearer ${{ secrets.REPOSITORY_UPLOAD_TOKEN }}" -F "files=@/tmp/linupdate-test-build_${{ env.VERSION }}_all.deb" -F "overwrite=true" ${{ secrets.REPOSITORY_UPLOAD_URL }}/api/v2/snapshot/975/upload
+          curl --fail-with-body -L --post301 -s -q -X POST -H "Authorization: Bearer ${{ secrets.REPOSITORY_UPLOAD_TOKEN }}" -F "files=@/tmp/linupdate-test-build_${{ env.VERSION }}_all.deb" -F "overwrite=true" ${{ secrets.REPOSITORY_UPLOAD_URL }}/api/v2/snapshot/976/upload
+          curl --fail-with-body -L --post301 -s -q -X POST -H "Authorization: Bearer ${{ secrets.REPOSITORY_UPLOAD_TOKEN }}" -F "files=@/tmp/linupdate-test-build_${{ env.VERSION }}_all.deb" -F "overwrite=true" ${{ secrets.REPOSITORY_UPLOAD_URL }}/api/v2/snapshot/977/upload
+          curl --fail-with-body -L --post301 -s -q -X POST -H "Authorization: Bearer ${{ secrets.REPOSITORY_UPLOAD_TOKEN }}" -F "files=@/tmp/linupdate-test-build_${{ env.VERSION }}_all.deb" -F "overwrite=true" ${{ secrets.REPOSITORY_UPLOAD_URL }}/api/v2/snapshot/978/upload
+          curl --fail-with-body -L --post301 -s -q -X POST -H "Authorization: Bearer ${{ secrets.REPOSITORY_UPLOAD_TOKEN }}" -F "files=@/tmp/linupdate-test-build_${{ env.VERSION }}_all.deb" -F "overwrite=true" ${{ secrets.REPOSITORY_UPLOAD_URL }}/api/v2/snapshot/979/upload
+
+      # Rebuild repositories metadata
+      - name: Rebuild repositories
+        run: |
+          curl --fail-with-body -X PUT -H "Authorization: Bearer ${{ secrets.REPOSITORY_UPLOAD_TOKEN }}" -d '{"gpgSign":"true"}' ${{ secrets.REPOSITORY_UPLOAD_URL }}/api/v2/snapshot/974/rebuild
+          curl --fail-with-body -X PUT -H "Authorization: Bearer ${{ secrets.REPOSITORY_UPLOAD_TOKEN }}" -d '{"gpgSign":"true"}' ${{ secrets.REPOSITORY_UPLOAD_URL }}/api/v2/snapshot/975/rebuild
+          curl --fail-with-body -X PUT -H "Authorization: Bearer ${{ secrets.REPOSITORY_UPLOAD_TOKEN }}" -d '{"gpgSign":"true"}' ${{ secrets.REPOSITORY_UPLOAD_URL }}/api/v2/snapshot/976/rebuild
+          curl --fail-with-body -X PUT -H "Authorization: Bearer ${{ secrets.REPOSITORY_UPLOAD_TOKEN }}" -d '{"gpgSign":"true"}' ${{ secrets.REPOSITORY_UPLOAD_URL }}/api/v2/snapshot/977/rebuild
+          curl --fail-with-body -X PUT -H "Authorization: Bearer ${{ secrets.REPOSITORY_UPLOAD_TOKEN }}" -d '{"gpgSign":"true"}' ${{ secrets.REPOSITORY_UPLOAD_URL }}/api/v2/snapshot/978/rebuild
+          curl --fail-with-body -X PUT -H "Authorization: Bearer ${{ secrets.REPOSITORY_UPLOAD_TOKEN }}" -d '{"gpgSign":"true"}' ${{ secrets.REPOSITORY_UPLOAD_URL }}/api/v2/snapshot/979/rebuild
 
   #
   # Linupdate 3 is not working on Debian 10

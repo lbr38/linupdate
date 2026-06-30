@@ -20,7 +20,7 @@ class Status:
         self.appController              = App()
         self.configController           = Config()
         self.reposerverConfigController = ReposerverConfig()
-        self.httpRequestController      = HttpRequest()
+        self.httpRequestController      = HttpRequest(self.reposerverConfigController.get_verify_ssl())
         self.packageController          = Package()
         self.exitController             = Exit()
 
