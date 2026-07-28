@@ -408,8 +408,10 @@ class Package:
                 row = ['', package['name'], package['current_version'], package['target_version'], package['repository'], security_text, installDecisionMessage]
 
                 # If security update, color entire row in yellow
-                if package['security']:
+                if package['install'] != True:
                     row = [Fore.YELLOW + str(cell) + Style.RESET_ALL for cell in row]
+                elif package['security']:
+                    row = [Style.BRIGHT + str(cell) + Style.RESET_ALL for cell in row]
                 else:
                     # For non-security updates, add color only to decision message
                     row[6] = Fore.GREEN + '✔' + Style.RESET_ALL if installDecisionMessage == '✔' else Fore.YELLOW + installDecisionMessage + Style.RESET_ALL

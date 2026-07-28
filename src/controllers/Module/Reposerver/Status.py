@@ -20,7 +20,7 @@ class Status:
         self.appController              = App()
         self.configController           = Config()
         self.reposerverConfigController = ReposerverConfig()
-        self.httpRequestController      = HttpRequest()
+        self.httpRequestController      = HttpRequest(self.reposerverConfigController.get_verify_ssl())
         self.packageController          = Package()
         self.exitController             = Exit()
 
@@ -124,7 +124,7 @@ class Status:
                     name = package['name']
                     version = package['target_version']
                     repository = package['repository']
-                    security = bool(package.get('security', False))
+                    security = str(package.get('security', False)).lower()
 
                     # Ignore package if name is empty
                     if name == '':

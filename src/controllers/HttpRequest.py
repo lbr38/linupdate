@@ -13,6 +13,10 @@ class HttpRequest:
         self.quiet = False
         self.verify_ssl = verify_ssl
 
+        # If SSL verification is disabled, disable warnings
+        if not self.verify_ssl:
+            requests.packages.urllib3.disable_warnings()
+
     #-----------------------------------------------------------------------------------------------
     #
     #   GET request
@@ -50,7 +54,6 @@ class HttpRequest:
         # Parse response and return results if 200
         return self.request_parse_result(response)
 
-
     #-----------------------------------------------------------------------------------------------
     #
     #   PUT request with Id and token
@@ -58,6 +61,7 @@ class HttpRequest:
     #-----------------------------------------------------------------------------------------------
     def put(self, url: str, id: str, token: str, data, connectionTimeout: int = 5, readTimeout: int = 3):
         # Send PUT request to URL with Id and token
+
         response = requests.put(url,
                                 data = json.dumps(data),
                                 headers = {'Authorization': 'Host ' + id + ':' + token},

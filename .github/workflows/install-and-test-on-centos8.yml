@@ -51,6 +51,9 @@ jobs:
       - name: Update system
         run: dnf update -y --exclude=centos-release
 
+      - name: Install dependencies packages
+        run: dnf install -y python3-dataclasses python3-typing-extensions
+
       # Download builded rpm package artifact
       - name: Download artifact
         uses: actions/download-artifact@v8
