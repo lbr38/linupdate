@@ -4,7 +4,7 @@ on:
 
 jobs:
   # Try to install package on Rocky Linux 9
-  install-rockylinux9:
+  install-test-rockylinux9:
     runs-on: ubuntu-latest
     container:
       image: rockylinux/rockylinux:9

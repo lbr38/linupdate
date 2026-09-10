@@ -146,13 +146,40 @@ jobs:
     secrets: inherit
 
   # Fedora 41
-  # test-fedora41:
-  #   name: Install and test on Fedora 41
-  #   needs:
-  #    - build-rpm
-  #    - upload
-  #   uses: ./.github/workflows/install-and-test-on-fedora41.yml
-  #   secrets: inherit
+  test-fedora41:
+    name: Install and test on Fedora 41
+    needs:
+     - build-rpm
+     - upload
+    uses: ./.github/workflows/install-and-test-on-fedora41.yml
+    secrets: inherit
+
+  # Fedora 42
+  test-fedora42:
+    name: Install and test on Fedora 42
+    needs:
+     - build-rpm
+     - upload
+    uses: ./.github/workflows/install-and-test-on-fedora42.yml
+    secrets: inherit
+
+  # Fedora 43
+  test-fedora43:
+    name: Install and test on Fedora 43
+    needs:
+     - build-rpm
+     - upload
+    uses: ./.github/workflows/install-and-test-on-fedora43.yml
+    secrets: inherit
+
+  # Fedora 44
+  test-fedora44:
+    name: Install and test on Fedora 44
+    needs:
+     - build-rpm
+     - upload
+    uses: ./.github/workflows/install-and-test-on-fedora44.yml
+    secrets: inherit
 
  # Rocky Linux
   test-rockylinux9:

@@ -3,7 +3,7 @@ on:
   workflow_call:
 
 jobs:
-  install-debian-13:
+  install-test-debian-13:
     runs-on: ubuntu-latest
     container:
       image: debian:13

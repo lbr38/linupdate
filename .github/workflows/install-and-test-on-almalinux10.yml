@@ -4,7 +4,7 @@ on:
 
 jobs:
   # Try to install package on Alma Linux 10
-  install-almalinux10:
+  install-test-almalinux10:
     runs-on: ubuntu-latest
     container:
       image: almalinux:10

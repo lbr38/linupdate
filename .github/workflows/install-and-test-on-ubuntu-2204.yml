@@ -3,7 +3,7 @@ on:
   workflow_call:
 
 jobs:
-  install-ubuntu-2204:
+  install-test-ubuntu-2204:
     runs-on: ubuntu-latest
     container:
       image: ubuntu:22.04

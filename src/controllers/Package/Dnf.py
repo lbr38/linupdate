@@ -40,7 +40,7 @@ class Dnf:
 
         try:
             result = subprocess.run(
-                [self.dnf_command + ' repoquery --upgrades --latest-limit 1 --security -a -q --qf="%{name}"'],
+                [self.dnf_command + ' repoquery --upgrades --latest-limit 1 --security -q --qf="%{name}"'],
                 stdout = subprocess.PIPE,
                 stderr = subprocess.PIPE,
                 universal_newlines = True,
@@ -95,7 +95,7 @@ class Dnf:
 
         try:
             result = subprocess.run(
-                [self.dnf_command + ' repoquery --upgrades --latest-limit 1 -q -a --qf="%{repoid}" ' + package + '-' + version],
+                [self.dnf_command + ' repoquery --upgrades --latest-limit 1 -q --qf="%{repoid}" ' + package + '-' + version],
                 stdout = subprocess.PIPE, # subprocess.PIPE & subprocess.PIPE are alias of 'capture_output = True'
                 stderr = subprocess.PIPE,
                 universal_newlines = True, # Alias of 'text = True'
@@ -149,7 +149,7 @@ class Dnf:
         # Get list of installed packages
         # e.g. dnf repoquery -q -a --qf="%{name} %{version}-%{release}.%{arch} %{repoid}" --upgrades
         result = subprocess.run(
-            [self.dnf_command + ' repoquery --installed -a --qf="%{name} %{epoch}:%{version}-%{release}.%{arch}"'],
+            [self.dnf_command + ' repoquery --installed --qf="%{name} %{epoch}:%{version}-%{release}.%{arch}"'],
             stdout = subprocess.PIPE, # subprocess.PIPE & subprocess.PIPE are alias of 'capture_output = True'
             stderr = subprocess.PIPE,
             universal_newlines = True, # Alias of 'text = True'
@@ -207,7 +207,7 @@ class Dnf:
         # Get list of packages to update sorted by name
         # e.g. dnf repoquery --upgrades --latest-limit 1 -q -a --qf="%{name} %{version}-%{release}.%{arch} %{repoid}"
         result = subprocess.run(
-            [self.dnf_command + ' repoquery --upgrades --latest-limit 1 -a -q --qf="%{name} %{version}-%{release}.%{arch} %{repoid}"'],
+            [self.dnf_command + ' repoquery --upgrades --latest-limit 1 -q --qf="%{name} %{version}-%{release}.%{arch} %{repoid}"'],
             stdout = subprocess.PIPE, # subprocess.PIPE & subprocess.PIPE are alias of 'capture_output = True'
             stderr = subprocess.PIPE,
             universal_newlines = True, # Alias of 'text = True'
@@ -628,16 +628,13 @@ class Dnf:
             # ** means that the transaction did not complete successfully
             event = event.replace('**', '')
 
-            # Skip if cannot retrieve event date and time
+            # Raise error if cannot retrieve event date and time
             if not re.search(r'^Begin time(.+)', event, re.MULTILINE):
                 raise Exception('error parsing dnf event id #' + id + ': could not retrieve event date and time')
 
-            # Skip if cannot retrieve command line
-            if not re.search(r'^Command Line(.+)', event, re.MULTILINE):
-                raise Exception('error parsing dnf event id #' + id + ': could not retrieve command line')
-
-            # Skip if cannot retrieve packages altered
-            if not re.search(r'Packages Altered.*', event, re.DOTALL):
+            # Raise error if cannot retrieve packages altered
+            # Note: dnf5 (Fedora 41+) writes 'Packages altered' instead of dnf4's 'Packages Altered'
+            if not re.search(r'Packages Altered.*', event, re.DOTALL | re.IGNORECASE):
                 raise Exception('error parsing dnf event id #' + id + ': could not find any packages altered in the event')
 
             # Retrieve event date and time
@@ -645,13 +642,14 @@ class Dnf:
             # Remove extra spaces and 'Begin time : ' string
             date_time = str(date_time.replace('  ', '').replace('Begin time : ', ''))
 
-            # Retrieve command line
-            command = re.search(r'^Command Line(.+)', event, re.MULTILINE).group(0).strip()
-            command = str(command.replace('  ', '').replace('Command Line :', '')).strip()
-
             # Retrieve packages altered
-            packages_altered = re.search(r'Packages Altered.*', event, re.DOTALL).group(0).strip()
+            packages_altered = re.search(r'Packages Altered.*', event, re.DOTALL | re.IGNORECASE).group(0).strip()
             packages_altered = re.sub(r' +', ' ', packages_altered)
+
+            # Retrieve command line, leave empty if not found (not always present, e.g. history triggered outside a command)
+            # Note: dnf5 (Fedora 41+) has no 'Command Line' field, it is replaced by 'Description'
+            command_match = re.search(r'^Command Line(.+)', event, re.MULTILINE) or re.search(r'^Description(.+)', event, re.MULTILINE)
+            command = command_match.group(0).strip().replace('  ', '').replace('Command Line :', '').replace('Description:', '').strip() if command_match else ''
 
             # Parsing and formatting
 
@@ -662,7 +660,8 @@ class Dnf:
 
             # Skip if there is no lines containing 'Install', 'Dep-Install', 'Upgraded', 'Upgrade', 'Obsoleting', 'Erase', 'Removed', 'Downgrade', 'Reinstall'
             # Note: on CentOS7, it was 'Update' and 'Updated' instead of 'Upgrade' and 'Upgraded'
-            if not re.search(r'^ +(Install|Dep-Install|Upgraded|Upgrade|Obsoleting|Erase|Removed|Downgrade|Reinstall) .*', packages_altered, re.MULTILINE):
+            # Note: dnf5 (Fedora 41+) uses present tense action words, e.g. 'Remove' instead of dnf4's 'Removed'
+            if not re.search(r'^ +(Install|Dep-Install|Upgraded|Upgrade|Obsoleting|Erase|Removed?|Downgraded?|Reinstalled?) .*', packages_altered, re.MULTILINE):
                 raise Exception('error parsing dnf event id #' + id + ': could not find any operation lines in the event')
 
             # For each lines of packages_altered
@@ -688,33 +687,24 @@ class Dnf:
                     package_and_version = re.search(r'^ +Upgrade (.+)', line).group(0).strip().replace('Upgrade ', '')
                     operation = 'upgrade'
 
-                # If line starts with Update
-                # elif re.search(r'^ +Update .*', line):
-                #     package_and_version = re.search(r'^ +Update (.+)', line).group(0).strip().replace('Update ', '')
-
                 # If line starts with Obsoleting
                 elif re.search(r'^ +Obsoleting .*', line):
                     package_and_version = re.search(r'^ +Obsoleting (.+)', line).group(0).strip().replace('Obsoleting ', '')
                     operation = 'obsoleting'
 
-                # If line starts with Erase
-                # elif re.search(r'^ +Erase .*', line):
-                #     package_and_version = re.search(r'^ +Erase (.+)', line).group(0).strip().replace('Erase ', '')
-                #     operation = 'erase'
-
-                # If line starts with Removed
-                elif re.search(r'^ +Removed .*', line):
-                    package_and_version = re.search(r'^ +Removed (.+)', line).group(0).strip().replace('Removed ', '')
+                # If line starts with Removed (dnf4) or Remove (dnf5)
+                elif re.search(r'^ +Removed? .*', line):
+                    package_and_version = re.sub(r'^ +Removed? ', '', line).strip()
                     operation = 'remove'
 
-                # If line starts with Downgrade
-                elif re.search(r'^ +Downgrade .*', line):
-                    package_and_version = re.search(r'^ +Downgrade (.+)', line).group(0).strip().replace('Downgrade ', '')
+                # If line starts with Downgrade or Downgraded
+                elif re.search(r'^ +Downgraded? .*', line):
+                    package_and_version = re.sub(r'^ +Downgraded? ', '', line).strip()
                     operation = 'downgrade'
 
-                # If line starts with Reinstall
-                elif re.search(r'^ +Reinstall .*', line):
-                    package_and_version = re.search(r'^ +Reinstall (.+)', line).group(0).strip().replace('Reinstall ', '')
+                # If line starts with Reinstall or Reinstalled
+                elif re.search(r'^ +Reinstalled? .*', line):
+                    package_and_version = re.sub(r'^ +Reinstalled? ', '', line).strip()
                     operation = 'reinstall'
 
                 else:
@@ -735,9 +725,11 @@ class Dnf:
                 package_name = re.sub(r'-[0-9].*', '', package_and_version).strip()
                 package_version_and_repository = re.sub(r'^-', '', package_and_version.replace(package_name, '')).strip()
 
-                # Retrieve repository and package version
+                # Retrieve package version and repository
+                # Note: dnf5 (Fedora 41+) adds a 'Reason' column (User/Dependency) between version and repository, so
+                # repository is taken as the last field instead of the second one to stay compatible with dnf4's 2-field format
                 package_version = package_version_and_repository.split()[0].strip()
-                repository = package_version_and_repository.split()[1].strip()
+                repository = package_version_and_repository.split()[-1].strip()
 
                 # Raise exception if package_name or package_version is empty
                 if package_name == '':

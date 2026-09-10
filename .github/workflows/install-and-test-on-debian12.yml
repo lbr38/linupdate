@@ -3,7 +3,7 @@ on:
   workflow_call:
 
 jobs:
-  install-debian-12:
+  install-test-debian-12:
     runs-on: ubuntu-latest
     container:
       # Intentionally using an old image to have a list of packages to update

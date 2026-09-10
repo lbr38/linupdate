@@ -3,7 +3,7 @@ on:
   workflow_call:
 
 jobs:
-  install-ubuntu-2604:
+  install-test-ubuntu-2604:
     runs-on: ubuntu-latest
     container:
       image: ubuntu:26.04
