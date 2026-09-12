@@ -11,8 +11,8 @@ fi
 # Delete service symlink if exists
 rm -f /etc/systemd/system/linupdate.service
 
-# Only if systemd is installed (not the case on github runners)
-if [ -f "/usr/bin/systemctl" ];then
+# Only if systemd is installed and actually running as init (not the case on github runners)
+if [ -f "/usr/bin/systemctl" ] && [ -d "/run/systemd/system" ];then
     # Stop service if started
     if /usr/bin/systemctl is-active --quiet linupdate;then
         # Do not stop if there is a /tmp/linupdate.restart-needed file, the service will restart itself

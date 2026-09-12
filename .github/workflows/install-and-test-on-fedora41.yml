@@ -4,7 +4,7 @@ on:
 
 jobs:
   # Try to install package on Fedora 41
-  install-fedora41:
+  install-test-fedora41:
     runs-on: ubuntu-latest
     container:
       image: fedora:41
@@ -15,9 +15,6 @@ jobs:
 
       - name: Get linupdate version
         run: echo "VERSION=$(cat ${GITHUB_WORKSPACE}/version)" >> $GITHUB_ENV
-
-      # - name: Enable CRB repository (required to install python3-pygments for python3-rich)
-      #   run: dnf config-manager --set-enabled crb
 
       - name: Update system
         run: dnf update -y

@@ -17,7 +17,25 @@
 set -e
 
 LINUPDATE_CMD="${LINUPDATE_CMD:-python3 /opt/linupdate/linupdate.py}"
-LINUPDATE_PROFILE="${LINUPDATE_PROFILE:ci-default}"
+LINUPDATE_PROFILE="${LINUPDATE_PROFILE:-ci-default}"
+
+# Get OS family (either "debian" or "rhel")
+OS_FAMILY=""
+if [ -f /etc/os-release ]; then
+    . /etc/os-release
+    case "$ID" in
+        ubuntu|debian)
+            OS_FAMILY="debian"
+            ;;
+        centos|rocky|almalinux|fedora)
+            OS_FAMILY="rhel"
+            ;;
+        *)
+            echo "Unsupported OS: $ID"
+            exit 1
+            ;;
+    esac
+fi
 
 # Wrapper that runs linupdate using the configured command (allowing a sudo
 # prefix). Word-splitting on LINUPDATE_CMD is intentional here.
@@ -34,6 +52,16 @@ run_test() {
     "$@"
     echo "::endgroup::"
 }
+
+install_cowsay() {
+    if [ "$OS_FAMILY" = "debian" ]; then
+        apt-get install -y cowsay
+    elif [ "$OS_FAMILY" = "rhel" ]; then
+        dnf install -y cowsay
+    fi
+}
+
+run_test "install cowsay for testing purposes" install_cowsay
 
 run_test "print help" \
     linupdate --help

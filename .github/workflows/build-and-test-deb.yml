@@ -110,13 +110,14 @@ jobs:
   # install-debian-10:
 
   # Try to install package on Debian 11
-  install-debian-11:
-    name: Install and test on Debian 11
-    needs:
-      - build-deb
-      - upload
-    uses: ./.github/workflows/install-and-test-on-debian11.yml
-    secrets: inherit
+  # EOL: fails on packages update test
+  # install-debian-11:
+  #   name: Install and test on Debian 11
+  #   needs:
+  #     - build-deb
+  #     - upload
+  #   uses: ./.github/workflows/install-and-test-on-debian11.yml
+  #   secrets: inherit
 
   # Try to install package on Debian 12
   install-debian-12:

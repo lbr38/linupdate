@@ -898,6 +898,16 @@ class Args:
                     'description': 'Disable a module'
                 },
                 {
+                    'args': [
+                        '--mod-configure',
+                        '--mod-exec',
+                        '-mc',
+                        '-me'
+                    ],
+                    'option': 'MODULE [ARGS]',
+                    'description': 'Configure/execute a module with the specified arguments'
+                },
+                {
                     'title': 'Service tuning'
                 },
                 {

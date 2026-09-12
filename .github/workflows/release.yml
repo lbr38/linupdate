@@ -182,7 +182,8 @@ jobs:
           release_name: ${{ env.VERSION }}
           body: |
             **Changes**:
-              - Various UI improvements and syntax errors fixed
+              - Fixed error while parsing dnf history events on Fedora 41+
+              - Added tests for Fedora 41, 42, 43 and 44
           draft: false
           prerelease: false
 
@@ -205,6 +206,7 @@ jobs:
           curl --fail-with-body -L --post301 -s -q -X POST -H "Authorization: Bearer ${{ secrets.REPOSITORY_UPLOAD_TOKEN }}" -F "files=@$HOME/assets/linupdate_${{ env.VERSION }}_all.deb" ${{ secrets.REPOSITORY_UPLOAD_URL }}/api/v2/snapshot/73/upload
           curl --fail-with-body -L --post301 -s -q -X POST -H "Authorization: Bearer ${{ secrets.REPOSITORY_UPLOAD_TOKEN }}" -F "files=@$HOME/assets/linupdate_${{ env.VERSION }}_all.deb" ${{ secrets.REPOSITORY_UPLOAD_URL }}/api/v2/snapshot/925/upload
           curl --fail-with-body -L --post301 -s -q -X POST -H "Authorization: Bearer ${{ secrets.REPOSITORY_UPLOAD_TOKEN }}" -F "files=@$HOME/assets/linupdate_${{ env.VERSION }}_all.deb" ${{ secrets.REPOSITORY_UPLOAD_URL }}/api/v2/snapshot/937/upload
+          curl --fail-with-body -L --post301 -s -q -X POST -H "Authorization: Bearer ${{ secrets.REPOSITORY_UPLOAD_TOKEN }}" -F "files=@$HOME/assets/linupdate-${{ env.VERSION }}.noarch.rpm" ${{ secrets.REPOSITORY_UPLOAD_URL }}/api/v2/snapshot/475/upload
           curl --fail-with-body -L --post301 -s -q -X POST -H "Authorization: Bearer ${{ secrets.REPOSITORY_UPLOAD_TOKEN }}" -F "files=@$HOME/assets/linupdate-${{ env.VERSION }}.noarch.rpm" ${{ secrets.REPOSITORY_UPLOAD_URL }}/api/v2/snapshot/476/upload
           curl --fail-with-body -L --post301 -s -q -X POST -H "Authorization: Bearer ${{ secrets.REPOSITORY_UPLOAD_TOKEN }}" -F "files=@$HOME/assets/linupdate-${{ env.VERSION }}.noarch.rpm" ${{ secrets.REPOSITORY_UPLOAD_URL }}/api/v2/snapshot/541/upload
 
@@ -217,5 +219,6 @@ jobs:
           curl --fail-with-body -X PUT -H "Authorization: Bearer ${{ secrets.REPOSITORY_UPLOAD_TOKEN }}" -d '{"gpgSign":"true"}' ${{ secrets.REPOSITORY_UPLOAD_URL }}/api/v2/snapshot/73/rebuild
           curl --fail-with-body -X PUT -H "Authorization: Bearer ${{ secrets.REPOSITORY_UPLOAD_TOKEN }}" -d '{"gpgSign":"true"}' ${{ secrets.REPOSITORY_UPLOAD_URL }}/api/v2/snapshot/925/rebuild
           curl --fail-with-body -X PUT -H "Authorization: Bearer ${{ secrets.REPOSITORY_UPLOAD_TOKEN }}" -d '{"gpgSign":"true"}' ${{ secrets.REPOSITORY_UPLOAD_URL }}/api/v2/snapshot/937/rebuild
+          curl --fail-with-body -X PUT -H "Authorization: Bearer ${{ secrets.REPOSITORY_UPLOAD_TOKEN }}" -d '{"gpgSign":"true"}' ${{ secrets.REPOSITORY_UPLOAD_URL }}/api/v2/snapshot/475/rebuild
           curl --fail-with-body -X PUT -H "Authorization: Bearer ${{ secrets.REPOSITORY_UPLOAD_TOKEN }}" -d '{"gpgSign":"true"}' ${{ secrets.REPOSITORY_UPLOAD_URL }}/api/v2/snapshot/476/rebuild
           curl --fail-with-body -X PUT -H "Authorization: Bearer ${{ secrets.REPOSITORY_UPLOAD_TOKEN }}" -d '{"gpgSign":"true"}' ${{ secrets.REPOSITORY_UPLOAD_URL }}/api/v2/snapshot/541/rebuild

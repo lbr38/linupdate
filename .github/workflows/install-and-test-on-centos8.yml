@@ -3,7 +3,7 @@ on:
   workflow_call:
 
 jobs:
-  install-centos8:
+  install-test-centos8:
     runs-on: ubuntu-latest
     container:
       image: centos:8
