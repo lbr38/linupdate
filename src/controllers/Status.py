@@ -15,7 +15,7 @@ class StatusManager:
         if cls._instance is None:
             cls._instance = super(StatusManager, cls).__new__(cls)
         return cls._instance
-    
+
     #-----------------------------------------------------------------------------------------------
     #
     #   Set or update the status message
@@ -23,7 +23,7 @@ class StatusManager:
     #-----------------------------------------------------------------------------------------------
     def set_status(self, status):
         self._status = status
-    
+
     #-----------------------------------------------------------------------------------------------
     #
     #   Update the status message
@@ -59,7 +59,7 @@ class StatusManager:
             self._status.update(self._saved_message)
             self._current_message = self._saved_message
             self._saved_message = None  # Clear saved message after restore
-    
+
     #-----------------------------------------------------------------------------------------------
     #
     #   Clear the status object reference

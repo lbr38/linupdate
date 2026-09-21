@@ -487,7 +487,7 @@ class Agent:
                 if message['info'] == 'Request response received':
                     # First retrieve the request id
                     if 'request-id' in message:
-                        request_id = message['request-id']
+                        request_id = str(message['request-id'])
 
                         # If the server has tell what kinf of data it has received, then delete the corresponding files if they exist
                         if 'data' in message:

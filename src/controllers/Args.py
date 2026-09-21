@@ -330,7 +330,7 @@ class Args:
                     else:
                         myAppConfig.set_mail_smtp_port(args.mail_smtp_port)
                         print('Mail SMTP port set to ' + Fore.GREEN + str(myAppConfig.get_mail_smtp_port()) + Style.RESET_ALL, end='\n\n')
-                
+
                     myExit.clean_exit()
                 except Exception as e:
                     raise ArgsException('Could not set mail SMTP port: ' + str(e))
@@ -420,7 +420,7 @@ class Args:
                     myExit.clean_exit()
                 except Exception as e:
                     raise ArgsException('Could not configure exit on package update error: ' + str(e))
-                
+
             #
             # If --reboot param has been set, set reboot to True
             #
@@ -555,7 +555,7 @@ class Args:
                 try:
                     if not args.service_restart:
                         print('Services to restart after package update: ' + Fore.GREEN)
-                        
+
                         services = myAppConfig.get_service_to_restart()
 
                         # If no service is set to restart

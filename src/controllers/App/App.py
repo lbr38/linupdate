@@ -126,8 +126,8 @@ class App:
     #
     #-----------------------------------------------------------------------------------------------
     def print_logo(self):
-        print('                             __                                        ')
-        print('.__  .__            ____  __( o`-               .___       __          ')
+        print('                             __                                         ')
+        print('.__  .__            ____  __( o`-               .___       __           ')
         print(r'|  | |__| ____  __ _\   \/  /  \__ ________   __| _/____ _/  |_  ____  ')
         print(r'|  | |  |/    \|  |  \     /|  |  |  \____ \ / __ |\__  \\   ___/ __ \ ')
         print(r'|  |_|  |   |  |  |  /     \ ^^|  |  |  |_> / /_/ | / __ \|  | \  ___/ ')
@@ -145,21 +145,14 @@ class App:
         myAppConfig = Config()
         mySystem = System()
 
-        # Define execution method
-        if not sys.stdin.isatty():
-            exec_method = 'automatic (no tty)'
-        else:
-            exec_method = 'manual (tty)'
-
-        print('Hostname:            ' + Fore.YELLOW + socket.getfqdn() + Style.RESET_ALL)
-        print('OS:                  ' + Fore.YELLOW + mySystem.get_os_name() + ' ' + mySystem.get_os_version() + Style.RESET_ALL)
-        print('Kernel:              ' + Fore.YELLOW + mySystem.get_kernel() + Style.RESET_ALL)
-        print('Virtualization:      ' + Fore.YELLOW + mySystem.get_virtualization() + Style.RESET_ALL)
-        print('Profile:             ' + Fore.YELLOW + myAppConfig.get_profile() + Style.RESET_ALL)
-        print('Environment:         ' + Fore.YELLOW + myAppConfig.get_environment() + Style.RESET_ALL)
-        print('Execution date:      ' + Fore.YELLOW + datetime.now().strftime('%d-%m-%Y %H:%M:%S') + Style.RESET_ALL)
-        print('Executed by user:    ' + Fore.YELLOW + getpass.getuser() + Style.RESET_ALL)
-        print('Execution method:    ' + Fore.YELLOW + exec_method + Style.RESET_ALL + '\n')
+        print('Hostname               ' + Fore.YELLOW + socket.getfqdn() + Style.RESET_ALL)
+        print('OS                     ' + Fore.YELLOW + mySystem.get_os_name() + ' ' + mySystem.get_os_version() + Style.RESET_ALL)
+        print('Kernel                 ' + Fore.YELLOW + mySystem.get_kernel() + Style.RESET_ALL)
+        print('Virtualization         ' + Fore.YELLOW + mySystem.get_virtualization() + Style.RESET_ALL)
+        print('Profile                ' + Fore.YELLOW + myAppConfig.get_profile() + Style.RESET_ALL)
+        print('Environment            ' + Fore.YELLOW + myAppConfig.get_environment() + Style.RESET_ALL)
+        print('Execution date         ' + Fore.YELLOW + datetime.now().strftime('%d-%m-%Y %H:%M:%S') + Style.RESET_ALL)
+        print('Interactive exec.      ' + Fore.YELLOW + 'Yes' + Style.RESET_ALL + '\n' if sys.stdin.isatty() else 'No' + Style.RESET_ALL + '\n')
 
 
     #-----------------------------------------------------------------------------------------------
@@ -175,7 +168,7 @@ class App:
             universal_newlines = True,
             shell = True
         )
-        
+
         if result.returncode == 0:
             return True
 

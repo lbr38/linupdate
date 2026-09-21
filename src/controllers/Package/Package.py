@@ -258,7 +258,7 @@ class Package:
         keep_oldconf: bool = True,
         clear_cache: bool = False,
         dry_run: bool = False):
-        
+
         restart_file = '/tmp/linupdate.restart-needed'
 
         # Package update summary
@@ -462,7 +462,7 @@ class Package:
                     # Remove all exclusions before exiting
                     self.remove_all_exclusions()
                     self.exitController.clean_exit()
-                
+
             # If assume_yes, just print the message
             update_status(' ')
 

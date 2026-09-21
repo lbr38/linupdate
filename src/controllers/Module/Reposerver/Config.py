@@ -206,11 +206,11 @@ class Config:
         # Check if client.get_repos_from_reposerver.format is set to legacy or deb822
         if configuration['client']['get_repos_from_reposerver']['format'] not in ['standard', 'legacy', 'deb822']:
             raise Exception('client.get_repos_from_reposerver.format key must be set to legacy or deb822')
-        
+
         # If format is set to standard, overwrite it to legacy and write the config file
         if configuration['client']['get_repos_from_reposerver']['format'] == 'standard':
             configuration['client']['get_repos_from_reposerver']['format'] = 'legacy'
-            write_config = True            
+            write_config = True
 
         # Check if agent is set
         if 'agent' not in configuration:
@@ -626,7 +626,7 @@ class Config:
                         file.unlink()
             except Exception as e:
                 raise Exception('failed to remove existing repositories: ' + str(e))
-            
+
         # Quit if no results
         if not results['repos']:
             print(Fore.YELLOW + 'No repositories configured ' + Style.RESET_ALL)
@@ -654,7 +654,7 @@ class Config:
                 self.httpRequestController.download(gpgkey_url, gpgkey_output_file, 5, 3)
             except Exception:
                 raise Exception('failed to download GPG key from ' + gpgkey_url)
-            
+
             # Set file permissions to 644
             try:
                 Path(gpgkey_output_file).chmod(0o644)

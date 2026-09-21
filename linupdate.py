@@ -49,7 +49,7 @@ def main():
         # Instanciate classes
         my_exit       = Exit()
         my_app        = App()
-        my_app_config = Config() # instanciate to generate and check config
+        Config()                # instanciate to generate and check config
         my_args       = Args()
         my_system     = System()
         my_module     = Module()
@@ -104,7 +104,7 @@ def main():
             # Check if reboot is required
             if System().reboot_required():
                 print(' ' + Fore.YELLOW + 'Reboot is required' + Style.RESET_ALL)
-            
+
                 # If auto reboot is enabled
                 if my_args.reboot:
                     reboot = True
