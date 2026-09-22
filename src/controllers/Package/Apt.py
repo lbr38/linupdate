@@ -366,7 +366,7 @@ class Apt:
                 aptcache = apt.Cache()
                 aptcache.clear()
                 aptcache.close()
-                
+
                 del aptcache
             except Exception as e:
                 raise Exception('could not clear apt cache: ' + str(e))
@@ -384,7 +384,7 @@ class Apt:
         try:
             # Wait for dpkg lock first
             self.wait_for_dpkg_lock()
-            
+
             # Use apt update command directly for more reliable cache refresh
             subprocess.run(
                 ["apt-get", "update"],
@@ -393,7 +393,7 @@ class Apt:
                 universal_newlines = True,
                 check = True  # Raise exception if command fails
             )
-            
+
         except subprocess.CalledProcessError as e:
             raise Exception('could not update apt cache via command line: ' + e.stderr)
         except Exception as e:
@@ -404,7 +404,7 @@ class Apt:
             self.wait_for_dpkg_lock()
             aptcache = apt.Cache()
             aptcache.open(None)
-            
+
             # Force a complete refresh of the cache object
             aptcache.close()
             aptcache.clear()

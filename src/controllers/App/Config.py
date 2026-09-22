@@ -104,6 +104,16 @@ class Config:
             if 'recipient' not in configuration['main']['mail']:
                 raise Exception('main.mail.recipient key is missing in ' + self.config_file)
 
+            # If main.mail.smtp_host is not set, default to 'localhost'
+            if 'smtp_host' not in configuration['main']['mail']:
+                configuration['main']['mail']['smtp_host'] = 'localhost'
+                write_config = True
+
+            # If main.mail.smtp_port is not set, default to 25
+            if 'smtp_port' not in configuration['main']['mail']:
+                configuration['main']['mail']['smtp_port'] = 25
+                write_config = True
+
             # If main.log_retention_days is not set, default to 180 days (~6 months)
             if 'log_retention_days' not in configuration['main']:
                 configuration['main']['log_retention_days'] = 180

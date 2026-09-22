@@ -182,8 +182,7 @@ jobs:
           release_name: ${{ env.VERSION }}
           body: |
             **Changes**:
-              - Fixed error while parsing dnf history events on Fedora 41+
-              - Added tests for Fedora 41, 42, 43 and 44
+              - Various minor fixes
           draft: false
           prerelease: false
 
