@@ -182,7 +182,7 @@ jobs:
           release_name: ${{ env.VERSION }}
           body: |
             **Changes**:
-              - Various minor fixes
+              - Improved the handling of the app locks
           draft: false
           prerelease: false
 

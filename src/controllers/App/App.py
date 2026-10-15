@@ -9,6 +9,7 @@ from colorama import Fore, Style
 # Import classes
 from src.controllers.App.Config import Config
 from src.controllers.System import System
+from src.controllers.Lock import Lock
 
 class App:
     #-----------------------------------------------------------------------------------------------
@@ -52,14 +53,14 @@ class App:
 
     #-----------------------------------------------------------------------------------------------
     #
-    #   Create lock file
+    #   Acquire linupdate run lock (released automatically if the process dies)
     #
     #-----------------------------------------------------------------------------------------------
     def set_lock(self):
         try:
-            Path('/tmp/linupdate.lock').touch()
-        except Exception as e:
-            raise Exception('Could not create lock file /tmp/linupdate.lock: ' + str(e))
+            Lock('linupdate', timeout=0).acquire()
+        except Exception:
+            raise Exception('linupdate is already running')
 
 
     #-----------------------------------------------------------------------------------------------
@@ -68,26 +69,10 @@ class App:
     #
     #-----------------------------------------------------------------------------------------------
     def remove_locks(self):
-        # All lock files
-        locks = [
-            '/tmp/linupdate.lock',
-            '/tmp/linupdate.update-running.lock'
-        ]
-
-        # Failed locks
-        failed_locks = []
-
-        # Try to remove lock files
-        for lock in locks:
-            if Path(lock).is_file():
-                try:
-                    Path(lock).unlink()
-                except Exception:
-                    failed_locks.append(lock)
-
-        # If there are failed locks, raise an exception
-        if failed_locks:
-            raise Exception(' Could not remove lock files: ' + ', '.join(failed_locks))
+        try:
+            Lock('linupdate').release()
+        except Exception as e:
+            raise Exception('Could not release linupdate lock: ' + str(e))
 
 
     #-----------------------------------------------------------------------------------------------
@@ -161,18 +146,7 @@ class App:
     #
     #-----------------------------------------------------------------------------------------------
     def is_running(self)-> bool:
-        result = subprocess.run(
-            ['/usr/bin/ps aux | grep "/usr/bin/linupdate" | grep -v "grep"'],
-            stdout = subprocess.PIPE,
-            stderr = subprocess.PIPE,
-            universal_newlines = True,
-            shell = True
-        )
-
-        if result.returncode == 0:
-            return True
-
-        return False
+        return Lock.is_locked('linupdate')
 
     #-----------------------------------------------------------------------------------------------
     #

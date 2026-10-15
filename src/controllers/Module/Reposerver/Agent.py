@@ -19,6 +19,7 @@ from src.controllers.Module.Reposerver.Config import Config
 from src.controllers.Package.Package import Package
 from src.controllers.App.Utils import Utils
 from src.controllers.App.Trigger import Trigger
+from src.controllers.Lock import Lock
 
 class Agent:
     def __init__(self):
@@ -88,8 +89,8 @@ class Agent:
     #
     #-----------------------------------------------------------------------------------------------
     def on_inotify_change(self, ev):
-        # If an update is running by linupdate, then do nothing for now
-        if Path('/tmp/linupdate.update-running.lock').is_file():
+        # If packages are being installed, then do nothing for now (package-info is triggered after the update)
+        if Lock.is_locked('package', exclusive_only=True):
             return
 
         # Message for debugging
@@ -267,7 +268,7 @@ class Agent:
         log = '/opt/linupdate/tmp/reposerver/requests/log'
 
         # Lock to prevent service restart while processing the request
-        lock = '/tmp/linupdate.reposerver.request.lock'
+        request_lock = Lock('reposerver-request')
 
         # Default json response
         json_response = {
@@ -280,9 +281,7 @@ class Agent:
         }
 
         try:
-            # Create a lock file to prevent service restart while processing the request
-            if not Path(lock).is_file():
-                Path(lock).touch()
+            request_lock.acquire()
 
             # If the message contains 'request'
             if 'request' in message:
@@ -503,10 +502,7 @@ class Agent:
             del request_id, summary, status, error, dry_run, ignore_exclusions, keep_oldconf, full_upgrade, message, log, json_response
         # If all goes well or if an exception is raised, then delete the lock file
         finally:
-            # Delete the lock file
-            if Path(lock).is_file():
-                Path(lock).unlink()
-            del lock
+            request_lock.release()
 
 
     #-----------------------------------------------------------------------------------------------
