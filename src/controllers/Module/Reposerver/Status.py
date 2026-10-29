@@ -2,7 +2,6 @@
 
 # Import libraries
 import socket
-import time
 from colorama import Fore, Style
 
 # Import classes
@@ -76,19 +75,8 @@ class Status:
     #
     #-----------------------------------------------------------------------------------------------
     def send_packages_info(self):
-        msg = False
-
         try:
-            # Avoid to do anything if linupdate is running, to prevent modifying the package cache while linupdate is using it (only when no tty)
-            if not App().tty():
-                while App().is_running():
-                    # Display a message if not already done
-                    if not msg:
-                        msg = True
-                        print('▪ Waiting for linupdate process to finish before continuing...')
-
-                    time.sleep(2)
-
+            # Concurrency with a running linupdate process is handled by the package lock
             self.packageController.update_cache()
 
             # Send all status

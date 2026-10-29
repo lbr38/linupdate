@@ -14,6 +14,7 @@ from colorama import Fore, Style
 # Import classes
 from src.controllers.App.Config import Config
 from src.controllers.Module.Module import Module
+from src.controllers.Lock import Lock
 
 class Service:
     def __init__(self):
@@ -60,23 +61,9 @@ class Service:
                     print('[reposerver-agent] Linupdate service restart is needed.')
 
                     try:
-                        # List of possible lock files (more could be added in the future)
-                        lock_files = ['/tmp/linupdate.reposerver.request.lock']
-
-                        # Wait a bit if there is a lock file to prevent data loss
-                        while True:
-                            lock_present = 0
-
-                            # Check if lock files are present, if so, wait
-                            for lock_file in lock_files:
-                                if Path(lock_file).is_file():
-                                    print('[reposerver-agent] Lock file ' + lock_file + ' is present, waiting...')
-                                    lock_present +=1
-
-                            # Break the loop if no lock file is present
-                            if (lock_present == 0):
-                                break
-
+                        # Wait for the current reposerver request (if any) to complete to prevent data loss
+                        while Lock.is_locked('reposerver-request'):
+                            print('[reposerver-agent] A reposerver request is being processed, waiting...')
                             time.sleep(2)
 
                         # First delete the restart file

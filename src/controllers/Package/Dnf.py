@@ -273,7 +273,7 @@ class Dnf:
     #-----------------------------------------------------------------------------------------------
     def clear_cache(self):
         # Check if dnf lock is present
-        self.check_lock
+        self.check_lock()
 
         result = subprocess.run(
             [self.dnf_command + ' clean all'],

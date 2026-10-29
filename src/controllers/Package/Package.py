@@ -4,7 +4,6 @@
 
 # Import libraries
 import re
-import time
 from pathlib import Path
 from tabulate import tabulate
 from colorama import Fore, Style
@@ -14,19 +13,14 @@ from src.controllers.System import System
 from src.controllers.App.Config import Config
 from src.controllers.Exit import Exit
 from src.controllers.App.Utils import Utils
-from src.controllers.Status import update_status, save_status, restore_status
+from src.controllers.Status import update_status
+from src.controllers.Lock import Lock
 
 class Package:
     def __init__(self):
         self.systemController    = System()
         self.appConfigController = Config()
         self.exitController      = Exit()
-
-        # Locks
-        self.cache_clear_lock = '/tmp/linupdate.clear-cache.lock'
-        self.available_packages_lock = '/tmp/linupdate.available-packages.lock'
-        self.installed_packages_lock = '/tmp/linupdate.installed-packages.lock'
-        self.update_running_lock = '/tmp/linupdate.update-running.lock'
 
         # Import libraries depending on the OS family
 
@@ -121,28 +115,11 @@ class Package:
         try:
             update_status("Getting installed packages")
 
-            # Create a lock file to indicate that the installed packages are being retrieved, to prevent other processes to access the cache while it is being updated
-            try:
-                if not Path(self.installed_packages_lock).is_file():
-                    Path(self.installed_packages_lock).touch()
-            except Exception as e:
-                raise Exception('could not create installed packages lock file: ' + str(e))
-
-            # Wait for the cache to be cleared if it is being cleared
-            self.wait_for_cache_clear_lock()
-
-            # Wait for update to finish if it is running
-            self.wait_for_update_running_lock()
-
-            # Get a list of installed packages
-            return self.myPackageManagerController.get_installed_packages()
+            with self.package_lock(shared=True):
+                return self.myPackageManagerController.get_installed_packages()
 
         except Exception as e:
             raise Exception('error while getting installed packages: ' + str(e))
-        finally:
-            # Remove the lock file
-            if Path(self.installed_packages_lock).is_file():
-                Path(self.installed_packages_lock).unlink()
 
 
     #-----------------------------------------------------------------------------------------------
@@ -154,28 +131,11 @@ class Package:
         try:
             update_status('Getting available packages')
 
-            # Create a lock file to indicate that the available packages are being retrieved, to prevent other processes to access the cache while it is being updated
-            try:
-                if not Path(self.available_packages_lock).is_file():
-                    Path(self.available_packages_lock).touch()
-            except Exception as e:
-                raise Exception('could not create available packages lock file: ' + str(e))
-
-            # Wait for the cache to be cleared if it is being cleared
-            self.wait_for_cache_clear_lock()
-
-            # Wait for update to finish if it is running
-            self.wait_for_update_running_lock()
-
-            # Get a list of available packages
-            return self.myPackageManagerController.get_available_packages(dist_upgrade)
+            with self.package_lock(shared=True):
+                return self.myPackageManagerController.get_available_packages(dist_upgrade)
 
         except Exception as e:
             raise Exception('error while retrieving available packages: ' + str(e))
-        finally:
-            # Remove the lock file
-            if Path(self.available_packages_lock).is_file():
-                Path(self.available_packages_lock).unlink()
 
 
     #-----------------------------------------------------------------------------------------------
@@ -187,20 +147,8 @@ class Package:
         try:
             update_status('Updating cache')
 
-            # Do not clear while update is running
-            self.wait_for_update_running_lock()
-
-            # Do not clear while another process is getting available packages
-            self.wait_for_available_packages_lock()
-
-            # Do not clear while another process is getting installed packages
-            self.wait_for_installed_packages_lock()
-
-            # Do not clear while another process is clearing the cache
-            self.wait_for_cache_clear_lock()
-
-            # Update cache
-            self.myPackageManagerController.update_cache()
+            with self.package_lock():
+                self.myPackageManagerController.update_cache()
 
         except Exception as e:
             raise Exception('error while updating package cache: ' + str(e))
@@ -215,32 +163,10 @@ class Package:
         try:
             update_status('Clearing cache')
 
-            # Do not clear while update is running
-            self.wait_for_update_running_lock()
-
-            # Do not clear while another process is getting available packages
-            self.wait_for_available_packages_lock()
-
-            # Do not clear while another process is getting installed packages
-            self.wait_for_installed_packages_lock()
-
-            # Do not clear while another process is clearing the cache
-            self.wait_for_cache_clear_lock()
-
-            # Create a lock file to indicate that the cache is being cleared, to prevent other processes to access the cache while it is being cleared
-            try:
-                if not Path(self.cache_clear_lock).is_file():
-                    Path(self.cache_clear_lock).touch()
-            except Exception as e:
-                raise Exception('could not create cache clear lock file: ' + str(e))
-
-            self.myPackageManagerController.clear_cache()
+            with self.package_lock():
+                self.myPackageManagerController.clear_cache()
         except Exception as e:
             raise Exception('error while clearing package cache: ' + str(e))
-        finally:
-            # Remove the lock file
-            if Path(self.cache_clear_lock).is_file():
-                Path(self.cache_clear_lock).unlink()
 
 
     #-----------------------------------------------------------------------------------------------
@@ -474,14 +400,11 @@ class Package:
                     if not Path(restart_file).is_file():
                         Path(restart_file).touch()
 
-            # Create a temporary file in /tmp to indicate that the update process is running
-            if not Path(self.update_running_lock).is_file():
-                Path(self.update_running_lock).touch()
-
             # Execute the packages update
-            self.myPackageManagerController.dist_upgrade = dist_upgrade
-            self.myPackageManagerController.keep_oldconf = keep_oldconf
-            self.myPackageManagerController.update(self.packagesToUpdateList, exit_on_package_update_error, dry_run)
+            with self.package_lock():
+                self.myPackageManagerController.dist_upgrade = dist_upgrade
+                self.myPackageManagerController.keep_oldconf = keep_oldconf
+                self.myPackageManagerController.update(self.packagesToUpdateList, exit_on_package_update_error, dry_run)
 
             # Update the summary status
             self.summary['update']['status'] = 'done'
@@ -495,10 +418,6 @@ class Package:
         finally:
             # Remove all exclusions
             self.remove_all_exclusions()
-
-            # Remove the update running lock file
-            if Path(self.update_running_lock).is_file():
-                Path(self.update_running_lock).unlink()
 
         # Update the summary with the number of packages updated and failed
         if hasattr(self.myPackageManagerController, 'summary'):
@@ -541,89 +460,10 @@ class Package:
 
     #-----------------------------------------------------------------------------------------------
     #
-    #   Wait for a lock file to be released
+    #   Return the package manager lock
+    #   Shared: reading packages (several readers allowed)
+    #   Exclusive: modifying cache or installing packages
     #
     #-----------------------------------------------------------------------------------------------
-    def wait_for_lock(self, lock_file, timeout: int) -> None:
-        start_time = time.time()
-
-        while time.time() - start_time < timeout:
-            locks_held = False
-
-            if Path(lock_file).is_file():
-                locks_held = True
-
-            if not locks_held:
-                return
-
-            time.sleep(2)
-
-        raise Exception('could not acquire lock ' + lock_file + ' within ' + str(timeout) + ' seconds')
-
-
-    #-----------------------------------------------------------------------------------------------
-    #
-    #   Wait for update running lock to be released
-    #   Default timeout is 60 seconds
-    #
-    #-----------------------------------------------------------------------------------------------
-    def wait_for_update_running_lock(self, timeout: int = 60) -> None:
-        # Save status message
-        save_status()
-
-        update_status('Another process is running an update, waiting for it to finish...')
-        self.wait_for_lock(self.update_running_lock, timeout)
-
-        # Restore status message
-        restore_status()
-
-
-    #-----------------------------------------------------------------------------------------------
-    #
-    #   Wait for available packages lock to be released
-    #   Default timeout is 60 seconds
-    #
-    #-----------------------------------------------------------------------------------------------
-    def wait_for_available_packages_lock(self, timeout: int = 60) -> None:
-        # Save status message
-        save_status()
-
-        update_status('Waiting for available packages lock to be released...')
-        self.wait_for_lock(self.available_packages_lock, timeout)
-
-        # Restore status message
-        restore_status()
-
-
-    #-----------------------------------------------------------------------------------------------
-    #
-    #   Wait for installed packages lock to be released
-    #   Default timeout is 60 seconds
-    #
-    #-----------------------------------------------------------------------------------------------
-    def wait_for_installed_packages_lock(self, timeout: int = 60) -> None:
-        # Save status message
-        save_status()
-
-        update_status('Waiting for installed packages lock to be released...')
-        self.wait_for_lock(self.installed_packages_lock, timeout)
-
-        # Restore status message
-        restore_status()
-
-
-    #-----------------------------------------------------------------------------------------------
-    #
-    #   Wait for cache clear lock to be released
-    #   Default timeout is 60 seconds
-    #
-    #-----------------------------------------------------------------------------------------------
-    def wait_for_cache_clear_lock(self, timeout: int = 60) -> None:
-        # Save status message
-        save_status()
-
-        update_status('Waiting for cache clear lock to be released...')
-        self.wait_for_lock(self.cache_clear_lock, timeout)
-
-        # Restore status message
-        restore_status()
+    def package_lock(self, shared: bool = False) -> Lock:
+        return Lock('package', shared, 3600, 'Another linupdate process is using the package manager, waiting for it to finish...')
