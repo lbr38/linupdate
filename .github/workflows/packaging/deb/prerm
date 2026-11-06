@@ -1,0 +1,21 @@
+#!/bin/sh
+
+# Package removal (not on upgrade): stop and disable the linupdate service
+
+set -e
+
+case "$1" in
+    remove)
+        if command -v systemctl > /dev/null; then
+            # Only stop the service if systemd is actually running as init (not the case in containers)
+            if [ -d /run/systemd/system ]; then
+                systemctl stop linupdate || true
+            fi
+
+            # Disabling the unit works offline (no running systemd needed)
+            systemctl disable --quiet linupdate || true
+        fi
+        ;;
+esac
+
+exit 0

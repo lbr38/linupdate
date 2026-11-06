@@ -1,0 +1,53 @@
+name: Unit tests
+
+on:
+  push:
+    branches: [ devel ]
+  pull_request:
+
+jobs:
+  unit-tests:
+    name: Run unit tests
+    runs-on: ubuntu-latest
+    container:
+      # Python modules are installed from the distribution, as with the deb package (python3-apt, python3-pyinotify...)
+      image: debian:trixie
+      options: --user root
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Install dependencies
+        run: |
+          apt-get update -y
+          apt-get install -y python3-pytest python3-apt python3-pyinotify python3-tabulate python3-colorama python3-dateutil python3-yaml python3-simplejson python3-distro python3-requests python3-websocket python3-psutil python3-rich
+
+      - name: Run unit tests
+        run: python3 -m pytest .github/tests -v
+
+  # The oldest supported Python version is 3.6 (CentOS 8 / EL8)
+  unit-tests-python36:
+    name: Run unit tests (Python 3.6, CentOS 8)
+    runs-on: ubuntu-latest
+    container:
+      image: centos:8
+      options: --user root
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Prepare system
+        run: bash ${GITHUB_WORKSPACE}/.github/scripts/setup-system.sh --no-update
+
+      # Same Python modules as the rpm package dependencies (python3-apt is not available: stubbed by the tests)
+      # pytest 7.0 is the last version supporting Python 3.6
+      - name: Install dependencies
+        run: |
+          dnf install -y python3-pip python3-tabulate python3-colorama python3-dateutil python3-yaml python3-simplejson python3-distro python3-requests python3-inotify python3-websocket-client python3-psutil python3-rich
+          pip3 install pytest==7.0.1
+
+      - name: Print Python version
+        run: python3 --version
+
+      - name: Run unit tests
+        run: python3 -m pytest .github/tests -v

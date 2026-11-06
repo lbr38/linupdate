@@ -43,17 +43,29 @@ jobs:
           cp ${GITHUB_WORKSPACE}/.github/workflows/packaging/deb/control /tmp/linupdate-build/DEBIAN/control
           sed -i "s/__VERSION__/${{ env.VERSION }}/g" /tmp/linupdate-build/DEBIAN/control
 
-      - name: Copy preinst and postinst script
+      - name: Copy maintainer scripts
         run: |
-          cp ${GITHUB_WORKSPACE}/.github/workflows/packaging/deb/preinst /tmp/linupdate-build/DEBIAN/preinst
-          cp ${GITHUB_WORKSPACE}/.github/workflows/packaging/deb/postinst /tmp/linupdate-build/DEBIAN/postinst
-          chmod 755 /tmp/linupdate-build/DEBIAN/preinst /tmp/linupdate-build/DEBIAN/postinst
+          for script in preinst postinst prerm postrm; do
+            cp ${GITHUB_WORKSPACE}/.github/workflows/packaging/deb/${script} /tmp/linupdate-build/DEBIAN/${script}
+            chmod 755 /tmp/linupdate-build/DEBIAN/${script}
+          done
+
+      # Changelog of the current version, from CHANGELOG.md (changelog.gz: name of the changelog of a native package)
+      - name: Generate changelog
+        run: |
+          mkdir -p /tmp/linupdate-build/usr/share/doc/linupdate
+          bash ${GITHUB_WORKSPACE}/.github/scripts/generate-changelog.sh deb /tmp/linupdate-changelog
+          gzip -9 -n -c /tmp/linupdate-changelog > /tmp/linupdate-build/usr/share/doc/linupdate/changelog.gz
 
       - name: Build package
         run: |
           cd /tmp
           dpkg-deb --build linupdate-build
           mv /tmp/linupdate-build.deb /tmp/linupdate-test-build_${{ env.VERSION }}_all.deb
+
+      # Fail on new lintian errors (the accepted ones are listed in lintian-suppressed-tags)
+      - name: Check package with lintian
+        run: lintian --fail-on error --suppress-tags-from-file ${GITHUB_WORKSPACE}/.github/workflows/packaging/deb/lintian-suppressed-tags /tmp/linupdate-test-build_${{ env.VERSION }}_all.deb
 
       - name: Upload artifact
         uses: actions/upload-artifact@v6
@@ -104,62 +116,106 @@ jobs:
           curl --fail-with-body -X PUT -H "Authorization: Bearer ${{ secrets.REPOSITORY_UPLOAD_TOKEN }}" -d '{"gpgSign":"true"}' ${{ secrets.REPOSITORY_UPLOAD_URL }}/api/v2/snapshot/979/rebuild
 
 
-  # Run tests on different distributions
-
-  # Linupdate 3 is not working on Debian 10
-  # install-debian-10:
-
-  # Try to install package on Debian 11
-  # EOL: fails on packages update test
-  # install-debian-11:
-  #   name: Install and test on Debian 11
-  #   needs:
-  #     - build-deb
-  #     - upload
-  #   uses: ./.github/workflows/install-and-test-on-debian11.yml
-  #   secrets: inherit
-
-  # Try to install package on Debian 12
-  install-debian-12:
-    name: Install and test on Debian 12
+  # Install the package and run the test suite on different distributions
+  # (the OS specific preparation is done by .github/scripts/setup-system.sh)
+  install-and-test:
+    name: Install and test on ${{ matrix.name }}
     needs:
       - build-deb
       - upload
-    uses: ./.github/workflows/install-and-test-on-debian12.yml
-    secrets: inherit
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Linupdate 3 is not working on Debian 10
+          # Debian 11 (EOL) fails on packages update test
+          # - name: Debian 11
+          #   image: debian:11
+          - name: Debian 12
+            # Intentionally using an old image to have a list of packages to update
+            image: debian:bookworm-20260518
+          - name: Debian 13
+            image: debian:13
+          - name: Ubuntu 22.04
+            image: ubuntu:22.04
+          - name: Ubuntu 24.04
+            image: ubuntu:24.04
+          - name: Ubuntu 26.04
+            image: ubuntu:26.04
+    container:
+      image: ${{ matrix.image }}
+      options: --user root
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
 
-  # Try to install package on Debian 13
-  install-debian-13:
-    name: Install and test on Debian 13
+      - name: Get linupdate version
+        run: echo "VERSION=$(cat ${GITHUB_WORKSPACE}/version)" >> $GITHUB_ENV
+
+      - name: Prepare system
+        run: bash ${GITHUB_WORKSPACE}/.github/scripts/setup-system.sh
+
+      # Download builded package artifact
+      - name: Download artifact
+        uses: actions/download-artifact@v8
+        with:
+          name: linupdate-test-build_${{ env.VERSION }}_all.deb
+
+      - name: Install package
+        run: apt-get install -y ./linupdate-test-build_${{ env.VERSION }}_all.deb
+
+      # Run common test suite (shared across all distributions)
+      - name: Run test suite
+        env:
+          REPOSITORY_TEST_URL: ${{ secrets.REPOSITORY_TEST_URL }}
+          REPOSITORY_TEST_TOKEN: ${{ secrets.REPOSITORY_TEST_TOKEN }}
+          REPOS_CONFIG_DIR: /etc/apt/sources.list.d
+          LINUPDATE_PROFILE: linupdate-ci-debian-systems
+        run: bash ${GITHUB_WORKSPACE}/.github/scripts/run-tests.sh
+
+  # Upgrade from the latest release, systemd service and uninstall tests, in a container running systemd
+  package-tests:
+    name: Package tests on ${{ matrix.name }}
     needs:
       - build-deb
-      - upload
-    uses: ./.github/workflows/install-and-test-on-debian13.yml
-    secrets: inherit
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Debian 13
+            image: debian:13
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
 
-  # Try to install package on Ubuntu 22.04
-  install-ubuntu-2204:
-    name: Install and test on Ubuntu 22.04
-    needs:
-      - build-deb
-      - upload
-    uses: ./.github/workflows/install-and-test-on-ubuntu-2204.yml
-    secrets: inherit
+      - name: Get linupdate version
+        run: echo "VERSION=$(cat ${GITHUB_WORKSPACE}/version)" >> $GITHUB_ENV
 
-  # Try to install package on Ubuntu 24.04
-  install-ubuntu-2404:
-    name: Install and test on Ubuntu 24.04
-    needs:
-      - build-deb
-      - upload
-    uses: ./.github/workflows/install-and-test-on-ubuntu-2404.yml
-    secrets: inherit
+      # Download builded package artifact
+      - name: Download artifact
+        uses: actions/download-artifact@v8
+        with:
+          name: linupdate-test-build_${{ env.VERSION }}_all.deb
+          path: packages/new
 
-  # Try to install package on Ubuntu 26.04
-  install-ubuntu-2604:
-    name: Install and test on Ubuntu 26.04
-    needs:
-      - build-deb
-      - upload
-    uses: ./.github/workflows/install-and-test-on-ubuntu-2604.yml
-    secrets: inherit
+      - name: Download the latest released package
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release download --repo "${{ github.repository }}" --pattern '*_all.deb' --dir packages/old
+
+      - name: Start a container running systemd
+        run: bash .github/scripts/start-systemd-container.sh "${{ matrix.image }}" linupdate-systemd
+
+      - name: Run package tests
+        env:
+          REPOSITORY_TEST_URL: ${{ secrets.REPOSITORY_TEST_URL }}
+          REPOSITORY_TEST_TOKEN: ${{ secrets.REPOSITORY_TEST_TOKEN }}
+        run: |
+          docker exec -e REPOSITORY_TEST_URL -e REPOSITORY_TEST_TOKEN linupdate-systemd \
+            bash /src/.github/scripts/run-package-tests.sh /src/packages/new/linupdate-test-build_${{ env.VERSION }}_all.deb /src/packages/old
+
+      - name: Print the service journal
+        if: always()
+        run: docker exec linupdate-systemd journalctl -u linupdate --no-pager --all || true

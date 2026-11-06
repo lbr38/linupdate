@@ -68,16 +68,16 @@ Available options:
     --keep-oldconf                               Keep old configuration files when updating packages (Debian based OS only)
     --assume-yes, -y                             Answer yes to all questions
     --check-updates, -cu                         Only check for updates and exit
-    --ignore-exclusions, -ie                     Ignore all package exclusions
+    --ignore-exclusions, -ie                     Ignore all package exclusions (packages held or excluded at system level by the administrator are never updated)
     --exit-on-package-update-error [true|false]  Immediately exit if an error occurs during package update and do not update the remaining packages
     
     Packages exclusion and services restart
     
     --exclude [PACKAGE]                          Print or set packages to exclude from update (separated by commas)
-                                                 Regex pattern ".*" can be used to match multiple packages. Example: --exclude php.*
+                                                 Wildcard "*" can be used to match multiple packages (quote it to prevent shell expansion). Example: --exclude "php*"
                                                  Specify "None" to clear the exclusion list
     --exclude-major [PACKAGE]                    Print or set packages to exclude from update (if package has a major version update) (separated by commas)
-                                                 Regex pattern ".*" can be used to match multiple packages. Example: --exclude-major php.*
+                                                 Wildcard "*" can be used to match multiple packages (quote it to prevent shell expansion). Example: --exclude-major "php*"
                                                  Specify "None" to clear the major update exclusion list
     --service-reload [SERVICE]                   Print or set services to reload after package update (separated by commas)
                                                  Specify "None" to clear the service reload list

@@ -1,0 +1,12 @@
+# Lintian errors accepted for the linupdate deb package (one tag per line).
+# Any other lintian error fails the CI. Remove a tag once the packaging is fixed.
+
+# linupdate is installed in /opt/linupdate by design
+dir-or-file-in-opt
+
+# The package does not ship /usr/share/doc/linupdate/copyright yet
+no-copyright-file
+
+# Description field of the control file
+description-starts-with-package-name
+extended-description-is-empty

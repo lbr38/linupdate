@@ -1,0 +1,42 @@
+#!/bin/sh
+
+# Package removal (not on upgrade): remove what postinst and linupdate created outside of the package files.
+# The configuration and the logs are only removed on purge.
+
+set -e
+
+case "$1" in
+    remove|purge)
+        # Systemd unit file copied by postinst
+        rm -f /lib/systemd/system/linupdate.service
+
+        if [ -d /run/systemd/system ] && command -v systemctl > /dev/null; then
+            systemctl daemon-reload || true
+        fi
+
+        # Symlink created by postinst
+        if [ "$(readlink /usr/bin/linupdate)" = "/opt/linupdate/linupdate.py" ]; then
+            rm -f /usr/bin/linupdate
+        fi
+
+        # Files created at runtime: python cache, locks, temporary files and last update date
+        if [ -d /opt/linupdate ]; then
+            if [ -s /opt/linupdate/tmp/apt-holds ]; then
+                echo "linupdate: these packages may still be held by an interrupted linupdate run (check with apt-mark showhold): $(tr '\n' ' ' < /opt/linupdate/tmp/apt-holds)"
+            fi
+
+            find /opt/linupdate -type d -name __pycache__ -prune -exec rm -rf {} +
+            rm -rf /opt/linupdate/locks /opt/linupdate/tmp /opt/linupdate/last-update
+            find /opt/linupdate -depth -type d -empty -delete
+        fi
+        ;;
+esac
+
+case "$1" in
+    purge)
+        # Configuration and logs (created by postinst and linupdate, not part of the package files)
+        rm -rf /etc/linupdate /var/log/linupdate
+        ;;
+esac
+
+exit 0

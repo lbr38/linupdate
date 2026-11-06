@@ -1,0 +1,41 @@
+name: Static checks
+
+on:
+  push:
+    branches: [ devel ]
+  pull_request:
+
+jobs:
+  # Shell scripts: CI test scripts and deb maintainer scripts
+  shellcheck:
+    name: Check shell scripts (shellcheck)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Install shellcheck
+        run: sudo apt-get update && sudo apt-get install -y shellcheck
+
+      - name: Print shellcheck version
+        run: shellcheck --version
+
+      - name: Check shell scripts
+        run: shellcheck -x .github/scripts/*.sh .github/workflows/packaging/deb/preinst .github/workflows/packaging/deb/postinst .github/workflows/packaging/deb/prerm .github/workflows/packaging/deb/postrm
+
+  # The oldest supported Python version is 3.6 (CentOS 8 / EL8)
+  vermin:
+    name: Check Python 3.6 compatibility (vermin)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Install vermin
+        run: pip install vermin
+
+      - name: Print vermin version
+        run: vermin --version
+
+      - name: Check minimum Python version
+        run: vermin --target=3.6- --violations --no-tips --no-parse-comments src linupdate.py service.py .github/tests

@@ -2,15 +2,18 @@
 
 SERVICE="/opt/linupdate/service.py"
 
-# Restore configuration files if exists
-if [ -f "/tmp/linupdate.yml.debsave" ];then
-    rm -f /etc/linupdate/linupdate.yml
-    mv /tmp/linupdate.yml.debsave /etc/linupdate/linupdate.yml
-fi
-if [ -f "/tmp/update.yml.debsave" ];then
-    rm -f /etc/linupdate/update.yml
-    mv /tmp/update.yml.debsave /etc/linupdate/update.yml
-fi
+# Root only directory of the linupdate temporary files (never use /tmp, writable by any user)
+TMP_DIR="/opt/linupdate/tmp"
+BACKUP_DIR="${TMP_DIR}/upgrade-backup"
+
+# Restore configuration files saved by preinst if exists
+for file in linupdate.yml update.yml; do
+    if [ -f "${BACKUP_DIR}/${file}" ];then
+        rm -f "/etc/linupdate/${file}"
+        mv "${BACKUP_DIR}/${file}" "/etc/linupdate/${file}"
+    fi
+done
+rmdir "$BACKUP_DIR" 2> /dev/null || true
 
 # If no configuration files exists, copy default
 if [ ! -f "/etc/linupdate/linupdate.yml" ];then
@@ -22,6 +25,12 @@ fi
 
 # Create a symlink to main script
 ln -sf /opt/linupdate/linupdate.py /usr/bin/linupdate
+
+# Clean the controllers directories of linupdate <= 3.17.4 (renamed to lowercase): dpkg removes their files
+# but not the directories themselves, which still contain the python cache created at runtime
+for dir in App Module Package Service; do
+    rm -rf "/opt/linupdate/src/controllers/${dir}"
+done
 
 # Install en_US.UTF-8 locale if not present
 if ! locale -a | grep -q "en_US.UTF-8";then
@@ -57,16 +66,22 @@ if [ -f "/usr/bin/systemctl" ];then
     rm /opt/linupdate/mods-available -rf
     rm /opt/linupdate/service -rf
 
+    # Enabling the unit works offline (no running systemd needed)
     /usr/bin/systemctl enable linupdate
-    /usr/bin/systemctl --quiet daemon-reload
 
-    # Restart or start service
-    if /usr/bin/systemctl is-active --quiet linupdate;then
-        # Do not restart if there is a /tmp/linupdate.restart-needed file, the service will restart itself
-        if [ ! -f "/tmp/linupdate.restart-needed" ];then
-            /usr/bin/systemctl restart --quiet linupdate
+    # Only if systemd is actually running as init (not the case in containers)
+    if [ -d "/run/systemd/system" ];then
+        /usr/bin/systemctl --quiet daemon-reload
+
+        # Restart or start service
+        if /usr/bin/systemctl is-active --quiet linupdate;then
+            # Do not restart if a restart has been requested: linupdate is updating itself, the service will restart itself
+            # (/tmp/linupdate.restart-needed is the request file of linupdate <= 3.17.4)
+            if [ ! -f "${TMP_DIR}/restart-needed" ] && [ ! -f "/tmp/linupdate.restart-needed" ];then
+                /usr/bin/systemctl restart --quiet linupdate
+            fi
+        else
+            /usr/bin/systemctl start --quiet linupdate
         fi
-    else
-        /usr/bin/systemctl start --quiet linupdate
     fi
 fi

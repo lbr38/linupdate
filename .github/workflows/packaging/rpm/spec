@@ -34,14 +34,19 @@ Linupdate 3 (python version) - Packages updater and Repomanager client side agen
 # Scriptlets doc: https://docs.fedoraproject.org/en-US/packaging-guidelines/Scriptlets/#_syntax
 #
 
-%prep
-# Save current configuration files if exists
-if [ -f "/etc/linupdate/linupdate.yml" ];then
-    cp /etc/linupdate/linupdate.yml /tmp/linupdate.yml.rpmsave
-fi
-if [ -f "/etc/linupdate/update.yml" ];then
-    cp /etc/linupdate/update.yml /tmp/update.yml.rpmsave
-fi
+%pre
+# Root only directory of the linupdate temporary files (never use /tmp, writable by any user)
+TMP_DIR="/opt/linupdate/tmp"
+BACKUP_DIR="${TMP_DIR}/upgrade-backup"
+
+# Save current configuration files if exists (restored by the post-install scriptlet)
+for file in linupdate.yml update.yml; do
+    if [ -f "/etc/linupdate/${file}" ];then
+        mkdir -p "$BACKUP_DIR"
+        chmod 700 "$BACKUP_DIR"
+        cp "/etc/linupdate/${file}" "${BACKUP_DIR}/${file}"
+    fi
+done
 
 # Delete service symlink if exists
 rm -f /etc/systemd/system/linupdate.service
@@ -50,8 +55,9 @@ rm -f /etc/systemd/system/linupdate.service
 if [ -f "/usr/bin/systemctl" ] && [ -d "/run/systemd/system" ];then
     # Stop service if started
     if /usr/bin/systemctl is-active --quiet linupdate;then
-        # Do not stop if there is a /tmp/linupdate.restart-needed file, the service will restart itself
-        if [ ! -f "/tmp/linupdate.restart-needed" ];then
+        # Do not stop if a restart has been requested: linupdate is updating itself, the service will restart itself
+        # (/tmp/linupdate.restart-needed is the request file of linupdate <= 3.17.4)
+        if [ ! -f "${TMP_DIR}/restart-needed" ] && [ ! -f "/tmp/linupdate.restart-needed" ];then
             /usr/bin/systemctl stop --quiet linupdate
         fi
     fi
@@ -69,15 +75,18 @@ cp /lib/systemd/system/linupdate.service $RPM_BUILD_ROOT/lib/systemd/system/linu
 %post
 SERVICE="/opt/linupdate/service.py"
 
-# Restore configuration files if exists
-if [ -f "/tmp/linupdate.yml.rpmsave" ];then
-    rm -f /etc/linupdate/linupdate.yml
-    mv /tmp/linupdate.yml.rpmsave /etc/linupdate/linupdate.yml
-fi
-if [ -f "/tmp/update.yml.rpmsave" ];then
-    rm -f /etc/linupdate/update.yml
-    mv /tmp/update.yml.rpmsave /etc/linupdate/update.yml
-fi
+# Root only directory of the linupdate temporary files (never use /tmp, writable by any user)
+TMP_DIR="/opt/linupdate/tmp"
+BACKUP_DIR="${TMP_DIR}/upgrade-backup"
+
+# Restore configuration files saved by the pre-install scriptlet if exists
+for file in linupdate.yml update.yml; do
+    if [ -f "${BACKUP_DIR}/${file}" ];then
+        rm -f "/etc/linupdate/${file}"
+        mv "${BACKUP_DIR}/${file}" "/etc/linupdate/${file}"
+    fi
+done
+rmdir "$BACKUP_DIR" 2> /dev/null || true
 
 # If no configuration files exists, copy default
 if [ ! -f "/etc/linupdate/linupdate.yml" ];then
@@ -124,8 +133,9 @@ if [ -f "/usr/bin/systemctl" ] && [ -d "/run/systemd/system" ];then
 
     # Restart or start service
     if /usr/bin/systemctl is-active --quiet linupdate;then
-        # Do not restart if there is a /tmp/linupdate.restart-needed file, the service will restart itself
-        if [ ! -f "/tmp/linupdate.restart-needed" ];then
+        # Do not restart if a restart has been requested: linupdate is updating itself, the service will restart itself
+        # (/tmp/linupdate.restart-needed is the request file of linupdate <= 3.17.4)
+        if [ ! -f "${TMP_DIR}/restart-needed" ] && [ ! -f "/tmp/linupdate.restart-needed" ];then
             /usr/bin/systemctl restart --quiet linupdate
         fi
     else
@@ -133,9 +143,56 @@ if [ -f "/usr/bin/systemctl" ] && [ -d "/run/systemd/system" ];then
     fi
 fi
 
+%posttrans
+# Clean the controllers directories of linupdate <= 3.17.4 (renamed to lowercase): rpm removes their files
+# but not the directories themselves, which still contain the python cache created at runtime.
+# Done in %posttrans because the files of the old package are only removed after the %post scriptlet of the new one.
+for dir in App Module Package Service; do
+    rm -rf "/opt/linupdate/src/controllers/${dir}"
+done
+exit 0
+
+%preun
+# Package removal ($1 = 0, not on upgrade): stop and disable the linupdate service
+if [ "$1" -eq 0 ];then
+    if command -v systemctl > /dev/null;then
+        # Only stop the service if systemd is actually running as init (not the case in containers)
+        if [ -d "/run/systemd/system" ];then
+            systemctl stop linupdate || true
+        fi
+
+        # Disabling the unit works offline (no running systemd needed)
+        systemctl disable --quiet linupdate || true
+    fi
+fi
+exit 0
+
+%postun
+# Package removal ($1 = 0, not on upgrade): remove what the post-install scriptlet and linupdate created outside of the package files.
+# The configuration and the logs are kept.
+if [ "$1" -eq 0 ];then
+    if [ -d "/run/systemd/system" ] && command -v systemctl > /dev/null;then
+        systemctl daemon-reload || true
+    fi
+
+    # Symlink created by the post-install scriptlet
+    if [ "$(readlink /usr/bin/linupdate)" = "/opt/linupdate/linupdate.py" ];then
+        rm -f /usr/bin/linupdate
+    fi
+
+    # Files created at runtime: python cache, locks, temporary files and last update date
+    if [ -d "/opt/linupdate" ];then
+        find /opt/linupdate -type d -name __pycache__ -prune -exec rm -rf {} +
+        rm -rf /opt/linupdate/locks /opt/linupdate/tmp /opt/linupdate/last-update
+        find /opt/linupdate -depth -type d -empty -delete
+    fi
+fi
+exit 0
+
 %files
 /opt/linupdate/
 /etc/linupdate/
 /lib/systemd/system/linupdate.service %config(noreplace)
 
+# Entry of the current version generated and appended by the CI from CHANGELOG.md (.github/scripts/generate-changelog.sh)
 %changelog
