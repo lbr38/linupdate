@@ -1,0 +1,633 @@
+# coding: utf-8
+
+"""Reposerver agent: websocket client and package events monitoring."""
+
+# Import libraries
+import sys
+import os
+import time
+import threading
+import json
+from pathlib import Path
+from shutil import rmtree
+import pyinotify
+import websocket
+
+# Import classes
+from src.controllers.log_to_file import LogToFile
+from src.controllers.module.module import Module
+from src.controllers.module.reposerver.status import Status
+from src.controllers.module.reposerver.config import Config
+from src.controllers.package.package import Package
+from src.controllers.app.utils import Utils
+from src.controllers.app.trigger import Trigger
+from src.controllers.lock import Lock
+from src.controllers.linupdate_exception import LinupdateException
+
+class Agent:
+    """Reposerver agent: websocket client and package events monitoring."""
+    def __init__(self):
+        self.module_controller = Module()
+        self.config_controller = Config()
+        self.reposerver_status_controller = Status()
+        self.package_controller = Package()
+
+        # Set default values
+        self.authenticated = False
+        self.configuration = None
+        self.log_file = None
+        self.websocket = None
+        self.delayed_processes = []
+        self.inotify_is_running = False
+        self.inotify_exception = None
+        self.last_inotify_event_time = None
+        self.websocket_is_running = False
+        self.websocket_exception = None
+
+        # Root directory for the requests logs
+        self.request_dir = '/opt/linupdate/tmp/reposerver/requests'
+
+        # Create the directories to store the logs if they do not exist
+        if not Path(self.request_dir).is_dir():
+            Path(self.request_dir).mkdir(parents=True, exist_ok=True)
+
+
+    def run_general_checks(self):
+        """General checks for running the agent"""
+        enabled_modules = self.module_controller.get_enabled()
+
+        # Checking that reposerver module is enabled, if not quit (but with error 0 because it could have been disabled on purpose)
+        if 'reposerver' not in enabled_modules:
+            print('[reposerver-agent] Reposerver module is disabled, quitting.')
+            sys.exit(0)
+
+        # Retrieving configuration
+        self.configuration = self.config_controller.get_conf()
+
+        # Checking that reposerver URL is set, if not quit
+        if not self.configuration['reposerver']['url']:
+            print('[reposerver-agent] Reposerver URL is not set. Quitting.')
+            sys.exit(1)
+
+        # Check that this host has an auth id and token
+        if not self.configuration['client']['auth']['id'] or not self.configuration['client']['auth']['token']:
+            print('[reposerver-agent] No authentication id and token set, is this host registered to a Repomanager server? Quitting.')
+            sys.exit(1)
+
+        # Checking that reposerver agent is enabled, if not quit (but with error 0 because it could have been disabled on purpose)
+        if not self.configuration['agent']['enabled']:
+            print('[reposerver-agent] Reposerver agent is disabled. Quitting.')
+            sys.exit(0)
+
+        # Checking that a log file exists for yum/dnf or apt
+        if Path('/var/log/yum.log').is_file():
+            self.log_file = '/var/log/yum.log'
+        elif Path('/var/log/dnf.log').is_file():
+            self.log_file = '/var/log/dnf.log'
+        elif Path('/var/log/apt/history.log').is_file():
+            self.log_file = '/var/log/apt/history.log'
+        else:
+            raise LinupdateException('no log file found for yum/dnf or apt')
+
+        del enabled_modules
+
+
+    def on_inotify_change(self, _ev):
+        """Run functions when an inotify event is detected"""
+        # If packages are being installed, then do nothing for now (package-info is triggered after the update)
+        if Lock.is_locked('package', exclusive_only=True):
+            return
+
+        # Message for debugging
+        # print('[reposerver-agent][debug] New event has been detected in ' + self.log_file + ' - triggering packages informations.')
+        Trigger().create('package-info')
+
+
+    def run_inotify_package_event(self):
+        """Run inotify process to scan for package events"""
+        print('[reposerver-agent] Starting package event monitoring from ' + self.log_file)
+
+        try:
+            # Set inotify process as running to prevent multiple processes from running
+            self.inotify_is_running = True
+            self.last_inotify_event_time = None
+
+            watch_manager = pyinotify.WatchManager()
+            # quiet=False => raise Exception
+            watch_manager.add_watch(self.log_file, pyinotify.IN_CLOSE_WRITE, self.on_inotify_change, quiet=False)
+            notifier = pyinotify.Notifier(watch_manager)
+            notifier.loop()
+
+        # If an exception is raised, then set inotify process as not running and store the exception to
+        # be read by the main function (cannot raise an exception to be read by the main function, it does not work, so store it instead)
+        except (pyinotify.WatchManagerError, Exception) as e:
+            self.inotify_is_running = False
+            self.inotify_exception = str(e)
+
+
+    def set_request_status(self, request_id, status):
+        """Set request status"""
+        json_data = {
+            'response-to-request': {
+                'request-id': request_id,
+                'status': status
+            }
+        }
+
+        # Send the response
+        self.websocket.send(json.dumps(json_data))
+
+        del json_data
+
+
+    def send_remaining_requests_logs(self):
+        """Send remaining requests logs to the reposerver"""
+        try:
+            # Quit if not authenticated to the reposerver
+            if not self.authenticated:
+                return
+
+            # Get all requests logs directories
+            requests_dirs = Path(self.request_dir).iterdir()
+
+            # Then order them by name
+            requests_dirs = sorted(requests_dirs, key=lambda x: x.name)
+
+            # For each directory, get its name (request id)
+            for request_dir in requests_dirs:
+                try:
+                    status = 'unknown'
+                    summary = None
+                    error = None
+                    logcontent = None
+
+                    # Check if it is a directory
+                    if not request_dir.is_dir():
+                        continue
+
+                    # Only process directories with a creation time older than 5 minutes
+                    if time.time() - os.path.getmtime(request_dir) < 300:
+                        continue
+
+                    # If the directory is empty, then delete it
+                    if not any(request_dir.iterdir()):
+                        rmtree(request_dir)
+                        continue
+
+                    # Initialize json
+                    json_response = {
+                        'response-to-request': {}
+                    }
+
+                    # Get request id and set it in the json
+                    request_id = request_dir.name
+                    json_response['response-to-request']['request-id'] = request_id
+
+                    # Get general log, if log file exists, and set it in the json
+                    if Path(self.request_dir + '/' + request_id + '/log').is_file():
+                        with open(self.request_dir + '/' + request_id + '/log', 'r', encoding='utf-8') as file:
+                            # Get log content and remove ANSI escape codes
+                            logcontent = Utils().clean_log(file.read())
+
+                    # Get status, if log file exists, and set it in the json
+                    if Path(self.request_dir + '/' + request_id + '/status').is_file():
+                        with open(self.request_dir + '/' + request_id + '/status', 'r', encoding='utf-8') as file:
+                            status = file.read().strip()
+
+                    # Get summary, if log file exists, and set it in the json
+                    if Path(self.request_dir + '/' + request_id + '/summary').is_file():
+                        with open(self.request_dir + '/' + request_id + '/summary', 'r', encoding='utf-8') as file:
+                            summary = file.read().strip()
+                            # Convert the string to a json
+                            summary = json.loads(summary)
+
+                    # Get error, if log file exists, and set it in the json
+                    if Path(self.request_dir + '/' + request_id + '/error').is_file():
+                        with open(self.request_dir + '/' + request_id + '/error', 'r', encoding='utf-8') as file:
+                            error = file.read().strip()
+
+                    if status:
+                        json_response['response-to-request']['status'] = status
+
+                    if summary:
+                        json_response['response-to-request']['summary'] = summary
+
+                    if error:
+                        json_response['response-to-request']['error'] = error
+
+                    if logcontent:
+                        json_response['response-to-request']['log'] = logcontent
+
+                    # Send the response
+                    print('[reposerver-agent] Sending remaining requests logs for request id #' + request_id + ' with status: ' + status)
+                    self.websocket.send(json.dumps(json_response))
+
+                    # Delete the directory and all its content
+                    if Path(self.request_dir + '/' + request_id).is_dir():
+                        rmtree(self.request_dir + '/' + request_id)
+
+                    del status, summary, error, logcontent, request_id, json_response
+                except Exception as e:
+                    raise LinupdateException('could not send remaining requests logs for request id #' + request_id + ': ' + str(e)) from e
+
+        except Exception as e:
+            print('[reposerver-agent] Error: ' + str(e))
+
+        del requests_dirs
+
+
+    def websocket_on_message(self, _ws, message):
+        """On message received from the websocket"""
+        # Default values
+        request_id = None
+        summary = None
+        status = None
+        error = None
+        log_status = None
+        log_summary = None
+        log_error = None
+
+        # Update parameters default values
+        dry_run = False
+        ignore_exclusions = False
+        keep_oldconf = True
+        full_upgrade = False
+
+        # Decode JSON message
+        message = json.loads(message)
+
+        # Default log file path, could be overwritten if request id is present
+        log = '/opt/linupdate/tmp/reposerver/requests/log'
+
+        # Lock to prevent service restart while processing the request
+        request_lock = Lock('reposerver-request')
+
+        # Default json response
+        json_response = {
+            'response-to-request': {
+                'request-id': '',
+                'status': '',
+                'summary': '',
+                'log': ''
+            }
+        }
+
+        try:
+            request_lock.acquire()
+
+            # If the message contains 'request'
+            if 'request' in message:
+                try:
+                    # Retrieve request Id if any (authenticate request does not have an id)
+                    if 'request-id' in message:
+                        request_id = str(message['request-id'])
+
+                        # Create a new directory for the request id
+                        if not Path(self.request_dir + '/' + request_id).is_dir():
+                            Path(self.request_dir + '/' + request_id).mkdir(parents=True, exist_ok=True)
+
+                        # Set new log files path for the request id
+                        log         = self.request_dir + '/' + request_id + '/log'
+                        log_status  = self.request_dir + '/' + request_id + '/status'
+                        log_error   = self.request_dir + '/' + request_id + '/error'
+                        log_summary = self.request_dir + '/' + request_id + '/summary'
+
+                    # Case the request is 'authenticate', then authenticate to the reposerver
+                    if message['request'] == 'authenticate':
+                        print('[reposerver-agent] Authenticating to the reposerver')
+
+                        auth_id = self.configuration['client']['auth']['id']
+                        token = self.configuration['client']['auth']['token']
+
+                        # Send a response to authenticate to the reposerver, with id and token
+                        self.websocket.send(json.dumps({'response-to-request': {'request': 'authenticate', 'auth-id': auth_id, 'token': token}}))
+
+                        del auth_id, token
+
+                    # Case the request is 'request-general-infos', then send general informations to the reposerver
+                    elif message['request'] == 'request-general-infos':
+                        print('[reposerver-agent] Reposerver requested general informations')
+
+                        # Log everything to the log file
+                        with LogToFile(log):
+                            self.reposerver_status_controller.send_general_info()
+
+                    # Case the request is 'request-packages-infos', then send packages informations to the reposerver
+                    elif message['request'] == 'request-packages-infos':
+                        print('[reposerver-agent] Reposerver requested packages informations')
+
+                        # Send a response to the reposerver to make the request as running
+                        self.set_request_status(request_id, 'running')
+
+                        # Log everything to the log file
+                        with LogToFile(log):
+                            self.reposerver_status_controller.send_packages_info()
+
+                    # Case the request is 'request-all-packages-update', then update all packages
+                    elif message['request'] == 'request-all-packages-update':
+                        print('[reposerver-agent] Reposerver requested all packages update')
+
+                        # Try to retrieve the update params
+                        if 'data' in message:
+                            if 'update-params' in message['data']:
+                                if 'dry-run' in message['data']['update-params']:
+                                    dry_run = Utils().string_to_boolean(message['data']['update-params']['dry-run'])
+                                if 'ignore-exclusions' in message['data']['update-params']:
+                                    ignore_exclusions = Utils().string_to_boolean(message['data']['update-params']['ignore-exclusions'])
+                                if 'keep-config-files' in message['data']['update-params']:
+                                    keep_oldconf = Utils().string_to_boolean(message['data']['update-params']['keep-config-files'])
+                                if 'full-upgrade' in message['data']['update-params']:
+                                    full_upgrade = Utils().string_to_boolean(message['data']['update-params']['full-upgrade'])
+
+                        # Send a response to the reposerver to make the request as running
+                        self.set_request_status(request_id, 'running')
+
+                        # Log everything to the log file
+                        with LogToFile(log):
+                            self.package_controller.update([], True, ignore_exclusions, False, full_upgrade, keep_oldconf, False, dry_run)
+
+                            # TODO
+                            # Restart/reload services if the user said so
+                            # Execute reposever post-update actions
+
+                        # Send a summary to the reposerver, with the summary of the update (number of packages updated or failed)
+                        summary = self.package_controller.summary
+
+                        # Trigger package-info sending
+                        Trigger().create('package-info')
+
+                    # Case the request is 'request-packages-update', then update a list of specific packages
+                    # A list of packages must be provided in the message
+                    elif message['request'] == 'request-packages-update':
+                        print('[reposerver-agent] Reposerver requested to update a list of packages')
+                        # Try to retrieve the update packages and params
+                        if 'data' in message:
+                            if 'update-params' in message['data']:
+                                if 'dry-run' in message['data']['update-params']:
+                                    dry_run = Utils().string_to_boolean(message['data']['update-params']['dry-run'])
+                                if 'ignore-exclusions' in message['data']['update-params']:
+                                    ignore_exclusions = Utils().string_to_boolean(message['data']['update-params']['ignore-exclusions'])
+                                if 'keep-config-files' in message['data']['update-params']:
+                                    keep_oldconf = Utils().string_to_boolean(message['data']['update-params']['keep-config-files'])
+                                if 'full-upgrade' in message['data']['update-params']:
+                                    full_upgrade = Utils().string_to_boolean(message['data']['update-params']['full-upgrade'])
+
+                            # If a list of packages is provided, then the update can be performed
+                            if 'packages' in message['data'] and len(message['data']['packages']) > 0:
+                                # Send a response to the reposerver to make the request as running
+                                self.set_request_status(request_id, 'running')
+
+                                # Log everything to the log file
+                                with LogToFile(log):
+                                    self.package_controller.update(message['data']['packages'], True, ignore_exclusions, False, full_upgrade, keep_oldconf, False, dry_run)
+
+                                # Send a summary to the reposerver, with the summary of the installation (number of packages installed or failed)
+                                summary = self.package_controller.summary
+
+                                # Trigger package-info sending
+                                Trigger().create('package-info')
+
+                    # Case the request is 'update-profile', then retrieve profile configuration from the reposerver
+                    elif message['request'] == 'update-profile':
+                        print('[reposerver-agent] Reposerver requested to update profile configuration')
+
+                        # Send a response to the reposerver to make the request as running
+                        self.set_request_status(request_id, 'running')
+
+                        # Log everything to the log file
+                        with LogToFile(log):
+                            self.config_controller.get_profile_packages_conf()
+                            self.config_controller.get_profile_repos()
+
+                    else:
+                        raise LinupdateException('unknown request sent by reposerver: ' + message['request'])
+
+                    # If request was successful
+                    status = 'completed'
+
+                # If request failed
+                except Exception as e:
+                    print('[reposerver-agent] Error: ' + str(e))
+                    status = 'failed'
+                    error = str(e)
+
+                finally:
+                    # If there was a request id, then send a response to reposerver to make the request as completed
+                    if request_id:
+                        # First, save the log, status, summary and error to a file, in case the message cannot be sent
+                        # It will be sent later when the agent is running again
+                        if status:
+                            with open(log_status, 'w', encoding='utf-8') as file:
+                                file.write(status)
+                            del file
+                        if summary:
+                            with open(log_summary, 'w', encoding='utf-8') as file:
+                                # Convert summary to string to write it to the file
+                                json.dump(summary, file)
+                            del file
+                        if error:
+                            with open(log_error, 'w', encoding='utf-8') as file:
+                                file.write(error)
+                            del file
+
+                        # Then try to send the response
+
+                        # Set request id
+                        json_response['response-to-request']['request-id'] = request_id
+
+                        # Set status
+                        json_response['response-to-request']['status'] = status
+
+                        # If there was an error
+                        if error:
+                            json_response['response-to-request']['error'] = error
+
+                        # If there is a summary
+                        if summary:
+                            json_response['response-to-request']['summary'] = summary
+
+                        # If there is a log file
+                        if log and Path(log).is_file():
+                            # Get log file content
+                            try:
+                                with open(log, 'r', encoding='utf-8') as file:
+                                    # Get log content and remove ANSI escape codes
+                                    logcontent = Utils().clean_log(file.read())
+                            except Exception as e:
+                                # If content could not be read, then generate an error message
+                                logcontent = 'Error: could not read log file: ' + str(e)
+
+                            json_response['response-to-request']['log'] = logcontent
+
+                            del logcontent
+
+                        # Try to send the response to the reposerver
+                        # Note: impossible to use try/except here, because no exception is raised directly,
+                        # if there is an error then it is the on_error function that is called
+                        self.websocket.send(json.dumps(json_response))
+
+            # If the message contains 'info'
+            if 'info' in message:
+                print('[reposerver-agent] Received info message from reposerver: ' + message['info'])
+
+                # If the message is 'Authentication successful', then set authenticated to True
+                if message['info'] == 'Authentication successful':
+                    self.authenticated = True
+
+                # If the message is 'Request response received', then delete the remaining logs
+                if message['info'] == 'Request response received':
+                    # First retrieve the request id
+                    if 'request-id' in message:
+                        request_id = str(message['request-id'])
+
+                        # If the server has tell what kinf of data it has received, then delete the corresponding files if they exist
+                        if 'data' in message:
+                            for data in message['data']:
+                                if Path(self.request_dir + '/' + request_id + '/' + data).is_file():
+                                    Path(self.request_dir + '/' + request_id + '/' + data).unlink()
+                            del data
+
+            # If the message contains 'error'
+            if 'error' in message:
+                print('[reposerver-agent] Received error message from reposerver: ' + message['error'])
+
+            del request_id, summary, status, error, dry_run, ignore_exclusions, keep_oldconf, full_upgrade, message, log, json_response
+        # If all goes well or if an exception is raised, then delete the lock file
+        finally:
+            request_lock.release()
+
+
+    def websocket_on_error(self, ws, error):
+        """On error from the websocket"""
+        raise LinupdateException('Websocket error: ' + str(error))
+
+
+    def websocket_on_close(self, _ws, close_status_code, close_msg):
+        """On websocket connection closed"""
+        print('[reposerver-agent] Reposerver websocket connection closed with status code: ' + str(close_status_code) + ' and message: ' + close_msg)
+        self.authenticated = False
+
+        del close_status_code, close_msg
+
+        raise LinupdateException('reposerver websocket connection closed')
+
+
+    def websocket_on_open(self, _ws):
+        """On websocket connection opened"""
+        print('[reposerver-agent] Opened connection with reposerver')
+
+        # Send connection type to the reposerver
+        self.websocket.send(
+            json.dumps({
+                'connection-type': 'host'
+            })
+        )
+
+
+    def websocket_client(self):
+        """Start websocket client"""
+        try:
+            # Replace http by ws, or https by wss
+            reposerver_ws_url = self.configuration['reposerver']['url'].replace('http', 'ws').replace('https', 'wss')
+
+            # Set websocket process as running to prevent multiple processes from running
+            self.websocket_is_running = True
+
+            # Set to True for debugging
+            websocket.enableTrace(False)
+
+            # Open websocket connection
+            # Using lambda to pass arguments to the functions, this is necessary for older versions of python websocket
+            # pylint: disable=unnecessary-lambda
+            self.websocket = websocket.WebSocketApp(reposerver_ws_url + '/ws',
+                            on_open=lambda ws: self.websocket_on_open(ws),
+                            on_message=lambda ws, message: self.websocket_on_message(ws, message),
+                            on_error=lambda ws, error: self.websocket_on_error(ws, error),
+                            on_close=lambda ws, close_status_code, close_msg: self.websocket_on_close(ws, close_status_code, close_msg))
+            # pylint: enable=unnecessary-lambda
+
+            # Clean version but not working with older versions of python websocket:
+            # Open websocket connection
+            # self.websocket = websocket.WebSocketApp(reposerver_ws_url + '/ws',
+            #                             on_open=self.websocket_on_open,
+            #                             on_message=self.websocket_on_message,
+            #                             on_error=self.websocket_on_error,
+            #                             on_close=self.websocket_on_close)
+
+            # Run websocket
+            # self.websocket.on_open = self.websocket_on_open
+            self.websocket.run_forever()
+
+        except KeyboardInterrupt as e:
+            self.websocket_is_running = False
+            self.websocket_exception = str(e)
+            self.authenticated = False
+        except Exception as e:
+            self.websocket_is_running = False
+            self.websocket_exception = str(e)
+            self.authenticated = False
+
+
+    def main(self):
+        """Reposerver agent main function"""
+        counter = 0
+
+        # Executing regular tasks
+        while True:
+            # Checking that all the necessary elements are present for the agent execution.
+            # This is checked every time in case that a configuration change has been made in the configuration file
+            self.run_general_checks()
+
+            # Regulary sending data to the Repomanager server (every hour)
+            # 3600 / 5sec (sleep 5) = 720
+            if counter in (0, 720):
+                # Sending full status
+                print('[reposerver-agent] Periodically sending informations about this host to the repomanager server')
+                self.reposerver_status_controller.send_general_info()
+                self.reposerver_status_controller.send_packages_info()
+
+                # Reset counter
+                counter = 0
+
+            # If no inotify process is running, then execute it in background
+            if not self.inotify_is_running:
+                try:
+                    # If there was an exception in the last inotify process, then raise it
+                    if self.inotify_exception:
+                        raise LinupdateException(self.inotify_exception)
+
+                    thread = threading.Thread(target=self.run_inotify_package_event)
+                    thread.daemon = True
+                    thread.start()
+                except Exception as e:
+                    raise LinupdateException('package event monitoring failed: ' + str(e)) from e
+
+            # If agent listening is enabled, open websocket
+            if self.configuration['agent']['listen']['enabled']:
+                if not self.websocket_is_running:
+                    try:
+                        # If there was an exception in the last websocket process, then raise it
+                        if self.websocket_exception:
+                            raise LinupdateException(self.websocket_exception)
+
+                        thread = threading.Thread(target=self.websocket_client)
+                        thread.daemon = True
+                        thread.start()
+                    except Exception as e:
+                        raise LinupdateException('reposerver websocket connection failed: ' + str(e)) from e
+
+                # If some requests logs were not sent (because the program crashed or the reposerver was unavailable for eg), then send them now
+                self.send_remaining_requests_logs()
+
+            # Trigger files
+            # If package-info has been triggered, then send it
+            if Trigger().exists('package-info'):
+                print('[reposerver-agent] Package informations triggered. Sending them to the reposerver')
+                self.reposerver_status_controller.send_packages_info()
+                time.sleep(5)
+                Trigger().remove('package-info')
+
+            # Sleep 5 seconds before next loop
+            time.sleep(5)
+
+            counter+=1

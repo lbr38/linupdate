@@ -1,0 +1,27 @@
+[MAIN]
+# Resolve imports from the repository root (no __init__.py), avoids logging.py/yaml.py/apt.py shadowing the real modules
+source-roots=.
+# Oldest supported Python (CentOS 8), keeps results identical whatever the local interpreter
+py-version=3.6
+
+[TYPECHECK]
+# Linux-only modules, not installable on every dev environment
+ignored-modules=apt,pyinotify
+
+[MESSAGES CONTROL]
+# Catch-all handlers are intentional: errors are reported instead of crashing
+# Complexity, duplication and TODO checks disabled until the planned refactoring is done
+disable=broad-exception-caught,
+        line-too-long,
+        too-many-nested-blocks,
+        too-many-statements,
+        too-many-branches,
+        too-many-locals,
+        too-many-instance-attributes,
+        too-few-public-methods,
+        too-many-public-methods,
+        too-many-arguments,
+        too-many-positional-arguments,
+        too-many-return-statements,
+        duplicate-code,
+        fixme

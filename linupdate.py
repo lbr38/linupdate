@@ -1,6 +1,8 @@
 #!/usr/bin/python3
 # coding: utf-8
 
+"""linupdate command line entry point: parse arguments and run package updates."""
+
 # Import libraries
 import socket
 import signal
@@ -11,25 +13,21 @@ from rich.console import Console
 from colorama import Fore, Style
 
 # Import classes
-from src.controllers.Logging import StreamToLogger
-from src.controllers.App.App import App
-from src.controllers.App.Config import Config
-from src.controllers.Args import Args
-from src.controllers.System import System
-from src.controllers.Module.Module import Module
-from src.controllers.Package.Package import Package
-from src.controllers.Service.Service import Service
-from src.controllers.Exit import Exit
-from src.controllers.ArgsException import ArgsException
-from src.controllers.Status import status_manager
+from src.controllers.logging import StreamToLogger
+from src.controllers.app.app import App
+from src.controllers.app.config import Config
+from src.controllers.args import Args
+from src.controllers.system import System
+from src.controllers.module.module import Module
+from src.controllers.package.package import Package
+from src.controllers.service.service import Service
+from src.controllers.exit import Exit
+from src.controllers.args_exception import ArgsException
+from src.controllers.status import status_manager
 
 
-#-----------------------------------------------------------------------------------------------
-#
-#   Main function
-#
-#-----------------------------------------------------------------------------------------------
 def main():
+    """Main function"""
     exit_code = 0
     send_mail = True
     reboot = False

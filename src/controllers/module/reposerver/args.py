@@ -1,0 +1,439 @@
+# coding: utf-8
+
+"""Reposerver module arguments parsing and help."""
+
+# Import libraries
+import argparse
+from colorama import Fore, Style
+from tabulate import tabulate
+
+# Import classes
+from src.controllers.exit import Exit
+from src.controllers.module.reposerver.config import Config
+from src.controllers.module.reposerver.status import Status
+from src.controllers.args_exception import ArgsException
+
+class Args:
+    """Parse reposerver module arguments."""
+    def __init__(self):
+        self.exit_controller   = Exit()
+        self.config_controller = Config()
+
+    def parse(self, module_args):
+        """Parse arguments"""
+        try:
+            # Parse arguments
+            parser = argparse.ArgumentParser(add_help=False)
+
+            # Define valid arguments
+            # Help
+            parser.add_argument("--help", "-h", action="store_true", default="null")
+            # URL
+            parser.add_argument("--url", action="store", nargs='?', default="null")
+            # API key
+            parser.add_argument("--api-key", action="store", nargs='?', default="null")
+            # IP
+            parser.add_argument("--ip", action="store", nargs='?', default="null")
+
+            # Verify SSL certificates for HTTP requests
+            parser.add_argument("--verify-ssl", action="store", nargs='?', default="null")
+
+            # Enable or disable packages configuration update
+            parser.add_argument("--get-packages-conf-from-reposerver", action="store", nargs='?', default="null")
+            # Enable or disable repos update
+            parser.add_argument("--get-repos-from-reposerver", action="store", nargs='?', default="null")
+            # Enable or disable the removing of existing repos
+            parser.add_argument("--remove-existing-repos", action="store", nargs='?', default="null")
+            # Source repo format
+            parser.add_argument("--source-repo-format", action="store", nargs='?', default="null")
+
+            # Agent enable
+            parser.add_argument("--agent-enable", action="store", nargs='?', default="null")
+            # Agent listen enable
+            parser.add_argument("--agent-listen-enable", action="store", nargs='?', default="null")
+
+            # Register to reposerver
+            parser.add_argument("--register", action="store_true", default="null")
+            # Unregister from server
+            parser.add_argument("--unregister", action="store_true", default="null")
+
+            # Retrieve profile packages configuration from reposerver
+            parser.add_argument("--get-profile-packages-conf", action="store_true", default="null")
+            # Retrieve profile repositories from reposerver
+            parser.add_argument("--get-profile-repos", action="store_true", default="null")
+
+            # Send general info
+            parser.add_argument("--send-general-info", action="store_true", default="null")
+            # Send packages status
+            parser.add_argument("--send-packages-info", action="store_true", default="null")
+            # Send all info
+            parser.add_argument("--send-all-info", action="store_true", default="null")
+
+            # If no arguments are passed, print help
+            if not module_args:
+                self.help()
+                self.exit_controller.clean_exit()
+
+            # Else, parse arguments
+            args, remaining_args = parser.parse_known_args(module_args)
+
+            # If there are remaining arguments, print help and raise an exception
+            if remaining_args:
+                self.help()
+                raise ArgsException('Unknown argument(s): ' + str(remaining_args))
+
+        # Catch exceptions
+        # Either ArgsException or Exception, it will always raise an ArgsException to the main script, this to avoid sending an email when an argument error occurs
+        except ArgsException as e:
+            raise ArgsException(str(e)) from e
+        except Exception as e:
+            raise ArgsException(str(e)) from e
+
+        try:
+            #
+            # If --url param has been set
+            #
+            if args.url != "null":
+                # If a URL is set (not 'None'), change the app URL
+                if args.url:
+                    # Set new URL
+                    self.config_controller.set_url(args.url)
+
+                    # Print URL change
+                    print(' Reposerver URL set to ' + Fore.GREEN + args.url + Style.RESET_ALL, end='\n\n')
+                # Else print the current URL
+                else:
+                    print(' Current reposerver URL: ' + Fore.GREEN + self.config_controller.get_url() + Style.RESET_ALL, end='\n\n')
+                self.exit_controller.clean_exit()
+
+            #
+            # If --api-key param has been set
+            #
+            if args.api_key != "null":
+                Args.api_key = args.api_key
+
+            #
+            # If --ip param has been set
+            #
+            if args.ip != "null":
+                Args.ip = args.ip
+
+            #
+            # If --agent-enable param has been set
+            #
+            if args.agent_enable != "null":
+                if args.agent_enable == 'true':
+                    self.config_controller.set_agent_enable(True)
+                else:
+                    self.config_controller.set_agent_enable(False)
+
+                self.exit_controller.clean_exit()
+
+            #
+            # If --agent-listen-enable param has been set
+            #
+            if args.agent_listen_enable != "null":
+                if args.agent_listen_enable == 'true':
+                    self.config_controller.set_agent_listen(True)
+                else:
+                    self.config_controller.set_agent_listen(False)
+
+                self.exit_controller.clean_exit()
+
+            #
+            # If --verify-ssl param has been set
+            #
+            if args.verify_ssl != "null":
+                if not args.verify_ssl:
+                    status = Fore.GREEN + 'enabled' if self.config_controller.get_verify_ssl() else Fore.YELLOW + 'disabled'
+
+                    print('SSL certificate verification is currently ' + status + Style.RESET_ALL, end='\n\n')
+                else:
+                    if args.verify_ssl == 'true':
+                        self.config_controller.set_verify_ssl(True)
+                        print('SSL certificate verification is now ' + Fore.GREEN + 'enabled' + Style.RESET_ALL, end='\n\n')
+                    else:
+                        self.config_controller.set_verify_ssl(False)
+                        print('SSL certificate verification is now ' + Fore.YELLOW  + 'disabled' + Style.RESET_ALL, end='\n\n')
+
+                self.exit_controller.clean_exit()
+
+            #
+            # If --get-packages-conf-from-reposerver param has been set
+            #
+            if args.get_packages_conf_from_reposerver != "null":
+                if args.get_packages_conf_from_reposerver == 'true':
+                    self.config_controller.set_get_packages_conf_from_reposerver(True)
+                else:
+                    self.config_controller.set_get_packages_conf_from_reposerver(False)
+                self.exit_controller.clean_exit()
+
+            #
+            # If --get-repos-from-reposerver param has been set
+            #
+            if args.get_repos_from_reposerver != "null":
+                if args.get_repos_from_reposerver == 'true':
+                    self.config_controller.set_get_repos_from_reposerver(True)
+                else:
+                    self.config_controller.set_get_repos_from_reposerver(False)
+                self.exit_controller.clean_exit()
+
+            #
+            # If --remove-existing-repos param has been set
+            #
+            if args.remove_existing_repos != "null":
+                if args.remove_existing_repos == 'true':
+                    self.config_controller.set_remove_existing_repos(True)
+                else:
+                    self.config_controller.set_remove_existing_repos(False)
+                self.exit_controller.clean_exit()
+
+            #
+            # If --source-repo-format param has been set
+            #
+            if args.source_repo_format != "null":
+                if not args.source_repo_format:
+                    print(' Current source repository format: ' + Fore.GREEN + self.config_controller.get_source_repo_format() + Style.RESET_ALL, end='\n\n')
+                else:
+                    # Set the source repo format
+                    self.config_controller.set_source_repo_format(args.source_repo_format)
+                    print(' Source repository format set to ' + Fore.GREEN + args.source_repo_format + Style.RESET_ALL, end='\n\n')
+
+                self.exit_controller.clean_exit()
+
+            #
+            # If --register param has been set
+            #
+            if args.register != "null" and args.register:
+                # Register to the URL with the API key and IP (could be "null" if not set)
+                self.config_controller.register(args.api_key, args.ip)
+                self.exit_controller.clean_exit()
+
+            #
+            # If --unregister param has been set
+            #
+            if args.unregister != "null" and args.unregister:
+                # Unregister from the reposerver
+                self.config_controller.unregister()
+                self.exit_controller.clean_exit()
+
+            #
+            # If --get-profile-packages-conf param has been set
+            #
+            if args.get_profile_packages_conf != "null" and args.get_profile_packages_conf:
+                # Get profile packages configuration
+                self.config_controller.get_profile_packages_conf()
+                self.exit_controller.clean_exit()
+
+            #
+            # If --get-profile-repos param has been set
+            #
+            if args.get_profile_repos != "null" and args.get_profile_repos:
+                # Get profile repositories
+                self.config_controller.get_profile_repos()
+                self.exit_controller.clean_exit()
+
+            #
+            # If --send-general-info param has been set
+            #
+            if args.send_general_info != "null" and args.send_general_info:
+                # Send general info
+                status = Status()
+                status.send_general_info()
+                self.exit_controller.clean_exit()
+
+            #
+            # If --send-packages-info param has been set
+            #
+            if args.send_packages_info != "null" and args.send_packages_info:
+                # Send packages info
+                status = Status()
+                status.send_packages_info()
+                self.exit_controller.clean_exit()
+
+            #
+            # If --send-all-info param has been set
+            #
+            if args.send_all_info != "null" and args.send_all_info:
+                # Send full status including general status, available packages status, installed packages status and full history
+                status = Status()
+                status.send_general_info()
+                status.send_packages_info()
+                self.exit_controller.clean_exit()
+
+        # Catch exceptions
+        # Either ArgsException or Exception, it will always raise an ArgsException to the main script, this to avoid sending an email when an argument error occurs
+        except ArgsException as e:
+            raise ArgsException(str(e)) from e
+        except Exception as e:
+            raise ArgsException(str(e)) from e
+
+    def help(self):
+        """Print help"""
+        try:
+            table = []
+            options = [
+                {
+                    'args': [
+                        '--help',
+                        '-h'
+                    ],
+                    'description': 'Show reposerver module help',
+                },
+                {
+                    'title': 'Configuring reposerver'
+                },
+                {
+                    'args': [
+                        '--url',
+                    ],
+                    'option': 'URL',
+                    'description': 'Specify target reposerver URL',
+                },
+                {
+                    'args': [
+                        '--api-key',
+                    ],
+                    'option': 'APIKEY',
+                    'description': 'Specify API key to authenticate to the reposerver',
+                },
+                {
+                    'args': [
+                        '--ip',
+                    ],
+                    'option': 'IP',
+                    'description': 'Specify an alternative local IP address to use to authenticate to the reposerver (default: will use the public IP address)',
+                },
+                {
+                    'args': [
+                        '--register',
+                    ],
+                    'description': 'Register this host to the reposerver (--api-key required)'
+                },
+                {
+                    'args': [
+                        '--unregister',
+                    ],
+                    'description': 'Unregister this host from the reposerver'
+                },
+                {
+                    'args': [
+                        '--verify-ssl'
+                    ],
+                    'option': 'true|false',
+                    'description': 'Enable or disable SSL certificate verification for requests to the reposerver (default: true)',
+                },
+                {
+                    'title': 'Configuring retrieval from reposerver (using configured profile)'
+                },
+                {
+                    'args': [
+                        '--get-packages-conf-from-reposerver',
+                    ],
+                    'option': 'true|false',
+                    'description': 'If enabled, packages exclusions will be retrieved from the reposerver',
+                },
+                {
+                    'args': [
+                        '--get-repos-from-reposerver',
+                    ],
+                    'option': 'true|false',
+                    'description': 'If enabled, repositories configuration will be retrieved from the reposerver',
+                },
+                {
+                    'args': [
+                        '--remove-existing-repos',
+                    ],
+                    'option': 'true|false',
+                    'description': 'If enabled, existing repositories will be removed before adding the new ones',
+                },
+                {
+                    'args': [
+                        '--source-repo-format'
+                    ],
+                    'option': 'legacy, deb822',
+                    'description': 'Specify the source repository format to use under /etc/apt/sources.list.d/ (for Debian based OS only) (default: legacy)',
+                },
+                {
+                    'title': 'Retrieving data from reposerver'
+                },
+                {
+                    'args': [
+                        '--get-profile-packages-conf',
+                    ],
+                    'description': 'Get profile packages configuration from reposerver'
+                },
+                {
+                    'args': [
+                        '--get-profile-repos',
+                    ],
+                    'description': 'Get profile repositories from reposerver'
+                },
+                {
+                    'title': 'Sending data to reposerver'
+                },
+                {
+                    'args': [
+                        '--send-general-info',
+                    ],
+                    'description': 'Send host\'s general informations (OS, version, kernel..) to the reposerver'
+                },
+                {
+                    'args': [
+                        '--send-packages-info',
+                    ],
+                    'description': 'Send this host\'s packages informations to the reposerver (available package updates, installed packages)'
+                },
+                {
+                    'args': [
+                        '--send-all-info',
+                    ],
+                    'description': 'Send all of the previous informations to the reposerver'
+                },
+                {
+                    'args': [
+                        '--agent-enable',
+                    ],
+                    'option': 'true|false',
+                    'description': 'Enable reposerver module agent. This agent will regularly send informations about this host to reposerver (global informations, packages informations...)',
+                },
+                {
+                    'args': [
+                        '--agent-listen-enable',
+                    ],
+                    'option': 'true|false',
+                    'description': 'Enable or disable agent listening for requests coming from the reposerver',
+                }
+            ]
+
+            # Add options to table
+            for option in options:
+                # If option is a title, just print it
+                if 'title' in option:
+                    table.append(['', Style.BRIGHT + '\n' + option['title'] + '\n' + Style.RESET_ALL, ''])
+                    continue
+
+                # If option has multiple arguments, join them
+                if len(option['args']) > 1:
+                    args_str = ', '.join(option['args'])
+                else:
+                    args_str = option['args'][0]
+
+                if 'option' in option:
+                    args_str += Style.DIM + ' [' + option['option'] + ']' + Style.RESET_ALL
+
+                table.append(['', args_str, option['description']])
+
+
+            print(' Available options:', end='\n\n')
+
+            # Print table
+            print(tabulate(table, headers=["", "Name", "Description"], tablefmt="simple"), end='\n\n')
+
+            print(' Usage: linupdate --mod-configure reposerver [OPTIONS]', end='\n\n')
+        # Catch exceptions
+        # Either ArgsException or Exception, it will always raise an ArgsException to the main script, this to avoid sending an email when an argument error occurs
+        except ArgsException as e:
+            raise ArgsException('Printing help error: ' + str(e)) from e
+        except Exception as e:
+            raise ArgsException('Printing help error: ' + str(e)) from e

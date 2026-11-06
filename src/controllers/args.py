@@ -1,0 +1,960 @@
+# coding: utf-8
+
+"""linupdate command line arguments parsing and help."""
+
+# Import libraries
+import argparse
+from tabulate import tabulate
+from colorama import Fore, Style
+
+# Import classes
+from src.controllers.app.app import App
+from src.controllers.app.config import Config
+from src.controllers.module.module import Module
+from src.controllers.exit import Exit
+from src.controllers.args_exception import ArgsException
+from src.controllers.app.service import Service as AppService
+
+class Args:
+    """Parse linupdate command line arguments."""
+    def parse(self):
+        """Parse arguments"""
+        # Default values
+        Args.assume_yes = False
+        Args.check_updates = False
+        Args.ignore_exclusions = False
+        Args.packages_to_update = []
+        Args.dist_upgrade = False
+        Args.keep_oldconf = True
+        Args.clear_cache = False
+        Args.dry_run = False
+        Args.reboot = False
+        Args.debug = False
+
+        my_app       = App()
+        my_app_config = Config()
+        my_module    = Module()
+        my_exit      = Exit()
+
+        try:
+            # Parse arguments
+            parser = argparse.ArgumentParser(add_help=False)
+
+            # Define valid arguments
+            # Help
+            parser.add_argument("--help", "-h", action="store_true", default="null")
+            # Version
+            parser.add_argument("--version", "-v", action="store_true", default="null")
+            # Debug
+            parser.add_argument("--debug", action="store_true", default="null")
+            # Show raw config
+            parser.add_argument("--show-config", "-sc", action="store_true", default="null")
+
+            # Profile
+            parser.add_argument("--profile", "-p", action="store", nargs='?', default="null")
+            # Environment
+            parser.add_argument("--env", "-e", action="store", nargs='?', default="null")
+            # Mail alert enable
+            parser.add_argument("--mail-enable", action="store", nargs='?', default="null")
+            # Set mail recipient
+            parser.add_argument("--mail-recipient", action="store", nargs='?', default="null")
+            # Set mail smtp host
+            parser.add_argument("--mail-smtp-host", action="store", nargs='?', default="null")
+            # Set mail smtp port
+            parser.add_argument("--mail-smtp-port", action="store", nargs='?', default="null")
+            # Log retention period (days)
+            parser.add_argument("--log-retention-days", action="store", nargs='?', default="null")
+
+            # Packages to update list
+            parser.add_argument("--update", "-u", action="store", nargs='?', default="null")
+            # Dist upgrade
+            parser.add_argument("--dist-upgrade", "-du", action="store_true", default="null")
+            # Dry run
+            parser.add_argument("--dry-run", action="store_true", default="null")
+            # Keep oldconf
+            parser.add_argument("--keep-oldconf", action="store_true", default="null")
+            # Clear cache
+            parser.add_argument("--clear-cache", "-cc", action="store_true", default="null")
+            # Force / assume-yes
+            parser.add_argument("--assume-yes", "-y", action="store_true", default="null")
+            # Check updates
+            parser.add_argument("--check-updates", "-cu", action="store_true", default="null")
+            # Ignore exclude
+            parser.add_argument("--ignore-exclusions", "-ie", action="store_true", default="null")
+            # Exit on package update error
+            parser.add_argument("--exit-on-package-update-error", action="store", nargs='?', default="null")
+            # Reboot
+            parser.add_argument("--reboot", action="store_true", default="null")
+
+            # Exclude
+            parser.add_argument("--exclude", action="store", nargs='?', default="null")
+            # Exclude on major update
+            parser.add_argument("--exclude-major", action="store", nargs='?', default="null")
+            # Get services to reload after package update
+            parser.add_argument("--service-reload", action="store", nargs='?', default="null")
+            # Services to restart after package update
+            parser.add_argument("--service-restart", action="store", nargs='?', default="null")
+
+            # List modules
+            parser.add_argument("--mod-list", action="store_true", default="null")
+            # Module enable
+            parser.add_argument("--mod-enable", action="store", nargs='?', default="null")
+            # Module disable
+            parser.add_argument("--mod-disable", action="store", nargs='?', default="null")
+
+            # Service tuning
+            parser.add_argument("--cpu-priority", action="store", nargs='?', default="null")
+            parser.add_argument("--memory-limit", action="store", nargs='?', default="null")
+            parser.add_argument("--oom-score", action="store", nargs='?', default="null")
+
+            # Parse arguments
+            args, remaining_args = parser.parse_known_args()
+
+            # If remaining_args arguments are passed
+            if remaining_args:
+                # If --mod-configure or -mc or --mod-exec or -me is in list (use regex)
+                if '--mod-configure' in remaining_args or '-mc' in remaining_args or '--mod-exec' in remaining_args or '-me' in remaining_args:
+                    if '--mod-configure' in remaining_args:
+                        param_name = '--mod-configure'
+                    elif '-mc' in remaining_args:
+                        param_name = '-mc'
+                    elif '--mod-exec' in remaining_args:
+                        param_name = '--mod-exec'
+                    else:
+                        param_name = '-me'
+
+                    # Retrieve all arguments after --mod-configure (or -mc, etc.)
+                    mod_index = remaining_args.index(param_name)
+                    mod_args = remaining_args[mod_index + 1:]
+
+                    # If no arguments are passed after --mod-configure, print an error
+                    if not mod_args:
+                        raise ArgsException(param_name + ' requires additional arguments')
+
+                    # Else, pass the arguments to the module
+                    # Retrieve module name
+                    mod_name = mod_args[0]
+
+                    # Retrieve all arguments after the module name
+                    mod_args = mod_args[1:]
+
+                    # Check if module exists
+                    if not my_module.exists(mod_name):
+                        raise ArgsException('Module ' + mod_name + ' does not exist')
+
+                    # Configure module
+                    try:
+                        my_module.configure(mod_name, mod_args)
+                        my_exit.clean_exit()
+                    except Exception as e:
+                        if str(e):
+                            raise ArgsException('Could not configure ' + mod_name + ' module: ' + str(e)) from e
+
+                        raise ArgsException('Could not configure ' + mod_name + ' module') from e
+
+                # If there are remaining arguments, print help and raise an exception
+                else:
+                    self.help()
+                    raise ArgsException('Unknown argument(s): ' + str(remaining_args))
+
+        # Catch exceptions
+        # Either ArgsException or Exception, it will always raise an ArgsException to the main script, this to avoid sending an email when an argument error occurs
+        except (ArgsException, Exception) as e:
+            raise ArgsException(str(e)) from e
+
+        try:
+            #
+            # If --help param has been set
+            #
+            if args.help != "null":
+                if args.help:
+                    self.help()
+                    my_exit.clean_exit()
+
+            #
+            # If --version param has been set
+            #
+            if args.version != "null":
+                if args.version:
+                    print('Current version: ' + Fore.GREEN + my_app.get_version() + Style.RESET_ALL, end='\n\n')
+                    my_exit.clean_exit()
+
+            #
+            # If --debug param has been set
+            #
+            if args.debug != "null":
+                if args.debug:
+                    Args.debug = True
+
+            #
+            # If --show-config param has been set
+            #
+            if args.show_config != "null":
+                if args.show_config:
+                    my_app_config.show_config()
+                    my_exit.clean_exit()
+
+            #
+            # If --profile param has been set
+            #
+            if args.profile != "null":
+                try:
+                    # If a profile is set (not 'None'), change the app profile
+                    if args.profile:
+                        # Get current profile
+                        current_profile = my_app_config.get_profile()
+
+                        # Print profile change
+                        print('Switching from profile ' + Fore.GREEN + current_profile + Style.RESET_ALL + ' to ' + Fore.GREEN + args.profile + Style.RESET_ALL, end='\n\n')
+
+                        # Set new profile
+                        my_app_config.set_profile(args.profile)
+
+                    # Else print the current profile
+                    else:
+                        print('Current profile: ' + Fore.GREEN + my_app_config.get_profile() + Style.RESET_ALL, end='\n\n')
+
+                    my_exit.clean_exit()
+
+                except Exception as e:
+                    raise ArgsException('could not switch profile: ' + str(e)) from e
+
+            #
+            # If --env param has been set
+            #
+            if args.env != "null":
+                try:
+                    # If a environment is set (not 'None'), change the app environment
+                    if args.env:
+                        # Get current environment
+                        current_environment = my_app_config.get_environment()
+
+                        # Print environment change
+                        print('Switching from environment ' + Fore.GREEN + current_environment + Style.RESET_ALL + ' to ' + Fore.GREEN + args.env + Style.RESET_ALL, end='\n\n')
+
+                        # Set new environment
+                        my_app_config.set_environment(args.env)
+                    # Else print the current environment
+                    else:
+                        print('Current environment: ' + Fore.GREEN + my_app_config.get_environment() + Style.RESET_ALL, end='\n\n')
+
+                    my_exit.clean_exit()
+
+                except Exception as e:
+                    raise ArgsException('could not switch environment: ' + str(e)) from e
+
+            #
+            # If --mail-enable param has been set
+            #
+            if args.mail_enable != "null":
+                try:
+                    if not args.mail_enable:
+                        status = Fore.GREEN + 'enabled' if my_app_config.get_mail_enabled() else Fore.YELLOW + 'disabled'
+
+                        print('Mail sending is currently ' + status + Style.RESET_ALL, end='\n\n')
+                    else:
+                        if args.mail_enable == 'true':
+                            my_app_config.set_mail_enable(True)
+                            print('Mail sending is now ' + Fore.GREEN + 'enabled' + Style.RESET_ALL, end='\n\n')
+                        else:
+                            my_app_config.set_mail_enable(False)
+                            print('Mail sending is now ' + Fore.YELLOW  + 'disabled' + Style.RESET_ALL, end='\n\n')
+
+                    my_exit.clean_exit()
+                except Exception as e:
+                    raise ArgsException('Could not configure mail: ' + str(e)) from e
+
+            #
+            # If --mail-recipient param has been set
+            #
+            if args.mail_recipient != "null":
+                try:
+                    if not args.mail_recipient:
+                        print('Current mail recipient(s): ' + Fore.GREEN)
+
+                        recipients = my_app_config.get_mail_recipient()
+
+                        # If no recipient is set
+                        if not recipients:
+                            print(' ▪ None')
+                        else:
+                            for recipient in recipients:
+                                print(' ▪ ' + recipient)
+
+                        print(Style.RESET_ALL, end='\n')
+                    else:
+                        my_app_config.set_mail_recipient(args.mail_recipient)
+
+                        print('Mail recipient set to:' + Fore.GREEN)
+
+                        recipients = my_app_config.get_mail_recipient()
+
+                        # If no recipient is set
+                        if not recipients:
+                            print(' ▪ None')
+                        else:
+                            for recipient in recipients:
+                                print(' ▪ ' + recipient)
+
+                        print(Style.RESET_ALL, end='\n')
+
+                    my_exit.clean_exit()
+                except Exception as e:
+                    raise ArgsException('Could not set mail recipient(s): ' + str(e)) from e
+
+            #
+            # If --mail-smtp-host param has been set
+            #
+            if args.mail_smtp_host != "null":
+                try:
+                    if not args.mail_smtp_host:
+                        print('Current mail SMTP host: ' + Fore.GREEN + my_app_config.get_mail_smtp_host() + Style.RESET_ALL, end='\n\n')
+                    else:
+                        my_app_config.set_mail_smtp_host(args.mail_smtp_host)
+                        print('Mail SMTP host set to ' + Fore.GREEN + my_app_config.get_mail_smtp_host() + Style.RESET_ALL, end='\n\n')
+
+                    my_exit.clean_exit()
+                except Exception as e:
+                    raise ArgsException('Could not set mail SMTP host: ' + str(e)) from e
+
+            #
+            # If --mail-smtp-port param has been set
+            #
+            if args.mail_smtp_port != "null":
+                try:
+                    if not args.mail_smtp_port:
+                        print('Current mail SMTP port: ' + Fore.GREEN + str(my_app_config.get_mail_smtp_port()) + Style.RESET_ALL, end='\n\n')
+                    else:
+                        my_app_config.set_mail_smtp_port(args.mail_smtp_port)
+                        print('Mail SMTP port set to ' + Fore.GREEN + str(my_app_config.get_mail_smtp_port()) + Style.RESET_ALL, end='\n\n')
+
+                    my_exit.clean_exit()
+                except Exception as e:
+                    raise ArgsException('Could not set mail SMTP port: ' + str(e)) from e
+
+            #
+            # If --log-retention-days param has been set
+            #
+            if args.log_retention_days != "null":
+                try:
+                    if not args.log_retention_days:
+                        print('Current log retention period (days): ' + Fore.GREEN + str(my_app_config.get_log_retention_days()) + Style.RESET_ALL, end='\n\n')
+                    else:
+                        my_app_config.set_log_retention_days(args.log_retention_days)
+                        print('Log retention period set to ' + Fore.GREEN + str(my_app_config.get_log_retention_days()) + ' days' + Style.RESET_ALL, end='\n\n')
+
+                    my_exit.clean_exit()
+                except Exception as e:
+                    raise ArgsException('Could not set log retention days: ' + str(e)) from e
+
+            #
+            # If --update param has been set
+            #
+            if args.update != "null":
+                if not args.update:
+                    raise ArgsException('Package(s) name must be specified when using --update')
+
+                try:
+                    for package in args.update.split(','):
+                        Args.packages_to_update.append({'name': package.strip()})
+                except Exception as e:
+                    raise ArgsException('Could not parse update list: ' + str(e)) from e
+
+            #
+            # If --dry-run param has been set
+            #
+            if args.dry_run != "null":
+                Args.dry_run = True
+
+            #
+            # If --ignore-exclusions param has been set
+            #
+            if args.ignore_exclusions != "null":
+                Args.ignore_exclusions = True
+
+            #
+            # If --check-updates param has been set
+            #
+            if args.check_updates != "null":
+                Args.check_updates = True
+
+            #
+            # If --dist-upgrade param has been set
+            #
+            if args.dist_upgrade != "null":
+                Args.dist_upgrade = True
+
+            #
+            # If --keep-oldconf param has been set
+            #
+            if args.keep_oldconf != "null":
+                Args.keep_oldconf = True
+
+            #
+            # If --clear-cache param has been set
+            #
+            if args.clear_cache != "null":
+                Args.clear_cache = True
+
+            #
+            # If --assume-yes param has been set
+            #
+            if args.assume_yes != "null":
+                Args.assume_yes = True
+
+            #
+            # If --exit-on-package-update-error param has been set
+            #
+            if args.exit_on_package_update_error != "null":
+                try:
+                    if args.exit_on_package_update_error == 'true':
+                        my_app_config.set_exit_on_package_update_error(True)
+                        print('Exit on package update error ' + Fore.GREEN + 'enabled' + Style.RESET_ALL, end='\n\n')
+                    else:
+                        my_app_config.set_exit_on_package_update_error(False)
+                        print('Exit on package update error ' + Fore.YELLOW  + 'disabled' + Style.RESET_ALL, end='\n\n')
+
+                    my_exit.clean_exit()
+                except Exception as e:
+                    raise ArgsException('Could not configure exit on package update error: ' + str(e)) from e
+
+            #
+            # If --reboot param has been set, set reboot to True
+            #
+            if args.reboot != "null":
+                Args.reboot = True
+
+            #
+            # If --exclude param has been set
+            #
+            if args.exclude != "null":
+                try:
+                    if not args.exclude:
+                        print('Currently excluded packages: ' + Fore.GREEN)
+
+                        packages = my_app_config.get_exclusion()
+
+                        # If no package is excluded
+                        if not packages:
+                            print(' ▪ None')
+                        else:
+                            for package in packages:
+                                print(' ▪ ' + package)
+
+                        print(Style.RESET_ALL, end='\n')
+                    else:
+                        # Exclude packages
+                        my_app_config.set_exclusion(args.exclude)
+
+                        # Print excluded packages
+                        packages = my_app_config.get_exclusion()
+
+                        print('Excluding packages: ' + Fore.GREEN)
+
+                        # If no package is excluded
+                        if not packages:
+                            print(' ▪ None')
+                        else:
+                            for package in packages:
+                                print(' ▪ ' + package)
+
+                        print(Style.RESET_ALL)
+
+                    my_exit.clean_exit()
+                except Exception as e:
+                    raise ArgsException('Could not exclude packages: ' + str(e)) from e
+
+            #
+            # If --exclude-major param has been set
+            #
+            if args.exclude_major != "null":
+                try:
+                    if not args.exclude_major:
+                        print('Currently excluded packages on major update: ' + Fore.GREEN)
+
+                        packages = my_app_config.get_major_exclusion()
+
+                        # If no package is excluded
+                        if not packages:
+                            print(' ▪ None')
+                        else:
+                            for package in packages:
+                                print(' ▪ ' + package)
+
+                        print(Style.RESET_ALL)
+
+                    else:
+                        # Exclude packages on major update
+                        my_app_config.set_major_exclusion(args.exclude_major)
+
+                        # Print excluded packages
+                        packages = my_app_config.get_major_exclusion()
+
+                        print('Excluding packages on major update: ' + Fore.GREEN)
+
+                        # If no package is excluded
+                        if not packages:
+                            print(' ▪ None')
+                        else:
+                            for package in packages:
+                                print(' ▪ ' + package)
+
+                        print(Style.RESET_ALL)
+
+                    my_exit.clean_exit()
+                except Exception as e:
+                    raise ArgsException('Could not exclude packages on major update: ' + str(e)) from e
+
+            #
+            # If --service-reload param has been set
+            #
+            if args.service_reload != "null":
+                try:
+                    if not args.service_reload:
+                        print('Services to reload after package update: ' + Fore.GREEN)
+
+                        services = my_app_config.get_service_to_reload()
+
+                        # If no service is set to reload
+                        if not services:
+                            print(' ▪ None')
+                        else:
+                            for service in services:
+                                print(' ▪ ' + service)
+
+                        print(Style.RESET_ALL, end='\n')
+                    else:
+                        # Set services to reload after package update
+                        my_app_config.set_service_to_reload(args.service_reload)
+
+                        # Print services to reload
+                        services = my_app_config.get_service_to_reload()
+
+                        print('Setting services to reload after package update: ' + Fore.GREEN)
+
+                        # If no service is set to reload
+                        if not services:
+                            print(' ▪ None')
+                        else:
+                            for service in services:
+                                print(' ▪ ' + service)
+
+                        print(Style.RESET_ALL)
+
+                    my_exit.clean_exit()
+                except Exception as e:
+                    raise ArgsException('Could not set services to reload after package update: ' + str(e)) from e
+
+            #
+            # If --service-restart param has been set
+            #
+            if args.service_restart != "null":
+                try:
+                    if not args.service_restart:
+                        print('Services to restart after package update: ' + Fore.GREEN)
+
+                        services = my_app_config.get_service_to_restart()
+
+                        # If no service is set to restart
+                        if not services:
+                            print(' ▪ None')
+                        else:
+                            for service in services:
+                                print(' ▪ ' + service)
+
+                        print(Style.RESET_ALL, end='\n')
+                    else:
+                        # Set services to restart after package update
+                        my_app_config.set_service_to_restart(args.service_restart)
+
+                        # Print services to restart
+                        services = my_app_config.get_service_to_restart()
+
+                        print('Setting services to restart after package update: ' + Fore.GREEN)
+
+                        # If no service is set to restart
+                        if not services:
+                            print(' ▪ None')
+                        else:
+                            for service in services:
+                                print(' ▪ ' + service)
+
+                        print(Style.RESET_ALL)
+
+                    my_exit.clean_exit()
+                except Exception as e:
+                    raise ArgsException('Could not set services to restart after package update: ' + str(e)) from e
+
+            #
+            # If --mod-list param has been set
+            #
+            if args.mod_list != "null":
+                my_module.list()
+                my_exit.clean_exit()
+
+            #
+            # If --mod-enable param has been set
+            #
+            if args.mod_enable != "null":
+                # If module to enable is set (not 'None'), enable the module
+                if args.mod_enable:
+                    # Enable module
+                    try:
+                        my_module.enable(args.mod_enable)
+                        my_exit.clean_exit()
+                    except Exception as e:
+                        raise ArgsException('Could not enable module: ' + str(e)) from e
+                else:
+                    raise ArgsException('Module name is required')
+
+            #
+            # If --mod-disable param has been set
+            #
+            if args.mod_disable != "null":
+                # If module to disable is set (not 'None'), disable the module
+                if args.mod_disable:
+                    # Disable module
+                    try:
+                        my_module.disable(args.mod_disable)
+                        my_exit.clean_exit()
+                    except Exception as e:
+                        raise ArgsException('Could not disable module: ' + str(e)) from e
+                else:
+                    raise ArgsException('Module name is required')
+
+            #
+            # If --cpu-priority param has been set
+            #
+            if args.cpu_priority != "null":
+                try:
+                    # If no CPU priority is set, get the current CPU priority
+                    if not args.cpu_priority:
+                        print('Current CPU priority is ' + Fore.GREEN + AppService().get_cpu_priority() + Style.RESET_ALL, end='\n\n')
+                    else:
+                        # Set CPU priority
+                        AppService().set_cpu_priority(args.cpu_priority)
+                        print('CPU priority set to ' + Fore.GREEN + str(args.cpu_priority) + Style.RESET_ALL, end='\n\n')
+
+                    my_exit.clean_exit()
+                except Exception as e:
+                    raise ArgsException(str(e)) from e
+
+            #
+            # If --memory-limit param has been set
+            #
+            if args.memory_limit != "null":
+                try:
+                    # If no memory limit is set, get the current memory limit
+                    if not args.memory_limit:
+                        print('Current memory limit is ' + Fore.GREEN + AppService().get_memory_limit() + Style.RESET_ALL, end='\n\n')
+                    else:
+                        # Set memory limit
+                        AppService().set_memory_limit(args.memory_limit)
+                        print('Memory limit set to ' + Fore.GREEN + str(args.memory_limit) + Style.RESET_ALL, end='\n\n')
+
+                    my_exit.clean_exit()
+                except Exception as e:
+                    raise ArgsException(str(e)) from e
+
+            #
+            # If --oom-score param has been set
+            #
+            if args.oom_score != "null":
+                try:
+                    # If no OOM score is set, get the current OOM score
+                    if not args.oom_score:
+                        print('Current OOM score is ' + Fore.GREEN + AppService().get_oom_score() + Style.RESET_ALL, end='\n\n')
+                    else:
+                        # Set OOM score
+                        AppService().set_oom_score(args.oom_score)
+                        print('OOM score set to ' + Fore.GREEN + str(args.oom_score) + Style.RESET_ALL, end='\n\n')
+
+                    my_exit.clean_exit()
+                except Exception as e:
+                    raise ArgsException(str(e)) from e
+
+        # Catch exceptions
+        # Either ArgsException or Exception, it will always raise an ArgsException to the main script, this to avoid sending an email when an argument error occurs
+        except (ArgsException, Exception) as e:
+            raise ArgsException(str(e)) from e
+
+
+    def help(self):
+        """Print help"""
+        try:
+            table = []
+            options = [
+                {
+                    'args': [
+                        '--help',
+                        '-h'
+                    ],
+                    'description': 'Show help',
+                },
+                {
+                    'args': [
+                        '--show-config',
+                        '-sc'
+                    ],
+                    'description': 'Show raw configuration',
+                },
+                {
+                    'args': [
+                        '--version',
+                        '-v'
+                    ],
+                    'description': 'Show version',
+                },
+                {
+                    'args': [
+                        '--debug'
+                    ],
+                    'description': 'Enable debug mode',
+                },
+                {
+                    'title': 'Global configuration options'
+                },
+                {
+                    'args': [
+                        '--profile',
+                        '-p'
+                    ],
+                    'option': 'PROFILE',
+                    'description': 'Print or set profile'
+                },
+                {
+                    'args': [
+                        '--env',
+                        '-e'
+                    ],
+                    'option': 'ENVIRONMENT',
+                    'description': 'Print or set environment'
+                },
+                {
+                    'args': [
+                        '--mail-enable'
+                    ],
+                    'option': 'true|false',
+                    'description': 'Enable or disable mail reports'
+                },
+                {
+                    'args': [
+                        '--mail-recipient'
+                    ],
+                    'option': 'EMAIL',
+                    'description': 'Print or set mail recipient(s) (separated by commas)\nSpecify "None" to clear the recipient list'
+                },
+                {
+                    'args': [
+                        '--mail-smtp-host'
+                    ],
+                    'option': 'HOST',
+                    'description': 'Print or set mail SMTP host'
+                },
+                {
+                    'args': [
+                        '--mail-smtp-port'
+                    ],
+                    'option': 'PORT',
+                    'description': 'Print or set mail SMTP port'
+                },
+                {
+                    'args': [
+                        '--log-retention-days'
+                    ],
+                    'option': 'DAYS',
+                    'description': 'Print or set linupdate log retention period in days (default: 180)'
+                },
+                {
+                    'title': 'Update options'
+                },
+                {
+                    'args': [
+                        '--update',
+                        '-u'
+                    ],
+                    'option': 'PACKAGE',
+                    'description': 'Update only the specified packages (separated by commas)'
+                },
+                {
+                    'args': [
+                        '--dist-upgrade',
+                        '-du'
+                    ],
+                    'description': 'Enable distribution upgrade when updating packages (Debian based OS only)'
+                },
+                {
+                    'args': [
+                        '--keep-oldconf'
+                    ],
+                    'description': 'Keep old configuration files when updating packages (Debian based OS only)'
+                },
+                {
+                    'args': [
+                        '--clear-cache',
+                        '-cc'
+                    ],
+                    'description': 'Force clearing of package cache before updating, this can help to solve some update issues'
+                },
+                {
+                    'args': [
+                        '--dry-run'
+                    ],
+                    'description': 'Simulate the update process (do not update packages)'
+                },
+                {
+                    'args': [
+                        '--assume-yes',
+                        '-y'
+                    ],
+                    'description': 'Answer yes to all questions, useful for non-interactive updates (cron jobs, etc.)'
+                },
+                {
+                    'args': [
+                        '--check-updates',
+                        '-cu'
+                    ],
+                    'description': 'Only check for updates and exit'
+                },
+                {
+                    'args': [
+                        '--ignore-exclusions',
+                        '-ie'
+                    ],
+                    'description': 'Ignore all package exclusions'
+                },
+                {
+                    'args': [
+                        '--exit-on-package-update-error',
+                    ],
+                    'option': 'true|false',
+                    'description': 'Immediately exit if an error occurs during package update and do not update the remaining packages'
+                },
+                {
+                    'args': [
+                        '--reboot',
+                    ],
+                    'description': 'Automatically reboot the system if a reboot is required after the update'
+                },
+                {
+                    'title': 'Packages exclusion and services restart'
+                },
+                {
+                    'args': [
+                        '--exclude'
+                    ],
+                    'option': 'PACKAGE',
+                    'description': 'Print or set packages to exclude from update (separated by commas)\nRegex pattern ".*" can be used to match multiple packages. Example: --exclude php.*\nSpecify "None" to clear the exclusion list'
+                },
+                {
+                    'args': [
+                        '--exclude-major'
+                    ],
+                    'option': 'PACKAGE',
+                    'description': 'Print or set packages to exclude from update (if package has a major version update) (separated by commas)\nRegex pattern ".*" can be used to match multiple packages. Example: --exclude-major php.*\nSpecify "None" to clear the major update exclusion list'
+                },
+                {
+                    'args': [
+                        '--service-reload'
+                    ],
+                    'option': 'SERVICE',
+                    'description': 'Print or set services to reload after package update (separated by commas)\nSpecify "None" to clear the service reload list'
+                },
+                {
+                    'args': [
+                        '--service-restart'
+                    ],
+                    'option': 'SERVICE',
+                    'description': 'Print or set services to restart after package update (separated by commas)\nSpecify "None" to clear the service restart list'
+                },
+                {
+                    'title': 'Modules'
+                },
+                {
+                    'args': [
+                        '--mod-list'
+                    ],
+                    'description': 'List available modules'
+                },
+                {
+                    'args': [
+                        '--mod-enable'
+                    ],
+                    'option': 'MODULE',
+                    'description': 'Enable a module'
+                },
+                {
+                    'args': [
+                        '--mod-disable'
+                    ],
+                    'option': 'MODULE',
+                    'description': 'Disable a module'
+                },
+                {
+                    'args': [
+                        '--mod-configure',
+                        '--mod-exec',
+                        '-mc',
+                        '-me'
+                    ],
+                    'option': 'MODULE [ARGS]',
+                    'description': 'Configure/execute a module with the specified arguments'
+                },
+                {
+                    'title': 'Service tuning'
+                },
+                {
+                    'args': [
+                        '--cpu-priority'
+                    ],
+                    'option': 'high, medium, low',
+                    'description': 'Print or set CPU priority for the linupdate service. Lower priority means less CPU usage but also more time to complete service operations - default is high'
+                },
+                {
+                    'args': [
+                        '--memory-limit'
+                    ],
+                    'option': 'bytes',
+                    'description': 'Print or set memory limit for the linupdate service in bytes - default is 1G'
+                },
+                {
+                    'args': [
+                        '--oom-score'
+                    ],
+                    'option': '-1000 to 1000',
+                    'description': 'Print or set OOM (Out Of Memory) score for the linupdate service - the higher the value, the more likely the service will be killed by the OOM killer - default is 500'
+                },
+            ]
+
+            # Add options to table
+            for option in options:
+                # If option is a title, just print it
+                if 'title' in option:
+                    table.append(['', Style.BRIGHT + '\n' + option['title'] + '\n' + Style.RESET_ALL, ''])
+                    continue
+
+                # If option has multiple arguments, join them
+                if len(option['args']) > 1:
+                    args_str = ', '.join(option['args'])
+                else:
+                    args_str = option['args'][0]
+
+                if 'option' in option:
+                    args_str += Style.DIM + ' [' + option['option'] + ']' + Style.RESET_ALL
+
+                table.append(['', args_str, option['description']])
+
+
+            print('Available options:', end='\n\n')
+
+            # Print table
+            print(tabulate(table, headers=["", "Name", "Description"], tablefmt="simple"), end='\n\n')
+
+            print('Usage: linupdate [OPTIONS]', end='\n\n')
+
+            del table, options, args_str
+
+        # Catch exceptions
+        # Either ArgsException or Exception, it will always raise an ArgsException to the main script, this to avoid sending an email when an argument error occurs
+        except (ArgsException, Exception) as e:
+            raise ArgsException('Printing help error: ' + str(e)) from e
