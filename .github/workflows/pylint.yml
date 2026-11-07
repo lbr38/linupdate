@@ -11,12 +11,13 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
-      - name: Install pylint
-        run: pip install pylint
+      # apt (python3-apt) and pyinotify are not installed: they are listed in ignored-modules (.pylintrc)
+      - name: Install pylint and dependencies
+        run: pip install pylint tabulate colorama python-dateutil PyYAML simplejson distro requests websocket-client psutil rich
 
       - name: Print pylint version
         run: pylint --version
 
-      # For now, exit with 0 to avoid failing the workflow
+      # Run from the repository root so that .pylintrc is used
       - name: Detect coding standard violations
-        run: pylint --recursive=y $GITHUB_WORKSPACE --disable=line-too-long,missing-function-docstring,missing-module-docstring,missing-class-docstring | exit 0
+        run: pylint --recursive=y . --fail-under=9.9

@@ -1,11 +1,13 @@
 #!/usr/bin/python3 -u
 # coding: utf-8
 
+"""linupdate service entry point: run the main service loop or a module agent."""
+
 # Import libraries
 import sys
 
 # Import classes
-from src.controllers.App.Service import Service
+from src.controllers.app.service import Service
 
 # Instantiate Service class
 my_service = Service()

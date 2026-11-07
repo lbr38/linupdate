@@ -1,0 +1,454 @@
+# coding: utf-8
+
+"""linupdate service: module agents supervision and systemd unit tuning."""
+
+# Import libraries
+import subprocess
+import signal
+import sys
+import importlib
+import time
+import configparser
+from pathlib import Path
+from datetime import datetime, timedelta
+from colorama import Fore, Style
+
+# Import classes
+from src.controllers.app.config import Config
+from src.controllers.module.module import Module
+from src.controllers.lock import Lock
+from src.controllers.linupdate_exception import LinupdateException
+
+class Service:
+    """linupdate service: supervise module agents and tune the systemd unit."""
+    def __init__(self):
+        try:
+            # Register signal handlers
+            signal.signal(signal.SIGTERM, self.signal_handler)
+            signal.signal(signal.SIGINT, self.signal_handler)
+
+            self.child_processes = []
+            self.child_processes_started = []
+            self.module_controller = Module()
+
+            # Initialize configuration (generate config files if not exist and check if they are valid)
+            self.config = Config()
+
+            # Systemd unit file path
+            self.systemd_unit_file = '/lib/systemd/system/linupdate.service'
+
+            # Track last date when logs were cleaned
+            self.last_log_cleanup_date = None
+        except Exception as e:
+            print('Fatal error in service initialization: ' + str(e))
+            sys.exit(1)
+
+
+    def main(self):
+        """Service main function"""
+        restart_file = '/tmp/linupdate.restart-needed'
+
+        try:
+            print("[linupdate] Hi, I'm linupdate service. I will start all enabled module agents and let them run in background. Stop me and I will stop all module agents.")
+
+            # Wait 3 seconds to let the above message to be read
+            time.sleep(3)
+
+            while True:
+                # Restart check
+                # If a '/tmp/linupdate.restart-needed' file is present, restart linupdate service now
+                if Path(restart_file).is_file():
+                    print('[reposerver-agent] Linupdate service restart is needed.')
+
+                    try:
+                        # Wait for the current reposerver request (if any) to complete to prevent data loss
+                        while Lock.is_locked('reposerver-request'):
+                            print('[reposerver-agent] A reposerver request is being processed, waiting...')
+                            time.sleep(2)
+
+                        # First delete the restart file
+                        Path(restart_file).unlink()
+
+                        print('[reposerver-agent] Restarting linupdate service...')
+
+                        # Then restart linupdate service
+                        result = subprocess.run(
+                            ['/usr/bin/systemctl restart linupdate'],
+                            stdout = subprocess.PIPE, # subprocess.PIPE & subprocess.PIPE are alias of 'capture_output = True'
+                            stderr = subprocess.PIPE,
+                            universal_newlines = True, # Alias of 'text = True'
+                            shell = True,
+                            check = False
+                        )
+
+                        # From here, the service should be restarted and the following lines should not be executed. But if there is an error, then raise an exception:
+                        if result.returncode != 0:
+                            raise LinupdateException(result.stderr)
+
+                    # If there was an error, then the service has to stop because it could not be restarted
+                    # Raise an exception to be caught in the main function, it will stop the service
+                    except Exception as e:
+                        raise LinupdateException('could not restart linupdate service: ' + str(e)) from e
+
+
+                # Check for terminated child processes (module agents) and remove them from the list
+                for child in self.child_processes[:]:
+                    retcode = child['process'].poll()
+
+                    if retcode is not None:
+                        # If the process has terminated with an error (exit 1), print a message
+                        if retcode != 0:
+                            print('[' + child['agent'] + '-agent] Terminated with return code ' + str(retcode) + ' :(')
+                            print("[" + child['agent'] + "-agent] I'm dead for now but I will be resurrected soon, please wait or restart linupdate service")
+
+                        # Remove child process from list
+                        self.child_processes.remove(child)
+
+                # Retrieve enabled modules
+                enabled_modules = self.module_controller.get_enabled()
+
+                # For each enabled module, check if its agent is enabled
+                for module in enabled_modules:
+                    # Import python module config class
+                    module_import_path = importlib.import_module('src.controllers.module.' + module.lower() + '.config')
+                    module_class = getattr(module_import_path, 'Config')
+
+                    # Instantiate module and get module configuration
+                    my_module = module_class()
+                    module_configuration = my_module.get_conf()
+
+                    # Check if module agent is enabled. If not, skip to next module
+                    if not module_configuration['agent']['enabled']:
+                        continue
+
+                    # Check if module agent process is already running, if so, skip to next module
+                    if any(agent['agent'] == module for agent in self.child_processes):
+                        continue
+
+                    # Only start module agent if it has not been started in the last 2 minutes
+                    # This is to avoid restarting a failed module agent in a loop and consuming resources, as the service will restart it every 2 minutes
+                    # An agent could fail to start or fail when executing a task, so we need to avoid restarting it in a loop
+                    if any(agent['agent'] == module for agent in self.child_processes_started):
+                        # Calculate the remaining time before the agent can be restarted
+                        remaining_time = 120 - (time.time() - [agent['start_time'] for agent in self.child_processes_started if agent['agent'] == module][0])
+
+                        if 0 <= remaining_time < 120:
+                            # Print a message with the remaining time before the agent can be restarted (in seconds)
+                            print('[linupdate] Delay in restarting the ' + module + ' agent: next start time is in ' + str(int(remaining_time)) + ' seconds')
+                            continue
+
+                    # Start module agent
+                    print('[linupdate] Starting ' + Fore.GREEN + module + Style.RESET_ALL + ' module agent')
+
+                    # Start module agent as a child process
+                    # Long-running child process, tracked in self.child_processes
+                    process = subprocess.Popen( # pylint: disable=consider-using-with
+                        ['/opt/linupdate/service.py', module],
+                        stdout=sys.stdout,
+                        stderr=sys.stderr
+                    )
+
+                    # Add child process to list
+                    self.child_processes.append({
+                        'agent': module,
+                        'process': process
+                    })
+
+                    # Add child process start timestamp to list, first remove it if it already exists (from a previous start)
+                    if any(agent['agent'] == module for agent in self.child_processes_started):
+                        self.child_processes_started = [agent for agent in self.child_processes_started if agent['agent'] != module]
+
+                    # Add the new start timestamp
+                    self.child_processes_started.append({
+                        'agent': module,
+                        'start_time': time.time()
+                    })
+
+                # Daily log cleanup: run once when hour==0 (around midnight)
+                try:
+                    now = datetime.now()
+                    if now.hour == 0:
+                        if self.last_log_cleanup_date is None or self.last_log_cleanup_date.date() != now.date():
+                            try:
+                                self.cleanup_logs()
+                            except Exception as e:
+                                print('[linupdate] Log cleanup error: ' + str(e))
+                            self.last_log_cleanup_date = now
+                except Exception:
+                    # Be defensive: never let cleanup scheduling break the service loop
+                    pass
+
+                time.sleep(5)
+
+        except Exception as e:
+            print('[linupdate] General error: ' + str(e))
+            sys.exit(1)
+
+
+    def run_agent(self, module_name):
+        """Run a module agent as a child process"""
+        try:
+            print("[" + module_name + "-agent] Hi, I'm " + Fore.GREEN + module_name + Style.RESET_ALL + ' module agent')
+
+            # Import python module agent class
+            module_import_path = importlib.import_module('src.controllers.module.' + module_name.lower() + '.agent')
+            my_module_agent_class = getattr(module_import_path, 'Agent')()
+
+            # Run module agent main function
+            my_module_agent_class.main()
+
+        except Exception as e:
+            print('[' + module_name + '-agent] Error: ' + str(e))
+            sys.exit(1)
+
+
+    def cleanup_logs(self):
+        """Cleanup logs older than configured retention"""
+        log_dir = Path('/var/log/linupdate')
+
+        # If log directory doesn't exist, nothing to do
+        if not log_dir.is_dir():
+            print('[linupdate] Log directory not found: ' + str(log_dir))
+            return
+
+        # Get retention days from global config
+        try:
+            days = int(self.config.get_log_retention_days())
+        except Exception as e:
+            raise LinupdateException('Could not determine log retention days: ' + str(e)) from e
+
+        cutoff = datetime.now() - timedelta(days=days)
+
+        deleted_any = False
+
+        for file in log_dir.glob('*log'):
+            try:
+                # Only consider files
+                if not file.is_file():
+                    continue
+
+                mtime = datetime.fromtimestamp(file.stat().st_mtime)
+                if mtime < cutoff:
+                    try:
+                        file.unlink()
+                        print('[linupdate] Deleted log file: ' + str(file))
+                        deleted_any = True
+                    except Exception as e:
+                        print('[linupdate] Failed to delete ' + str(file) + ': ' + str(e))
+            except Exception as e:
+                print('[linupdate] Error while processing ' + str(file) + ': ' + str(e))
+
+        if not deleted_any:
+            print('[linupdate] No log files to delete (retention ' + str(days) + ' days)')
+
+
+    def stop_child_processes(self):
+        """Stop all child processes"""
+        if not self.child_processes:
+            return
+
+        # Stop all child processes
+        for child in self.child_processes:
+            # Retrieve agent name and process
+            agent = child['agent']
+            process = child['process']
+
+            print('Stopping ' + agent + ' module agent')
+
+            # Terminate process
+            process.terminate()
+
+            try:
+                process.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                process.kill()
+
+            print('Stopped ' + child['agent'] + ' module agent')
+
+
+    def signal_handler(self, sig, _frame):
+        """Signal handler
+
+        This function is called when the service receives a SIGTERM or SIGINT signal
+        """
+        print('Linupdate service received signal ' + str(sig) + '. Stopping all child processes...')
+
+        try:
+            self.stop_child_processes()
+            sys.exit(0)
+        except Exception as e:
+            print('Error while stopping child processes: ' + str(e))
+
+
+    def get_cpu_priority(self):
+        """Get current systemd service CPU priority"""
+        try:
+            config = configparser.ConfigParser()
+            config.optionxform = str
+            config.read(self.systemd_unit_file)
+
+            # Quit if CPUQuota is not found
+            if 'CPUQuota' not in config['Service']:
+                raise LinupdateException('CPUQuota not found in systemd unit file')
+
+            # Quit if CPUWeight is not found
+            if 'CPUWeight' not in config['Service']:
+                raise LinupdateException('CPUWeight not found in systemd unit file')
+
+            if config['Service']['CPUWeight'] == '50':
+                return 'low'
+            if config['Service']['CPUWeight'] == '75':
+                return 'medium'
+            if config['Service']['CPUWeight'] == '100':
+                return 'high'
+            return None
+        except Exception as e:
+            raise LinupdateException('Could not get CPU priority: ' + str(e)) from e
+
+
+    def set_cpu_priority(self, priority: str):
+        """Set systemd service CPU priority"""
+        if priority not in ['low', 'medium', 'high']:
+            raise LinupdateException('Priority must be low, medium or high')
+
+        try:
+            config = configparser.ConfigParser(interpolation=None)
+            config.optionxform = str
+            config.read(self.systemd_unit_file)
+
+            # Quit if CPUQuota is not found
+            if 'CPUQuota' not in config['Service']:
+                raise LinupdateException('CPUQuota not found in systemd unit file')
+
+            # Quit if CPUWeight is not found
+            if 'CPUWeight' not in config['Service']:
+                raise LinupdateException('CPUWeight not found in systemd unit file')
+
+            # Set CPU priority
+            if priority == 'low':
+                # Set CPUQuota to 50%
+                config['Service']['CPUQuota'] = '50%'
+                # Set CPUWeight to 50
+                config['Service']['CPUWeight'] = '50'
+            if priority == 'medium':
+                # Set CPUQuota to 75%
+                config['Service']['CPUQuota'] = '75%'
+                # Set CPUWeight to 75
+                config['Service']['CPUWeight'] = '75'
+            if priority == 'high':
+                # Set CPUQuota to 100%
+                config['Service']['CPUQuota'] = '100%'
+                # Set CPUWeight to 100
+                config['Service']['CPUWeight'] = '100'
+
+            # Write to file
+            with open(self.systemd_unit_file, 'w', encoding='utf-8') as f:
+                config.write(f)
+
+            # Reload systemd unit
+            self.reload_system_unit()
+        except Exception as e:
+            raise LinupdateException('Could not set CPU priority: ' + str(e)) from e
+
+
+    def get_memory_limit(self):
+        """Get current systemd service memory limit"""
+        try:
+            config = configparser.ConfigParser()
+            config.optionxform = str
+            config.read(self.systemd_unit_file)
+
+            # Quit if MemoryMax is not found
+            if 'MemoryMax' not in config['Service']:
+                raise LinupdateException('MemoryMax not found in systemd unit file')
+
+            # Get MemoryMax
+            return config['Service']['MemoryMax']
+        except Exception as e:
+            raise LinupdateException('Could not get memory limit: ' + str(e)) from e
+
+
+    def set_memory_limit(self, limit: str):
+        """Set systemd service memory limit"""
+        if not limit:
+            raise LinupdateException('Memory limit must be specified')
+
+        try:
+            config = configparser.ConfigParser()
+            config.optionxform = str
+            config.read(self.systemd_unit_file)
+
+            # Quit if MemoryMax is not found
+            if 'MemoryMax' not in config['Service']:
+                raise LinupdateException('MemoryMax not found in systemd unit file')
+
+            # Set MemoryMax
+            config['Service']['MemoryMax'] = limit
+
+            # Write to file
+            with open(self.systemd_unit_file, 'w', encoding='utf-8') as f:
+                config.write(f)
+
+            # Reload systemd unit
+            self.reload_system_unit()
+        except Exception as e:
+            raise LinupdateException('Could not set memory limit: ' + str(e)) from e
+
+
+    def get_oom_score(self):
+        """Get current systemd service OOM score"""
+        try:
+            config = configparser.ConfigParser()
+            config.optionxform = str
+            config.read(self.systemd_unit_file)
+
+            # Quit if OOMScoreAdjust is not found
+            if 'OOMScoreAdjust' not in config['Service']:
+                raise LinupdateException('OOMScoreAdjust not found in systemd unit file')
+
+            # Get OOMScoreAdjust
+            return config['Service']['OOMScoreAdjust']
+        except Exception as e:
+            raise LinupdateException('Could not get OOM score: ' + str(e)) from e
+
+
+    def set_oom_score(self, score: int):
+        """Set systemd service OOM score"""
+        if int(score) < -1000 or int(score) > 1000:
+            raise LinupdateException('OOM score must be between -1000 and 1000')
+
+        try:
+            config = configparser.ConfigParser()
+            config.optionxform = str
+            config.read(self.systemd_unit_file)
+
+            # Quit if OOMScoreAdjust is not found
+            if 'OOMScoreAdjust' not in config['Service']:
+                raise LinupdateException('OOMScoreAdjust not found in systemd unit file')
+
+            # Set OOMScoreAdjust
+            config['Service']['OOMScoreAdjust'] = str(score)
+
+            # Write to file
+            with open(self.systemd_unit_file, 'w', encoding='utf-8') as f:
+                config.write(f)
+
+            # Reload systemd unit
+            self.reload_system_unit()
+        except Exception as e:
+            raise LinupdateException('Could not set OOM score: ' + str(e)) from e
+
+
+    def reload_system_unit(self):
+        """Reload linupdate systemd unit"""
+        result = subprocess.run(
+            ['/usr/bin/systemctl', 'daemon-reload'],
+            stdout = subprocess.PIPE, # subprocess.PIPE & subprocess.PIPE are alias of 'capture_output = True'
+            stderr = subprocess.PIPE,
+            universal_newlines = True,  # Alias of 'text = True'
+            check = False
+        )
+
+        # Quit if an error occurred
+        if result.returncode != 0:
+            raise LinupdateException('Error while reloading systemd unit: ' + result.stderr)
