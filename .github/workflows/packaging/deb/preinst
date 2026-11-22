@@ -1,12 +1,17 @@
 #!/bin/bash
 
-# Save current configuration files if exists
-if [ -f "/etc/linupdate/linupdate.yml" ];then
-    cp /etc/linupdate/linupdate.yml /tmp/linupdate.yml.debsave
-fi
-if [ -f "/etc/linupdate/update.yml" ];then
-    cp /etc/linupdate/update.yml /tmp/update.yml.debsave
-fi
+# Root only directory of the linupdate temporary files (never use /tmp, writable by any user)
+TMP_DIR="/opt/linupdate/tmp"
+BACKUP_DIR="${TMP_DIR}/upgrade-backup"
+
+# Save current configuration files if exists (restored by postinst)
+for file in linupdate.yml update.yml; do
+    if [ -f "/etc/linupdate/${file}" ];then
+        mkdir -p "$BACKUP_DIR"
+        chmod 700 "$BACKUP_DIR"
+        cp "/etc/linupdate/${file}" "${BACKUP_DIR}/${file}"
+    fi
+done
 
 # Delete service symlink if exists
 rm -f /etc/systemd/system/linupdate.service
@@ -15,8 +20,9 @@ rm -f /etc/systemd/system/linupdate.service
 if [ -f "/usr/bin/systemctl" ] && [ -d "/run/systemd/system" ];then
     # Stop service if started
     if /usr/bin/systemctl is-active --quiet linupdate;then
-        # Do not stop if there is a /tmp/linupdate.restart-needed file, the service will restart itself
-        if [ ! -f "/tmp/linupdate.restart-needed" ];then
+        # Do not stop if a restart has been requested: linupdate is updating itself, the service will restart itself
+        # (/tmp/linupdate.restart-needed is the request file of linupdate <= 3.17.4)
+        if [ ! -f "${TMP_DIR}/restart-needed" ] && [ ! -f "/tmp/linupdate.restart-needed" ];then
             /usr/bin/systemctl stop --quiet linupdate
         fi
     fi

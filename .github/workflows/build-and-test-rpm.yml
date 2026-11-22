@@ -76,11 +76,19 @@ jobs:
           cp ${GITHUB_WORKSPACE}/.github/workflows/packaging/rpm/spec $HOME/rpmbuild/SPECS/linupdate.spec
           sed -i "s/__VERSION__/${{ env.VERSION }}/g" $HOME/rpmbuild/SPECS/linupdate.spec
 
+      # Changelog of the current version, from CHANGELOG.md
+      - name: Generate changelog
+        run: bash ${GITHUB_WORKSPACE}/.github/scripts/generate-changelog.sh rpm /tmp/linupdate-changelog && cat /tmp/linupdate-changelog >> $HOME/rpmbuild/SPECS/linupdate.spec
+
       - name: Build package
         run: |
           cd $HOME/rpmbuild/SPECS
           rpmbuild --target noarch -bb linupdate.spec
           mv $HOME/rpmbuild/RPMS/noarch/linupdate-${{ env.VERSION }}-stable.noarch.rpm /tmp/linupdate-test-build-${{ env.VERSION }}.noarch.rpm
+
+      # Fail on new rpmlint errors (the accepted ones are filtered in rpmlintrc)
+      - name: Check package with rpmlint
+        run: rpmlint -f ${GITHUB_WORKSPACE}/.github/workflows/packaging/rpm/rpmlintrc /tmp/linupdate-test-build-${{ env.VERSION }}.noarch.rpm
 
       - name: Upload artifact
         uses: actions/upload-artifact@v6
@@ -125,87 +133,111 @@ jobs:
           curl --fail-with-body -X PUT -H "Authorization: Bearer ${{ secrets.REPOSITORY_UPLOAD_TOKEN }}" -d '{"gpgSign":"true"}' ${{ secrets.REPOSITORY_UPLOAD_URL }}/api/v2/snapshot/981/rebuild
 
 
-  # Run tests on different distributions
-
-  # CentOS 8 (EOL)
-  test-centos8:
-    name: Install and test CentOS 8
+  # Install the package and run the test suite on different distributions
+  # (the OS specific preparation is done by .github/scripts/setup-system.sh)
+  install-and-test:
+    name: Install and test on ${{ matrix.name }}
     needs:
       - build-rpm
       - upload
-    uses: ./.github/workflows/install-and-test-on-centos8.yml
-    secrets: inherit
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # EOL
+          - name: CentOS 8
+            image: centos:8
+          - name: Fedora 40
+            image: fedora:40
+          - name: Fedora 41
+            image: fedora:41
+          - name: Fedora 42
+            image: fedora:42
+          - name: Fedora 43
+            image: fedora:43
+          - name: Fedora 44
+            image: fedora:44
+          - name: Rocky Linux 9
+            image: rockylinux/rockylinux:9
+          # Rocky Linux 10: no docker image available yet
+          - name: Alma Linux 9
+            image: almalinux:9
+          - name: Alma Linux 10
+            image: almalinux:10
+    container:
+      image: ${{ matrix.image }}
+      options: --user root
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
 
-  # Fedora 40
-  test-fedora40:
-    name: Install and test on Fedora 40
+      - name: Get linupdate version
+        run: echo "VERSION=$(cat ${GITHUB_WORKSPACE}/version)" >> $GITHUB_ENV
+
+      - name: Prepare system
+        run: bash ${GITHUB_WORKSPACE}/.github/scripts/setup-system.sh
+
+      # Download builded package artifact
+      - name: Download artifact
+        uses: actions/download-artifact@v8
+        with:
+          name: linupdate-test-build-${{ env.VERSION }}.noarch.rpm
+
+      - name: Install package
+        run: dnf --nogpgcheck install -y ./linupdate-test-build-${{ env.VERSION }}.noarch.rpm
+
+      # Run common test suite (shared across all distributions)
+      - name: Run test suite
+        env:
+          REPOSITORY_TEST_URL: ${{ secrets.REPOSITORY_TEST_URL }}
+          REPOSITORY_TEST_TOKEN: ${{ secrets.REPOSITORY_TEST_TOKEN }}
+          REPOS_CONFIG_DIR: /etc/yum.repos.d
+          LINUPDATE_PROFILE: linupdate-ci-rhel-systems
+        run: bash ${GITHUB_WORKSPACE}/.github/scripts/run-tests.sh
+
+  # Upgrade from the latest release, systemd service and uninstall tests, in a container running systemd
+  package-tests:
+    name: Package tests on ${{ matrix.name }}
     needs:
       - build-rpm
-      - upload
-    uses: ./.github/workflows/install-and-test-on-fedora40.yml
-    secrets: inherit
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Alma Linux 9
+            image: almalinux:9
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
 
-  # Fedora 41
-  test-fedora41:
-    name: Install and test on Fedora 41
-    needs:
-     - build-rpm
-     - upload
-    uses: ./.github/workflows/install-and-test-on-fedora41.yml
-    secrets: inherit
+      - name: Get linupdate version
+        run: echo "VERSION=$(cat ${GITHUB_WORKSPACE}/version)" >> $GITHUB_ENV
 
-  # Fedora 42
-  test-fedora42:
-    name: Install and test on Fedora 42
-    needs:
-     - build-rpm
-     - upload
-    uses: ./.github/workflows/install-and-test-on-fedora42.yml
-    secrets: inherit
+      # Download builded package artifact
+      - name: Download artifact
+        uses: actions/download-artifact@v8
+        with:
+          name: linupdate-test-build-${{ env.VERSION }}.noarch.rpm
+          path: packages/new
 
-  # Fedora 43
-  test-fedora43:
-    name: Install and test on Fedora 43
-    needs:
-     - build-rpm
-     - upload
-    uses: ./.github/workflows/install-and-test-on-fedora43.yml
-    secrets: inherit
+      - name: Download the latest released package
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release download --repo "${{ github.repository }}" --pattern '*.noarch.rpm' --dir packages/old
 
-  # Fedora 44
-  test-fedora44:
-    name: Install and test on Fedora 44
-    needs:
-     - build-rpm
-     - upload
-    uses: ./.github/workflows/install-and-test-on-fedora44.yml
-    secrets: inherit
+      - name: Start a container running systemd
+        run: bash .github/scripts/start-systemd-container.sh "${{ matrix.image }}" linupdate-systemd
 
- # Rocky Linux
-  test-rockylinux9:
-    name: Install and test on Rocky Linux 9
-    needs:
-      - build-rpm
-      - upload
-    uses: ./.github/workflows/install-and-test-on-rockylinux9.yml
-    secrets: inherit
+      - name: Run package tests
+        env:
+          REPOSITORY_TEST_URL: ${{ secrets.REPOSITORY_TEST_URL }}
+          REPOSITORY_TEST_TOKEN: ${{ secrets.REPOSITORY_TEST_TOKEN }}
+        run: |
+          docker exec -e REPOSITORY_TEST_URL -e REPOSITORY_TEST_TOKEN linupdate-systemd \
+            bash /src/.github/scripts/run-package-tests.sh /src/packages/new/linupdate-test-build-${{ env.VERSION }}.noarch.rpm /src/packages/old
 
-  # No docker image available yet
-  # test-rockylinux10:
-
-  # Alma Linux
-  test-almalinux9:
-    name: Install and test on Alma Linux 9
-    needs:
-      - build-rpm
-      - upload
-    uses: ./.github/workflows/install-and-test-on-almalinux9.yml
-    secrets: inherit
-
-  test-almalinux10:
-    name: Install and test on Alma Linux 10
-    needs:
-      - build-rpm
-      - upload
-    uses: ./.github/workflows/install-and-test-on-almalinux10.yml
-    secrets: inherit
+      - name: Print the service journal
+        if: always()
+        run: docker exec linupdate-systemd journalctl -u linupdate --no-pager --all || true

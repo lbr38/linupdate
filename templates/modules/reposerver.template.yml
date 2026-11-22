@@ -13,5 +13,8 @@ client:
     remove_existing_repos: false
     format: standard
   verify_ssl: true
+  nat:
+    enabled: false
+    public_ip: ''
 reposerver:
   url: ''

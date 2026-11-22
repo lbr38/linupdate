@@ -42,11 +42,19 @@ jobs:
           cp ${GITHUB_WORKSPACE}/.github/workflows/packaging/deb/control /tmp/linupdate-build/DEBIAN/control
           sed -i "s/__VERSION__/${{ env.VERSION }}/g" /tmp/linupdate-build/DEBIAN/control
 
-      - name: Copy preinst and postinst script
+      - name: Copy maintainer scripts
         run: |
-          cp ${GITHUB_WORKSPACE}/.github/workflows/packaging/deb/preinst /tmp/linupdate-build/DEBIAN/preinst
-          cp ${GITHUB_WORKSPACE}/.github/workflows/packaging/deb/postinst /tmp/linupdate-build/DEBIAN/postinst
-          chmod 755 /tmp/linupdate-build/DEBIAN/preinst /tmp/linupdate-build/DEBIAN/postinst
+          for script in preinst postinst prerm postrm; do
+            cp ${GITHUB_WORKSPACE}/.github/workflows/packaging/deb/${script} /tmp/linupdate-build/DEBIAN/${script}
+            chmod 755 /tmp/linupdate-build/DEBIAN/${script}
+          done
+
+      # Changelog of the current version, from CHANGELOG.md (changelog.gz: name of the changelog of a native package)
+      - name: Generate changelog
+        run: |
+          mkdir -p /tmp/linupdate-build/usr/share/doc/linupdate
+          bash ${GITHUB_WORKSPACE}/.github/scripts/generate-changelog.sh deb /tmp/linupdate-changelog
+          gzip -9 -n -c /tmp/linupdate-changelog > /tmp/linupdate-build/usr/share/doc/linupdate/changelog.gz
 
       - name: Build package
         run: |
@@ -131,6 +139,10 @@ jobs:
           cp ${GITHUB_WORKSPACE}/.github/workflows/packaging/rpm/spec $HOME/rpmbuild/SPECS/linupdate.spec
           sed -i "s/__VERSION__/${{ env.VERSION }}/g" $HOME/rpmbuild/SPECS/linupdate.spec
 
+      # Changelog of the current version, from CHANGELOG.md
+      - name: Generate changelog
+        run: bash ${GITHUB_WORKSPACE}/.github/scripts/generate-changelog.sh rpm /tmp/linupdate-changelog && cat /tmp/linupdate-changelog >> $HOME/rpmbuild/SPECS/linupdate.spec
+
       - name: Build package
         run: |
           cd $HOME/rpmbuild/SPECS
@@ -171,6 +183,10 @@ jobs:
           name: linupdate-${{ env.VERSION }}.noarch.rpm
           path: ~/assets
 
+      # Release notes of the current version, from CHANGELOG.md
+      - name: Generate release notes
+        run: bash ${GITHUB_WORKSPACE}/.github/scripts/generate-changelog.sh md /tmp/release-notes.md
+
       # Create a new release
       - name: Create Release
         id: create_release
@@ -180,9 +196,7 @@ jobs:
         with:
           tag_name: ${{ env.VERSION }}
           release_name: ${{ env.VERSION }}
-          body: |
-            **Changes**:
-              - Improved the handling of the app locks
+          body_path: /tmp/release-notes.md
           draft: false
           prerelease: false
 

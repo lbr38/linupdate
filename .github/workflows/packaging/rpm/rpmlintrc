@@ -1,0 +1,13 @@
+# rpmlint errors accepted for the linupdate rpm package.
+# Any other rpmlint error fails the CI. Remove a filter once the packaging is fixed.
+
+# linupdate is installed in /opt/linupdate by design
+addFilter("E: dir-or-file-in-opt")
+
+# Only the restart request file of linupdate <= 3.17.4 (/tmp/linupdate.restart-needed) is checked
+addFilter("E: use-tmp-in-%pre")
+addFilter("E: use-tmp-in-%post")
+
+# Summary and description of the spec file
+addFilter("E: summary-too-long")
+addFilter("E: description-line-too-long")
