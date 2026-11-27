@@ -6,6 +6,12 @@ The section of the current version is used by the CI as the GitHub release notes
 (see .github/scripts/generate-changelog.sh). Format: "**Section**" lines followed by "- item" lines.
 -->
 
+## 3.17.6
+
+**Packages update**
+
+- Fixed conditional services reload/restart (service:package): the package pattern now matches the whole name of an updated package, with `*` as wildcard (legacy `.*` still supported)
+
 ## 3.17.5
 
 **Reposerver module**

@@ -10,11 +10,21 @@ from colorama import Fore, Style
 
 # Import classes
 from src.controllers.app.config import Config
+from src.controllers.package.package import Package
 
 class Service:
     """Reload or restart services after package updates."""
     def __init__(self) -> None:
         self.config = Config()
+
+    @staticmethod
+    def is_package_updated(pattern: str, updated_packages) -> bool:
+        """Return True if the package pattern of a conditional service (service:package) matches at least one updated package"""
+        # Same rule as package exclusions: the pattern must match the whole package name (e.g. 'php' does not match 'php-fpm'),
+        # the wildcard '*' matches any characters and the legacy regex syntax '.*' (still used by Repomanager) is supported
+        regex = Package.exclusion_regex([pattern])
+
+        return any(re.fullmatch(regex, name) for name in updated_packages)
 
     def reload(self, update_summary: list, dry_run: bool = False) -> None:
         """Reload services"""
@@ -47,11 +57,8 @@ class Service:
                 # Split service name and package name
                 service, package = service.split(':')
 
-                # Check if the package is in the list of updated packages
-                regex = f"(?:{'|'.join(updated_packages)})"
-
-                # If the package is not in the list of updated packages, skip the service
-                if not re.match(regex, package):
+                # If no updated package matches the package pattern, skip the service
+                if not self.is_package_updated(package, updated_packages):
                     continue
 
             # If dry-run is enabled, just print the service that would be reloaded
@@ -127,11 +134,8 @@ class Service:
                 # Split service name and package name
                 service, package = service.split(':')
 
-                # Check if the package is in the list of updated packages
-                regex = f"(?:{'|'.join(updated_packages)})"
-
-                # If the package is not in the list of updated packages, skip the service
-                if not re.match(regex, package):
+                # If no updated package matches the package pattern, skip the service
+                if not self.is_package_updated(package, updated_packages):
                     continue
 
             # If dry-run is enabled, just print the service that would be restarted
